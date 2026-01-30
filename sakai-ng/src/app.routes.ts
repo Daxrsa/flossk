@@ -10,7 +10,7 @@ import { HackerspacePresence } from '@/pages/dashboard/components/hackerspace-pr
 import { Settings } from '@/pages/dashboard/components/settings';
 import { Events } from '@/pages/dashboard/components/events';
 import { Announcements } from '@/pages/dashboard/components/announcements';
-import { Projects } from '@/pages/dashboard/components/projects';
+import { Projects } from '@/pages/dashboard/components/projects/projects.component';
 import { Profile } from '@/pages/dashboard/components/profile';
 import { Notifications } from '@/pages/dashboard/components/notifications';
 import { Statistics } from '@/pages/dashboard/components/statistics';
@@ -18,7 +18,7 @@ import { Leaderboard } from '@/pages/dashboard/components/leaderboard';
 import { MembershipApplicationForm } from '@/pages/dashboard/components/membership-application-form';
 import { authGuard } from '@/pages/service/auth.guard';
 import { ExternalMessages } from '@/pages/dashboard/components/external-messages';
-import { ProjectDetails } from '@/pages/dashboard/components/project-details';
+import { ProjectDetails } from '@/pages/dashboard/components/project-details/project-details';
 import { Payments } from '@/pages/dashboard/components/payments';
 import { Rent } from '@/pages/dashboard/components/rent';
 import { Onboarding } from '@/pages/dashboard/components/onboarding';

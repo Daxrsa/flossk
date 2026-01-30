@@ -1,0 +1,213 @@
+/* Projects Component Styles */
+
+:host {
+    display: block;
+}
+
+/* API Projects Card Styles */
+.projects {
+    .project-card {
+        transition: all 0.2s ease;
+        
+        &:hover {
+            transform: translateY(-2px);
+        }
+    }
+}
+
+/* Kanban Board Styles */
+.kanban-column {
+    min-height: 200px;
+    
+    &.drag-over {
+        background-color: var(--surface-100);
+    }
+}
+
+/* Project Card in Kanban */
+.project-card-kanban {
+    cursor: grab;
+    
+    &:active {
+        cursor: grabbing;
+    }
+    
+    &.dragging {
+        opacity: 0.5;
+    }
+}
+
+/* Objective Card Styles */
+.objective-card {
+    cursor: grab;
+    
+    &:active {
+        cursor: grabbing;
+    }
+    
+    &.dragging {
+        opacity: 0.5;
+    }
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Team Avatar Group */
+.team-avatars {
+    .p-avatar {
+        border: 2px solid var(--surface-0);
+        margin-left: -0.5rem;
+        
+        &:first-child {
+            margin-left: 0;
+        }
+    }
+}
+
+/* Progress Bar Customization */
+.progress-thin {
+    ::ng-deep .p-progressbar {
+        height: 6px;
+    }
+}
+
+/* GitHub Commits Section */
+.github-commits {
+    .commit-item {
+        transition: background-color 0.2s ease;
+        
+        &:hover {
+            background-color: var(--surface-100);
+        }
+    }
+    
+    .commit-message {
+        word-break: break-word;
+    }
+    
+    .commit-sha {
+        font-family: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
+    }
+}
+
+/* Dialog Customization */
+::ng-deep {
+    .p-dialog {
+        .p-dialog-content {
+            padding-bottom: 0;
+        }
+    }
+}
+
+/* Resource Cards */
+.resource-card {
+    transition: all 0.2s ease;
+    
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    a {
+        text-decoration: none;
+        
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+/* Member Assignment Chips */
+.member-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+    border-radius: 9999px;
+    background-color: var(--surface-100);
+    
+    .p-avatar {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
+
+/* Objective Status Colors */
+.objective-todo {
+    border-left: 3px solid var(--surface-400);
+}
+
+.objective-in-progress {
+    border-left: 3px solid var(--blue-500);
+}
+
+.objective-completed {
+    border-left: 3px solid var(--green-500);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .kanban-board {
+        flex-direction: column;
+        
+        .kanban-column {
+            width: 100%;
+        }
+    }
+    
+    .project-details {
+        .detail-sidebar {
+            order: -1;
+        }
+    }
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.loading-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Tooltip Customization */
+::ng-deep .p-tooltip {
+    .p-tooltip-text {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+/* Button Group in Cards */
+.card-actions {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.project-card:hover .card-actions,
+.objective-card:hover .card-actions {
+    opacity: 1;
+}
+
+/* Dark Mode Adjustments */
+:host-context(.dark) {
+    .member-chip {
+        background-color: var(--surface-800);
+    }
+    
+    .github-commits .commit-item:hover {
+        background-color: var(--surface-800);
+    }
+}
