@@ -49,7 +49,7 @@ interface Objective {
 
 export interface Project {
     id: number;
-    name: string;
+    title: string;
     description: string;
     status: 'upcoming' | 'in-progress' | 'completed';
     startDate: string;
@@ -155,7 +155,7 @@ interface GitHubRepo {
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="projectName" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Project Name</label>
-                    <input pInputText id="projectName" [(ngModel)]="currentProject.name" class="w-full" />
+                    <input pInputText id="projectName" [(ngModel)]="currentProject.title" class="w-full" />
                 </div>
                 
                 <div>
@@ -511,7 +511,7 @@ interface GitHubRepo {
                             <div *ngFor="let project of getProjectsByStatus('upcoming')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" (click)="selectProject(project)">
                                 <div class="flex justify-between items-start mb-3">
                                     <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
-                                        {{ project.name }}
+                                        {{ project.title }}
                                     </h4>
                                     <div class="flex justify-content-center align-content-end">
                                         <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
@@ -586,7 +586,7 @@ interface GitHubRepo {
                             <div *ngFor="let project of getProjectsByStatus('in-progress')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" (click)="selectProject(project)">
                                 <div class="flex justify-between items-start mb-3">
                                     <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
-                                        {{ project.name }}
+                                        {{ project.title }}
                                     </h4>
                                     <div class="flex justify-content-center align-content-end">
                                     <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
@@ -665,7 +665,7 @@ interface GitHubRepo {
                                 <div class="flex justify-between items-start mb-3">
                                     <div class="flex items-baseline gap-2 flex-1">
                                         <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
-                                            {{ project.name }}
+                                            {{ project.title }}
                                         </h4>
                                         <i class="pi pi-check-circle text-green-500 text-xl"></i>
                                     </div>
@@ -735,7 +735,7 @@ interface GitHubRepo {
             <!-- Project Details Modal/Section -->
             <div *ngIf="selectedProject" class="mt-8 border-t border-surface pt-8">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ selectedProject.name }}</h2>
+                    <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ selectedProject.title }}</h2>
                     <div class="flex gap-2">
                         <p-button label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
                         <p-button label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
@@ -1176,7 +1176,7 @@ export class Projects {
     projects: Project[] = [
         {
             id: 1,
-            name: 'Smart Home Automation System',
+            title: 'Smart Home Automation System',
             description: 'Develop an IoT-based home automation system using Arduino and Raspberry Pi to control lights, temperature, and security.',
             status: 'in-progress',
             startDate: 'Nov 1, 2025',
@@ -1248,7 +1248,7 @@ export class Projects {
         },
         {
             id: 2,
-            name: '3D Printer Upgrade Project',
+            title: '3D Printer Upgrade Project',
             description: 'Upgrade existing 3D printers with auto-leveling sensors and improved cooling systems.',
             status: 'in-progress',
             startDate: 'Dec 1, 2025',
@@ -1279,7 +1279,7 @@ export class Projects {
         },
         {
             id: 3,
-            name: 'Community Website Redesign',
+            title: 'Community Website Redesign',
             description: 'Redesign the FLOSSK community website with modern UI and improved user experience.',
             status: 'upcoming',
             startDate: 'Jan 15, 2026',
@@ -1310,7 +1310,7 @@ export class Projects {
         },
         {
             id: 4,
-            name: 'Robotics Competition Team',
+            title: 'Robotics Competition Team',
             description: 'Build and program a robot for the regional robotics competition in March 2026.',
             status: 'completed',
             startDate: 'Sep 1, 2025',
@@ -1342,7 +1342,7 @@ export class Projects {
         },
         {
             id: 4,
-            name: 'Create FLOSSK Management System',
+            title: 'Create FLOSSK Management System',
             description: 'Handles all NGO events including workshops, bootcamps, hackathons, speaking events, and meetups.',
             status: 'upcoming',
             startDate: 'Sep 1, 2025',
@@ -1476,7 +1476,7 @@ export class Projects {
     getEmptyProject(): Project {
         return {
             id: 0,
-            name: '',
+            title: '',
             description: '',
             status: 'upcoming',
             startDate: '',
@@ -1554,7 +1554,7 @@ export class Projects {
     
     confirmDeleteProject(project: Project) {
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
+            message: `Are you sure you want to delete "${project.title}"? This action cannot be undone.`,
             header: 'Delete Confirmation',
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',

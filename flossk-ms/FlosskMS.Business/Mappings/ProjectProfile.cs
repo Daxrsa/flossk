@@ -25,6 +25,9 @@ public class ProjectProfile : Profile
             .ForMember(dest => dest.CreatedByLastName, opt => opt.MapFrom(src => src.CreatedByUser.LastName))
             .ForMember(dest => dest.TeamMemberCount, opt => opt.MapFrom(src => src.TeamMembers.Count))
             .ForMember(dest => dest.ObjectiveCount, opt => opt.MapFrom(src => src.Objectives.Count))
+            .ForMember(dest => dest.TeamMembers, opt => opt.MapFrom(src => src.TeamMembers))
+            .ForMember(dest => dest.Objectives, opt => opt.MapFrom(src => src.Objectives))
+            .ForMember(dest => dest.Resources, opt => opt.MapFrom(src => src.Resources))
             .ForMember(dest => dest.ProgressPercentage, opt => opt.MapFrom(src => 
                 src.Objectives.Count == 0 ? 0 : src.Objectives.Average(o => o.ProgressPercentage)));
 

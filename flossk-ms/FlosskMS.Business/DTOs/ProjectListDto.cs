@@ -17,4 +17,9 @@ public class ProjectListDto
     public string CreatedByUserId { get; set; } = string.Empty;
     public string CreatedByFirstName { get; set; } = string.Empty;
     public string CreatedByLastName { get; set; } = string.Empty;
+    
+    // Collections
+    public List<TeamMemberDto> TeamMembers { get; set; } = [];
+    public List<ObjectiveDto> Objectives { get; set; } = [];
+    public List<ResourceDto> Resources { get; set; } = [];
 }

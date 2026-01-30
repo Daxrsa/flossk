@@ -1,7 +1,7 @@
 import { Component, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import SignaturePad from 'signature_pad';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
@@ -24,10 +24,11 @@ import { MembershipRequestsService } from '@/pages/service/membership-requests.s
         CardModule,
         DatePickerModule,
         TooltipModule,
-        MessageModule
+        MessageModule,
+        RouterLink
     ],
     template: ` 
-    <div class="flex items-center justify-center min-h-screen overflow-hidden p-4">
+    <div class="flex flex-col items-center justify-center min-h-screen overflow-hidden p-4">
         <div class="card w-full max-w-5xl">
             
             <h2 class="text-center text-3xl font-bold mb-6">Membership Application Form</h2>
@@ -301,6 +302,10 @@ import { MembershipRequestsService } from '@/pages/service/membership-requests.s
                 </div>
             </form>
         </div>
+        <a routerLink="/" class="flex items-center justify-center gap-2 text-primary hover:underline mt-6 text-sm font-medium">
+                <i class="pi pi-arrow-left"></i>
+                <span>Back home</span>
+            </a>
     </div>`
 })
 export class MembershipApplicationForm implements AfterViewInit {

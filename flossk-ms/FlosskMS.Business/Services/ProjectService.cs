@@ -70,6 +70,7 @@ public class ProjectService : IProjectService
             .Include(p => p.CreatedByUser)
             .Include(p => p.TeamMembers)
             .Include(p => p.Objectives)
+            .Include(p => p.Resources)
             .AsQueryable();
 
         var projects = await query
