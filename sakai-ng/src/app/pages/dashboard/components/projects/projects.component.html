@@ -10,16 +10,16 @@
         <div *ngFor="let project of apiProjects" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-xl p-5 hover:shadow-lg transition-all duration-200">
             <div class="flex items-start justify-between mb-3">
                 <h4 class="text-lg font-semibold text-surface-900 dark:text-surface-0 m-0">{{ project.title }}</h4>
-                <p-tag [value]="project.status" [severity]="project.status === 'Completed' ? 'success' : project.status === 'InProgress' ? 'info' : 'warn'"></p-tag>
+                <p-tag [value]="project.status" [severity]="project.status === 'Completed' ? 'success' : project.status === 'in-progress' ? 'info' : 'warn'"></p-tag>
             </div>
             <p class="text-surface-600 dark:text-surface-400 text-sm mb-4">{{ project.description }}</p>
             
             <div class="mb-3">
                 <div class="flex justify-between text-xs text-surface-500 dark:text-surface-400 mb-1">
                     <span>Progress</span>
-                    <span>{{ project.progressPercentage }}%</span>
+                    <span>{{ project.progress }}%</span>
                 </div>
-                <p-progressbar [value]="project.progressPercentage" [showValue]="false" [style]="{'height': '6px'}"></p-progressbar>
+                <p-progressbar [value]="project.progress" [showValue]="false" [style]="{'height': '6px'}"></p-progressbar>
             </div>
             
             <div class="flex flex-wrap gap-4 text-xs text-surface-500 dark:text-surface-400 mb-3">

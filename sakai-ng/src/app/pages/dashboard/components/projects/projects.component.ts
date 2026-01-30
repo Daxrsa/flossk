@@ -21,7 +21,7 @@ import { ConfirmationService } from 'primeng/api';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
 import { ProjectsService } from '../../../service/projects.service';
-import { GitHubCommit, Member, Objective, Project, Resource } from './interfaces';
+import { GitHubCommit, Member, Objective, Resource } from './interfaces';
 
 @Component({
     selector: 'app-projects',

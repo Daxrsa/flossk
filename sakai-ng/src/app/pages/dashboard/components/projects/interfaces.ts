@@ -31,6 +31,9 @@ export interface Project {
     startDate: string;
     endDate: string;
     progress: number;
+    objectiveCount: number;
+    teamMemberCount: number;
+    createdBy: Member;
     participants: Member[];
     objectives: Objective[];
     resources?: Resource[];
