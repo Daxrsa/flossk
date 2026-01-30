@@ -1,0 +1,22 @@
+using FlosskMS.Business.DTOs;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FlosskMS.Business.Services;
+
+public interface IAuthService
+{
+    Task<IActionResult> RegisterAsync(RegisterRequestDto request);
+    Task<IActionResult> LoginAsync(LoginRequestDto request);
+    Task<IActionResult> GetLoggedInUserAsync(string? userId);
+    Task<IActionResult> UpdateUserAsync(string? userId, UpdateUserDto request, IFormFile? profilePicture = null);
+    Task<IActionResult> DeleteProfilePictureAsync(string? userId);
+    Task<IActionResult> ApproveEmail(ApproveEmailRequestDto? request);
+    Task<IActionResult> SeedAdminAsync(RegisterRequestDto request);
+    Task<IActionResult> SeedUsersAsync();
+    Task<IActionResult> DeleteAllUsersAsync();
+    Task<IActionResult> GetAllUsersAsync(string? currentUserId, int page = 1, int pageSize = 10);
+    Task<IActionResult> GetUserByIdAsync(string userId);
+    Task<IActionResult> ToggleRFIDAsync(string userId);
+    Task<IActionResult> DeleteUserByIdAsync(string userId);
+}

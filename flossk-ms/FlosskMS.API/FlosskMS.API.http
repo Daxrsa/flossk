@@ -1,0 +1,6 @@
+@FlosskMS.API_HostAddress = http://localhost:5267
+
+GET {{FlosskMS.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

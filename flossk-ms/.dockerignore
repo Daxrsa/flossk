@@ -1,0 +1,32 @@
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.user
+*.suo
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+appsettings.Development.json
+
+# Test results
+TestResults/
+coverage/
+
+# Misc
+.DS_Store
+Thumbs.db

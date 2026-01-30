@@ -1,0 +1,32 @@
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Node
+node_modules/
+dist/
+.angular/
+.npm/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.DS_Store
+Thumbs.db

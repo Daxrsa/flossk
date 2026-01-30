@@ -1,0 +1,61 @@
+/* You can add global styles to this file, and also import other style files */
+@use './tailwind.css';
+@use './layout/layout.scss';
+@use 'primeicons/primeicons.css';
+@use './demo/demo.scss';
+
+
+p-paginator {
+    margin-top: 1rem !important;
+}
+
+.pi-steam {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-color: currentColor;
+    -webkit-mask-image: url('/assets/images/steam.svg');
+    mask-image: url('/assets/images/steam.svg');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+.pi-spotify {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-color: currentColor;
+    -webkit-mask-image: url('/assets/images/spotify.png');
+    mask-image: url('/assets/images/spotify.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+
+// Remove accordion bottom border
+p-accordion-panel {
+    border-bottom: none !important;
+    
+    .p-accordionpanel {
+        border-bottom: none !important;
+    }
+}
+
+.p-accordion-panel,
+.p-accordionpanel {
+    border-bottom: none !important;
+}
+
+// Force object-fit cover on p-avatar images
+p-avatar img,
+.p-avatar img {
+    object-fit: cover !important;
+}
