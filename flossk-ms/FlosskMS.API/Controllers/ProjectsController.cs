@@ -34,11 +34,9 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     /// Get all projects with pagination
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetProjects(
-        [FromQuery] string? status = null,
-        [FromQuery] string? search = null)
+    public async Task<IActionResult> GetProjects()
     {
-        return await _projectService.GetProjectsAsync(status, search);
+        return await _projectService.GetProjectsAsync();
     }
 
     /// <summary>

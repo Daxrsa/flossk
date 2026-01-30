@@ -7,7 +7,7 @@ public interface IProjectService
 {
     // Project operations
     Task<IActionResult> CreateProjectAsync(CreateProjectDto request, string userId);
-    Task<IActionResult> GetProjectsAsync(string? status = null, string? search = null);
+    Task<IActionResult> GetProjectsAsync();
     Task<IActionResult> GetProjectByIdAsync(Guid id);
     Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request);
     Task<IActionResult> DeleteProjectAsync(Guid id);

@@ -64,24 +64,13 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<ProjectDto>(project));
     }
 
-    public async Task<IActionResult> GetProjectsAsync(string? status = null, string? search = null)
+    public async Task<IActionResult> GetProjectsAsync()
     {
         var query = _dbContext.Projects
             .Include(p => p.CreatedByUser)
             .Include(p => p.TeamMembers)
             .Include(p => p.Objectives)
             .AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ProjectStatus>(status, true, out var statusEnum))
-        {
-            query = query.Where(p => p.Status == statusEnum);
-        }
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            query = query.Where(p => p.Title.ToLower().Contains(search.ToLower()) || 
-                                     p.Description.ToLower().Contains(search.ToLower()));
-        }
 
         var projects = await query
             .OrderByDescending(p => p.CreatedAt)
