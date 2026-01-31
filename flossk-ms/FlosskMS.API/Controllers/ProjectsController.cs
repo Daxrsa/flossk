@@ -69,6 +69,18 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         return await _projectService.DeleteProjectAsync(id);
     }
 
+    /// <summary>
+    /// Update project status (Admin only)
+    /// </summary>
+    /// <param name="id">Project ID</param>
+    /// <param name="status">New status: Upcoming, InProgress, or Completed</param>
+    [Authorize(Roles = "Admin")]
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> UpdateProjectStatus(Guid id, [FromQuery] string status)
+    {
+        return await _projectService.UpdateProjectStatusAsync(id, status);
+    }
+
     #endregion
 
     #region Project Team Member Endpoints
@@ -157,6 +169,18 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     public async Task<IActionResult> DeleteObjective(Guid id)
     {
         return await _projectService.DeleteObjectiveAsync(id);
+    }
+
+    /// <summary>
+    /// Update objective status (Admin only)
+    /// </summary>
+    /// <param name="id">Objective ID</param>
+    /// <param name="status">New status: Todo, InProgress, or Completed</param>
+    [Authorize(Roles = "Admin")]
+    [HttpPatch("objectives/{id:guid}/status")]
+    public async Task<IActionResult> UpdateObjectiveStatus(Guid id, [FromQuery] string status)
+    {
+        return await _projectService.UpdateObjectiveStatusAsync(id, status);
     }
 
     #endregion

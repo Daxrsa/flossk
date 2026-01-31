@@ -10,6 +10,7 @@ public interface IProjectService
     Task<IActionResult> GetProjectsAsync(string? status = null);
     Task<IActionResult> GetProjectByIdAsync(Guid id);
     Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request);
+    Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status);
     Task<IActionResult> DeleteProjectAsync(Guid id);
 
     // Project team member operations
@@ -22,6 +23,7 @@ public interface IProjectService
     Task<IActionResult> GetObjectiveByIdAsync(Guid id);
     Task<IActionResult> GetObjectivesByProjectIdAsync(Guid projectId);
     Task<IActionResult> UpdateObjectiveAsync(Guid id, UpdateObjectiveDto request);
+    Task<IActionResult> UpdateObjectiveStatusAsync(Guid id, string status);
     Task<IActionResult> DeleteObjectiveAsync(Guid id);
 
     // Objective team member operations

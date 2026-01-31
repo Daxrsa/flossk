@@ -164,6 +164,30 @@ public class ProjectService : IProjectService
         return new OkObjectResult(new { Message = "Project deleted successfully." });
     }
 
+    public async Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status)
+    {
+        var project = await _dbContext.Projects.FindAsync(id);
+        if (project == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Project not found." });
+        }
+
+        if (!Enum.TryParse<ProjectStatus>(status, true, out var projectStatus))
+        {
+            var validStatuses = string.Join(", ", Enum.GetNames<ProjectStatus>());
+            return new BadRequestObjectResult(new { Error = $"Invalid status '{status}'. Valid statuses are: {validStatuses}" });
+        }
+
+        project.Status = projectStatus;
+        project.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Project {ProjectId} status updated to {Status}", id, status);
+
+        return new OkObjectResult(new { Message = $"Project status updated to {projectStatus}." });
+    }
+
     #endregion
 
     #region Project Team Member Operations
@@ -383,6 +407,30 @@ public class ProjectService : IProjectService
         _logger.LogInformation("Objective {ObjectiveId} deleted", id);
 
         return new OkObjectResult(new { Message = "Objective deleted successfully." });
+    }
+
+    public async Task<IActionResult> UpdateObjectiveStatusAsync(Guid id, string status)
+    {
+        var objective = await _dbContext.Objectives.FindAsync(id);
+        if (objective == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Objective not found." });
+        }
+
+        if (!Enum.TryParse<ObjectiveStatus>(status, true, out var objectiveStatus))
+        {
+            var validStatuses = string.Join(", ", Enum.GetNames<ObjectiveStatus>());
+            return new BadRequestObjectResult(new { Error = $"Invalid status '{status}'. Valid statuses are: {validStatuses}" });
+        }
+
+        objective.Status = objectiveStatus;
+        objective.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Objective {ObjectiveId} status updated to {Status}", id, status);
+
+        return new OkObjectResult(new { Message = $"Objective status updated to {objectiveStatus}." });
     }
 
     #endregion
