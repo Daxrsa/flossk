@@ -92,11 +92,11 @@ interface GitHubRepo {
     template: `
         <p-confirmdialog></p-confirmdialog>
         
-        <!-- <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Project' : 'Edit Project'" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
+        <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Project' : 'Edit Project'" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="projectName" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Project Name</label>
-                    <input pInputText id="projectName" [(ngModel)]="currentProject.name" class="w-full" />
+                    <input pInputText id="projectName" [(ngModel)]="currentProject.title" class="w-full" />
                 </div>
                 
                 <div>
@@ -144,9 +144,9 @@ interface GitHubRepo {
             
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="dialogVisible = false" />
-                <p-button [label]="dialogMode === 'add' ? 'Create' : 'Save'" (onClick)="saveProject()" />
+                <p-button [label]="dialogMode === 'add' ? 'Create' : 'Save'" (onClick)="saveProject()" [disabled]="dialogMode === 'add' && !isProjectFormValid()" />
             </div>
-        </p-dialog> -->
+        </p-dialog>
         
         <!-- <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Objective' : 'Edit Objective'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
@@ -1415,6 +1415,15 @@ export class Projects {
         // Load current team member names
         this.selectedMemberNames = project.participants.map(p => p.name);
         this.dialogVisible = true;
+    }
+
+    isProjectFormValid(): boolean {
+        return !!(
+            this.currentProject.title?.trim() &&
+            this.currentProject.description?.trim() &&
+            this.startDate &&
+            this.endDate
+        );
     }
     
     saveProject() {
