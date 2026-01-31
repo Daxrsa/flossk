@@ -64,7 +64,7 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<ProjectDto>(project));
     }
 
-    public async Task<IActionResult> GetProjectsAsync()
+    public async Task<IActionResult> GetProjectsAsync(string? status = null)
     {
         var query = _dbContext.Projects
             .Include(p => p.CreatedByUser)
@@ -72,6 +72,16 @@ public class ProjectService : IProjectService
             .Include(p => p.Objectives)
             .Include(p => p.Resources)
             .AsQueryable();
+
+        if (!string.IsNullOrEmpty(status))
+        {
+            if (!Enum.TryParse<ProjectStatus>(status, true, out var projectStatus))
+            {
+                var validStatuses = string.Join(", ", Enum.GetNames<ProjectStatus>());
+                return new BadRequestObjectResult(new { Error = $"Invalid status '{status}'. Valid statuses are: {validStatuses}" });
+            }
+            query = query.Where(p => p.Status == projectStatus);
+        }
 
         var projects = await query
             .OrderByDescending(p => p.CreatedAt)

@@ -49,7 +49,7 @@ interface Objective {
 
 interface Project {
     id: number;
-    name: string;
+    title: string;
     description: string;
     status: 'upcoming' | 'in-progress' | 'completed';
     startDate: string;
@@ -92,7 +92,7 @@ interface GitHubRepo {
     template: `
         <p-confirmdialog></p-confirmdialog>
         
-        <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Project' : 'Edit Project'" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
+        <!-- <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Project' : 'Edit Project'" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="projectName" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Project Name</label>
@@ -146,9 +146,9 @@ interface GitHubRepo {
                 <p-button label="Cancel" severity="secondary" (onClick)="dialogVisible = false" />
                 <p-button [label]="dialogMode === 'add' ? 'Create' : 'Save'" (onClick)="saveProject()" />
             </div>
-        </p-dialog>
+        </p-dialog> -->
         
-        <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Objective' : 'Edit Objective'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
+        <!-- <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Objective' : 'Edit Objective'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="objectiveTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
@@ -181,10 +181,10 @@ interface GitHubRepo {
                 <p-button label="Cancel" severity="secondary" (onClick)="objectiveDialogVisible = false" />
                 <p-button [label]="objectiveDialogMode === 'add' ? 'Create' : 'Save'" (onClick)="saveObjective()" />
             </div>
-        </p-dialog>
+        </p-dialog> -->
         
         <!-- Resource Dialog -->
-        <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource' : 'Edit Resource'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
+        <!-- <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource' : 'Edit Resource'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="resourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
@@ -211,12 +211,12 @@ interface GitHubRepo {
                 <p-button label="Cancel" severity="secondary" (onClick)="resourceDialogVisible = false" />
                 <p-button [label]="resourceDialogMode === 'add' ? 'Add' : 'Save'" (onClick)="saveResource()" />
             </div>
-        </p-dialog>
+        </p-dialog> -->
         
         <!-- Objective Detail Dialog -->
         <p-dialog [(visible)]="objectiveDetailDialogVisible" [header]="viewingObjective?.title" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '80vh', 'overflow': 'auto'}" appendTo="body" [maximizable]="true">
             <div *ngIf="viewingObjective" class="flex flex-col gap-5">
-                <!-- Status and Progress -->
+                <!-- Status and Progress
                 <div class="flex items-center justify-between">
                     <p-tag 
                         [value]="viewingObjective.status === 'todo' ? 'To Do' : viewingObjective.status === 'in-progress' ? 'In Progress' : 'Completed'" 
@@ -232,18 +232,18 @@ interface GitHubRepo {
                             <span class="font-semibold">{{ viewingObjective.progress }}%</span>
                         </div>
                     </div>
-                </div>
+                </div> -->
                 
                 <!-- Description -->
-                <div>
+                <!-- <div>
                     <h6 class="text-sm font-semibold text-muted-color mb-2 tracking-wide">Description</h6>
                     <p class="text-surface-700 dark:text-surface-300 leading-relaxed m-0">{{ viewingObjective.description || 'No description provided.' }}</p>
-                </div>
+                </div> -->
                 
                 <p-divider></p-divider>
                 
                 <!-- Team Members -->
-                <div>
+                <!-- <div>
                     <div class="flex justify-between items-center mb-3">
                         <h6 class="text-sm font-semibold text-muted-color m-0 tracking-wide">Team Members</h6>
                         <p-button icon="pi pi-user-plus" label="Assign Members" size="small" [text]="true" (onClick)="openAssignMembersToObjectiveFromDetail()" />
@@ -262,12 +262,12 @@ interface GitHubRepo {
                         <i class="pi pi-users text-2xl mb-2"></i>
                         <p class="m-0">No team members assigned yet</p>
                     </div>
-                </div>
+                </div> -->
                 
                 <p-divider></p-divider>
                 
                 <!-- Resources -->
-                <div>
+                <!-- <div>
                     <div class="flex justify-between items-center mb-3">
                         <h6 class="text-sm font-semibold text-muted-color m-0 tracking-wide">Resources</h6>
                         <p-button icon="pi pi-plus" label="Add Resource" size="small" [text]="true" (onClick)="openAddObjectiveResourceDialog()" />
@@ -295,10 +295,10 @@ interface GitHubRepo {
                         <i class="pi pi-link text-2xl mb-2"></i>
                         <p class="m-0">No resources added yet</p>
                     </div>
-                </div>
+                </div> -->
             </div>
             
-            <div class="flex justify-between gap-2 mt-6">
+            <!-- <div class="flex justify-between gap-2 mt-6">
                 <div class="flex gap-2">
                     @if (viewingObjective && !isUserInObjective(viewingObjective)) {
                         <p-button label="Join Objective" icon="pi pi-user-plus" [outlined]="true" (onClick)="joinObjectiveFromDetail()" />
@@ -310,10 +310,10 @@ interface GitHubRepo {
                     <p-button label="Edit" icon="pi pi-pencil" severity="secondary" (onClick)="editObjectiveFromDetail()" />
                     <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="objectiveDetailDialogVisible = false" />
                 </div>
-            </div>
+            </div> -->
         </p-dialog>
         
-        <!-- Objective Resource Dialog -->
+        <!-- Objective Resource Dialog
         <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Objective' : 'Edit Resource'" [modal]="true" [style]="{width: '35rem'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
@@ -341,9 +341,9 @@ interface GitHubRepo {
                 <p-button label="Cancel" severity="secondary" (onClick)="objectiveResourceDialogVisible = false" />
                 <p-button [label]="objectiveResourceDialogMode === 'add' ? 'Add' : 'Save'" (onClick)="saveObjectiveResource()" />
             </div>
-        </p-dialog>
+        </p-dialog> -->
         
-        <!-- Assign Members to Project Dialog -->
+        <!-- Assign Members to Project Dialog
         <p-dialog [(visible)]="assignMembersToProjectDialogVisible" header="Assign Members to Project" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
@@ -386,9 +386,9 @@ interface GitHubRepo {
                 <p-button label="Cancel" severity="secondary" (onClick)="assignMembersToProjectDialogVisible = false" />
                 <p-button label="Save" (onClick)="saveProjectMembers()" />
             </div>
-        </p-dialog>
+        </p-dialog> -->
         
-        <!-- Assign Members to Objective Dialog -->
+        <!-- Assign Members to Objective Dialog
         <p-dialog [(visible)]="assignMembersToObjectiveDialogVisible" [header]="'Assign Members to: ' + (assigningObjective?.title || '')" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
@@ -432,7 +432,7 @@ interface GitHubRepo {
                 <p-button label="Cancel" severity="secondary" (onClick)="assignMembersToObjectiveDialogVisible = false" />
                 <p-button label="Save" (onClick)="saveObjectiveMembers()" />
             </div>
-        </p-dialog>
+        </p-dialog> -->
         
         <div class="card">
             <div class="flex justify-end items-center mb-6">
@@ -452,7 +452,7 @@ interface GitHubRepo {
                             <div *ngFor="let project of getProjectsByStatus('upcoming')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" (click)="selectProject(project)">
                                 <div class="flex justify-between items-start mb-3">
                                     <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
-                                        {{ project.name }}
+                                        {{ project.title }}
                                     </h4>
                                     <div class="flex justify-content-center align-content-end">
                                         <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
@@ -527,7 +527,7 @@ interface GitHubRepo {
                             <div *ngFor="let project of getProjectsByStatus('in-progress')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" (click)="selectProject(project)">
                                 <div class="flex justify-between items-start mb-3">
                                     <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
-                                        {{ project.name }}
+                                        {{ project.title }}
                                     </h4>
                                     <div class="flex justify-content-center align-content-end">
                                     <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
@@ -606,7 +606,7 @@ interface GitHubRepo {
                                 <div class="flex justify-between items-start mb-3">
                                     <div class="flex items-baseline gap-2 flex-1">
                                         <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
-                                            {{ project.name }}
+                                            {{ project.title }}
                                         </h4>
                                         <i class="pi pi-check-circle text-green-500 text-xl"></i>
                                     </div>
@@ -676,7 +676,7 @@ interface GitHubRepo {
             <!-- Project Details Modal/Section -->
             <div *ngIf="selectedProject" class="mt-8 border-t border-surface pt-8">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ selectedProject.name }}</h2>
+                    <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ selectedProject.title }}</h2>
                     <div class="flex gap-2">
                         <p-button label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
                         <p-button label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
@@ -855,7 +855,7 @@ interface GitHubRepo {
                     </div>
 
                     <div class="col-span-12 lg:col-span-4">
-                        <div class="mb-6">
+                        <!-- <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold m-0">Team Members</h3>
                                 <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" pTooltip="Assign Members" (onClick)="openAssignMembersToProjectDialog()" />
@@ -874,9 +874,9 @@ interface GitHubRepo {
                                     <p class="m-0">No team members assigned yet</p>
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
                         
-                        <div class="mb-6">
+                        <!-- <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold m-0">Resources</h3>
                                 <p-button icon="pi pi-plus" size="small" [text]="true" [rounded]="true" (onClick)="openAddResourceDialog()" />
@@ -902,11 +902,11 @@ interface GitHubRepo {
                                     No resources added yet
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
 
                         <!-- GitHub Commits Section -->
                         <div *ngIf="selectedProject.githubRepo">
-                            <div class="flex justify-between items-center mb-4">
+                            <!-- <div class="flex justify-between items-center mb-4">
                                 <div class="flex flex-col">
                                     <h3 class="text-lg font-semibold m-0 flex items-baseline gap-2">
                                         <i style="font-size: 1.5rem" class="pi pi-github text-xl"></i>
@@ -935,20 +935,20 @@ interface GitHubRepo {
                                         />
                                     </a>
                                 </div>
-                            </div>
+                            </div> -->
 
                             <div class="flex flex-col gap-2">
-                                <div *ngIf="isLoadingGithubCommits(selectedProject.id)" class="text-center text-muted-color text-sm py-4">
+                                <!-- <div *ngIf="isLoadingGithubCommits(selectedProject.id)" class="text-center text-muted-color text-sm py-4">
                                     <i class="pi pi-spin pi-spinner"></i> Loading commits...
-                                </div>
+                                </div> -->
 
-                                <div *ngIf="getGithubError(selectedProject.id)" class="text-center text-red-500 text-sm py-4">
+                                <!-- <div *ngIf="getGithubError(selectedProject.id)" class="text-center text-red-500 text-sm py-4">
                                     <i class="pi pi-exclamation-triangle"></i>
                                     {{ getGithubError(selectedProject.id) }}
-                                </div>
+                                </div> -->
 
                                 <div *ngIf="!isLoadingGithubCommits(selectedProject.id) && !getGithubError(selectedProject.id)">
-                                    <div *ngFor="let commit of getGithubCommits(selectedProject.id)" class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
+                                    <!-- <div *ngFor="let commit of getGithubCommits(selectedProject.id)" class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
                                         <div class="flex items-start gap-3">
                                             <p-avatar 
                                                 *ngIf="commit.author?.avatar_url; else defaultAvatar"
@@ -979,10 +979,10 @@ interface GitHubRepo {
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> -->
 
                                     <!-- Load More Button -->
-                                    <div *ngIf="getGithubCommits(selectedProject.id).length > 0 && hasMoreCommits(selectedProject.id)" class="text-center py-3">
+                                    <!-- <div *ngIf="getGithubCommits(selectedProject.id).length > 0 && hasMoreCommits(selectedProject.id)" class="text-center py-3">
                                         <p-button 
                                             label="Load More Commits" 
                                             icon="pi pi-chevron-down" 
@@ -991,15 +991,15 @@ interface GitHubRepo {
                                             [loading]="isLoadingMoreCommits(selectedProject.id)"
                                             (onClick)="loadMoreCommits(selectedProject)"
                                         />
-                                    </div>
+                                    </div> -->
 
                                     <!-- Loading More Indicator -->
-                                    <div *ngIf="isLoadingMoreCommits(selectedProject.id)" class="text-center text-muted-color text-sm py-3">
+                                    <!-- <div *ngIf="isLoadingMoreCommits(selectedProject.id)" class="text-center text-muted-color text-sm py-3">
                                         <i class="pi pi-spin pi-spinner"></i> Loading more commits...
-                                    </div>
+                                    </div> -->
 
                                     <!-- No commits found -->
-                                    <div *ngIf="getGithubCommits(selectedProject.id).length === 0 && !isLoadingGithubCommits(selectedProject.id) && !getGithubError(selectedProject.id)" class="text-center text-muted-color text-sm py-4">
+                                    <!-- <div *ngIf="getGithubCommits(selectedProject.id).length === 0 && !isLoadingGithubCommits(selectedProject.id) && !getGithubError(selectedProject.id)" class="text-center text-muted-color text-sm py-4">
                                         <p-button 
                                             label="Load Commits" 
                                             icon="pi pi-github" 
@@ -1007,12 +1007,12 @@ interface GitHubRepo {
                                             [outlined]="true"
                                             (onClick)="loadGithubCommits(selectedProject)"
                                         />
-                                    </div>
+                                    </div> -->
 
                                     <!-- End of commits indicator -->
-                                    <div *ngIf="getGithubCommits(selectedProject.id).length > 0 && !hasMoreCommits(selectedProject.id)" class="text-center text-muted-color text-xs py-2">
+                                    <!-- <div *ngIf="getGithubCommits(selectedProject.id).length > 0 && !hasMoreCommits(selectedProject.id)" class="text-center text-muted-color text-xs py-2">
                                         <i class="pi pi-check-circle"></i> All commits loaded
-                                    </div>
+                                    </div> -->
                                 </div>
                             </div>
                         </div>
@@ -1028,7 +1028,41 @@ export class Projects {
         private http: HttpClient,
         private projectsService: ProjectsService
     ) {
-        this.projectsService.getProjects();
+        this.loadProjectsByStatus();
+    }
+
+    // Projects loaded from API by status
+    upcomingProjects: Project[] = [];
+    inProgressProjects: Project[] = [];
+    completedProjects: Project[] = [];
+    isLoading = false;
+
+    loadProjectsByStatus() {
+        this.isLoading = true;
+        
+        // Load upcoming projects
+        this.projectsService.getProjects('Upcoming').subscribe({
+            next: (projects) => this.upcomingProjects = projects,
+            error: (err) => console.error('Error loading upcoming projects:', err)
+        });
+
+        // Load in-progress projects
+        this.projectsService.getProjects('InProgress').subscribe({
+            next: (projects) => this.inProgressProjects = projects,
+            error: (err) => console.error('Error loading in-progress projects:', err)
+        });
+
+        // Load completed projects
+        this.projectsService.getProjects('Completed').subscribe({
+            next: (projects) => {
+                this.completedProjects = projects;
+                this.isLoading = false;
+            },
+            error: (err) => {
+                console.error('Error loading completed projects:', err);
+                this.isLoading = false;
+            }
+        });
     }
     
     // Current logged-in user
@@ -1104,219 +1138,17 @@ export class Projects {
         { label: 'Other', value: 'other' }
     ];
 
-    projects: Project[] = [
-        {
-            id: 1,
-            name: 'Smart Home Automation System',
-            description: 'Develop an IoT-based home automation system using Arduino and Raspberry Pi to control lights, temperature, and security.',
-            status: 'in-progress',
-            startDate: 'Nov 1, 2025',
-            endDate: 'Feb 28, 2026',
-            progress: 65,
-            participants: [
-                { name: 'Amy Elsner', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png', role: 'Project Lead' },
-                { name: 'Bernardo Dominic', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png', role: 'Hardware Engineer' },
-                { name: 'Anna Fali', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/annafali.png', role: 'Software Developer' },
-                { name: 'Asiya Javayant', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png', role: 'UI/UX Designer' }
-            ],
-            objectives: [
-                {
-                    id: 1,
-                    title: 'Circuit Design & Hardware Setup',
-                    description: 'Design and assemble the circuit board with sensors and actuators',
-                    status: 'completed',
-                    assignedTo: { name: 'Bernardo Dominic', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png', role: 'Hardware Engineer' },
-                    progress: 100
-                },
-                {
-                    id: 2,
-                    title: 'Backend API Development',
-                    description: 'Create RESTful API for device control and monitoring',
-                    status: 'in-progress',
-                    assignedTo: { name: 'Anna Fali', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/annafali.png', role: 'Software Developer' },
-                    progress: 70
-                },
-                {
-                    id: 3,
-                    title: 'Mobile App UI Design',
-                    description: 'Design user-friendly mobile interface for system control',
-                    status: 'in-progress',
-                    assignedTo: { name: 'Asiya Javayant', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png', role: 'UI/UX Designer' },
-                    progress: 50
-                },
-                {
-                    id: 4,
-                    title: 'System Integration & Testing',
-                    description: 'Integrate all components and perform end-to-end testing',
-                    status: 'todo',
-                    assignedTo: { name: 'Amy Elsner', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png', role: 'Project Lead' },
-                    progress: 0
-                }
-            ],
-            resources: [
-                {
-                    id: 1,
-                    title: 'Arduino Home Automation Guide',
-                    url: 'https://www.arduino.cc/en/Tutorial/HomePage',
-                    description: 'Official Arduino tutorials for IoT projects',
-                    type: 'tutorial'
-                },
-                {
-                    id: 2,
-                    title: 'MQTT Protocol Documentation',
-                    url: 'https://mqtt.org/documentation',
-                    description: 'Communication protocol for IoT devices',
-                    type: 'documentation'
-                },
-                {
-                    id: 3,
-                    title: 'Home Assistant Integration',
-                    url: 'https://www.home-assistant.io/',
-                    description: 'Open source home automation platform',
-                    type: 'tool'
-                }
-            ]
-        },
-        {
-            id: 2,
-            name: '3D Printer Upgrade Project',
-            description: 'Upgrade existing 3D printers with auto-leveling sensors and improved cooling systems.',
-            status: 'in-progress',
-            startDate: 'Dec 1, 2025',
-            endDate: 'Jan 15, 2026',
-            progress: 40,
-            participants: [
-                { name: 'Elwin Sharvill', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png', role: 'Lead Engineer' },
-                { name: 'Ioni Bowcher', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png', role: 'Technician' }
-            ],
-            objectives: [
-                {
-                    id: 1,
-                    title: 'Install Auto-Leveling Sensors',
-                    description: 'Add BLTouch sensors to all printers',
-                    status: 'in-progress',
-                    assignedTo: { name: 'Elwin Sharvill', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png', role: 'Lead Engineer' },
-                    progress: 60
-                },
-                {
-                    id: 2,
-                    title: 'Upgrade Cooling Systems',
-                    description: 'Replace fans with high-performance cooling solution',
-                    status: 'todo',
-                    assignedTo: { name: 'Ioni Bowcher', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png', role: 'Technician' },
-                    progress: 20
-                }
-            ]
-        },
-        {
-            id: 3,
-            name: 'Community Website Redesign',
-            description: 'Redesign the FLOSSK community website with modern UI and improved user experience.',
-            status: 'upcoming',
-            startDate: 'Jan 15, 2026',
-            endDate: 'Mar 30, 2026',
-            progress: 0,
-            participants: [
-                { name: 'Asiya Javayant', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png', role: 'Lead Designer' },
-                { name: 'Anna Fali', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/annafali.png', role: 'Frontend Developer' }
-            ],
-            objectives: [
-                {
-                    id: 1,
-                    title: 'Requirements Gathering',
-                    description: 'Collect feedback and requirements from community members',
-                    status: 'todo',
-                    assignedTo: { name: 'Asiya Javayant', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png', role: 'Lead Designer' },
-                    progress: 0
-                },
-                {
-                    id: 2,
-                    title: 'UI/UX Design',
-                    description: 'Create wireframes and high-fidelity mockups',
-                    status: 'completed',
-                    assignedTo: { name: 'Asiya Javayant', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png', role: 'Lead Designer' },
-                    progress: 0
-                }
-            ]
-        },
-        {
-            id: 4,
-            name: 'Robotics Competition Team',
-            description: 'Build and program a robot for the regional robotics competition in March 2026.',
-            status: 'completed',
-            startDate: 'Sep 1, 2025',
-            endDate: 'Nov 30, 2025',
-            progress: 100,
-            participants: [
-                { name: 'Bernardo Dominic', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png', role: 'Team Captain' },
-                { name: 'Amy Elsner', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png', role: 'Programmer' },
-                { name: 'Elwin Sharvill', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png', role: 'Mechanical Engineer' }
-            ],
-            objectives: [
-                {
-                    id: 1,
-                    title: 'Robot Design & Build',
-                    description: 'Design and construct the robot chassis and mechanisms',
-                    status: 'completed',
-                    assignedTo: { name: 'Elwin Sharvill', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png', role: 'Mechanical Engineer' },
-                    progress: 100
-                },
-                {
-                    id: 2,
-                    title: 'Programming & Testing',
-                    description: 'Write control software and test robot performance',
-                    status: 'completed',
-                    assignedTo: { name: 'Amy Elsner', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png', role: 'Programmer' },
-                    progress: 100
-                }
-            ]
-        },
-        {
-            id: 4,
-            name: 'Create FLOSSK Management System',
-            description: 'Handles all NGO events including workshops, bootcamps, hackathons, speaking events, and meetups.',
-            status: 'upcoming',
-            startDate: 'Sep 1, 2025',
-            endDate: 'Nov 30, 2025',
-            progress: 100,
-            githubRepo: 'Daxrsa/sakai-ng',
-            participants: [
-                { name: 'Bernardo Dominic', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png', role: 'Team Captain' },
-                { name: 'Amy Elsner', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png', role: 'Programmer' },
-                { name: 'Elwin Sharvill', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png', role: 'Mechanical Engineer' }
-            ],
-            objectives: [
-                {
-                    id: 1,
-                    title: 'Create Frontend',
-                    description: 'Create a responsive dashboard',
-                    status: 'in-progress',
-                    assignedTo: { name: 'Elwin Sharvill', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png', role: 'Mechanical Engineer' },
-                    progress: 40
-                },
-                {
-                    id: 2,
-                    title: 'Create Backend',
-                    description: 'Create a REST API for handling requests',
-                    status: 'todo',
-                    assignedTo: { name: 'Amy Elsner', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png', role: 'Programmer' },
-                    progress: 0
-                }
-            ],
-            resources: [
-                {
-                    id: 1,
-                    title: 'FLOSSK Management System Requirements',
-                    url: 'https://docs.google.com/document/d/1TQnmEBGvfp3RGmQpFvrh2fJIs3a49xb18ECVs_x0XXY/edit?tab=t.0',
-                    description: 'Project requirements and specifications document',
-                    type: 'documentation'
-                }
-            ]
-        }
-    ];
-
     getProjectsByStatus(status: string): Project[] {
-        return this.projects.filter(p => p.status === status);
+        switch (status) {
+            case 'upcoming':
+                return this.upcomingProjects;
+            case 'in-progress':
+                return this.inProgressProjects;
+            case 'completed':
+                return this.completedProjects;
+            default:
+                return [];
+        }
     }
 
     getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'secondary' {
@@ -1351,30 +1183,7 @@ export class Projects {
     }
 
     onDropObjective(event: any, newStatus: 'todo' | 'in-progress' | 'completed') {
-        if (this.draggedObjective && this.selectedProject) {
-            const objective = this.selectedProject.objectives.find(o => o.id === this.draggedObjective!.id);
-            if (objective && objective.status !== newStatus) {
-                objective.status = newStatus;
-                
-                // Update progress based on status
-                if (newStatus === 'todo') {
-                    objective.progress = 0;
-                } else if (newStatus === 'completed') {
-                    objective.progress = 100;
-                }
-                // For 'in-progress', keep the current progress or set to 50 if coming from todo
-                if (newStatus === 'in-progress' && objective.progress === 0) {
-                    objective.progress = 50;
-                }
-                
-                // Update the project in the main projects array
-                const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-                if (projectIndex !== -1) {
-                    this.projects[projectIndex] = this.selectedProject;
-                }
-            }
-            this.draggedObjective = null;
-        }
+        return;
     }
 
     dragStart(project: Project) {
@@ -1386,28 +1195,13 @@ export class Projects {
     }
 
     onDrop(event: any, newStatus: 'upcoming' | 'in-progress' | 'completed') {
-        if (this.draggedProject) {
-            // Update the project status
-            const project = this.projects.find(p => p.id === this.draggedProject!.id);
-            if (project && project.status !== newStatus) {
-                project.status = newStatus;
-
-                // Update progress based on status
-                if (newStatus === 'upcoming') {
-                    project.progress = 0;
-                } else if (newStatus === 'completed') {
-                    project.progress = 100;
-                }
-                // For 'in-progress', keep the current progress
-            }
-            this.draggedProject = null;
-        }
+       return;
     }
     
     getEmptyProject(): Project {
         return {
             id: 0,
-            name: '',
+            title: '',
             description: '',
             status: 'upcoming',
             startDate: '',
@@ -1444,48 +1238,12 @@ export class Projects {
     }
     
     saveProject() {
-        // Format dates
-        if (this.startDate) {
-            this.currentProject.startDate = this.formatDate(this.startDate);
-        }
-        if (this.endDate) {
-            this.currentProject.endDate = this.formatDate(this.endDate);
-        }
-        
-        // Convert selected member names to participants
-        this.currentProject.participants = this.availableMembers.filter(m => 
-            this.selectedMemberNames.includes(m.name)
-        );
-        
-        if (this.dialogMode === 'add') {
-            // Generate new ID
-            const maxId = this.projects.length > 0 
-                ? Math.max(...this.projects.map(p => p.id)) 
-                : 0;
-            this.currentProject.id = maxId + 1;
-            this.currentProject.status = 'upcoming';
-            this.currentProject.progress = 0;
-            this.currentProject.objectives = [];
-            this.projects.push(this.currentProject);
-        } else {
-            // Update existing project
-            const index = this.projects.findIndex(p => p.id === this.currentProject.id);
-            if (index !== -1) {
-                // Update progress based on status if status changed
-                if (this.currentProject.status === 'upcoming') {
-                    this.currentProject.progress = 0;
-                } else if (this.currentProject.status === 'completed') {
-                    this.currentProject.progress = 100;
-                }
-                this.projects[index] = this.currentProject;
-            }
-        }
-        this.dialogVisible = false;
+       return;
     }
     
     confirmDeleteProject(project: Project) {
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
+            message: `Are you sure you want to delete "${project.title}"? This action cannot be undone.`,
             header: 'Delete Confirmation',
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
@@ -1496,11 +1254,7 @@ export class Projects {
     }
     
     deleteProject(project: Project) {
-        this.projects = this.projects.filter(p => p.id !== project.id);
-        // Close details if the deleted project was selected
-        if (this.selectedProject?.id === project.id) {
-            this.selectedProject = null;
-        }
+       return;
     }
     
     getEmptyObjective(): Objective {
@@ -1531,33 +1285,7 @@ export class Projects {
     }
     
     saveObjective() {
-        if (!this.selectedProject) return;
-        
-        // Convert selected member names to Member objects
-        this.currentObjective.members = this.availableMembers.filter(m => 
-            this.selectedObjectiveMemberNames.includes(m.name)
-        );
-        
-        if (this.objectiveDialogMode === 'add') {
-            const maxId = this.selectedProject.objectives.length > 0
-                ? Math.max(...this.selectedProject.objectives.map(o => o.id))
-                : 0;
-            this.currentObjective.id = maxId + 1;
-            this.selectedProject.objectives.push(this.currentObjective);
-        } else {
-            const index = this.selectedProject.objectives.findIndex(o => o.id === this.currentObjective.id);
-            if (index !== -1) {
-                this.selectedProject.objectives[index] = this.currentObjective;
-            }
-        }
-        
-        // Update the project in the main projects array
-        const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-        if (projectIndex !== -1) {
-            this.projects[projectIndex] = this.selectedProject;
-        }
-        
-        this.objectiveDialogVisible = false;
+        return;
     }
     
     confirmDeleteObjective(objective: Objective) {
@@ -1573,14 +1301,7 @@ export class Projects {
     }
     
     deleteObjective(objective: Objective) {
-        if (!this.selectedProject) return;
-        this.selectedProject.objectives = this.selectedProject.objectives.filter(o => o.id !== objective.id);
-        
-        // Update the project in the main projects array
-        const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-        if (projectIndex !== -1) {
-            this.projects[projectIndex] = this.selectedProject;
-        }
+        return;
     }
     
     isUserMember(project: Project): boolean {
@@ -1623,32 +1344,7 @@ export class Projects {
     }
     
     saveResource() {
-        if (!this.selectedProject) return;
-        
-        if (!this.selectedProject.resources) {
-            this.selectedProject.resources = [];
-        }
-        
-        if (this.resourceDialogMode === 'add') {
-            const maxId = this.selectedProject.resources.length > 0
-                ? Math.max(...this.selectedProject.resources.map(r => r.id))
-                : 0;
-            this.currentResource.id = maxId + 1;
-            this.selectedProject.resources.push(this.currentResource);
-        } else {
-            const index = this.selectedProject.resources.findIndex(r => r.id === this.currentResource.id);
-            if (index !== -1) {
-                this.selectedProject.resources[index] = this.currentResource;
-            }
-        }
-        
-        // Update the project in the main projects array
-        const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-        if (projectIndex !== -1) {
-            this.projects[projectIndex] = this.selectedProject;
-        }
-        
-        this.resourceDialogVisible = false;
+       return;
     }
     
     confirmDeleteResource(resource: Resource) {
@@ -1664,14 +1360,7 @@ export class Projects {
     }
     
     deleteResource(resource: Resource) {
-        if (!this.selectedProject || !this.selectedProject.resources) return;
-        this.selectedProject.resources = this.selectedProject.resources.filter(r => r.id !== resource.id);
-        
-        // Update the project in the main projects array
-        const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-        if (projectIndex !== -1) {
-            this.projects[projectIndex] = this.selectedProject;
-        }
+       return;
     }
     
     isUserInObjective(objective: Objective): boolean {
@@ -1725,38 +1414,7 @@ export class Projects {
     }
     
     saveObjectiveResource() {
-        if (!this.viewingObjective || !this.selectedProject) return;
-        
-        if (!this.viewingObjective.resources) {
-            this.viewingObjective.resources = [];
-        }
-        
-        if (this.objectiveResourceDialogMode === 'add') {
-            const maxId = this.viewingObjective.resources.length > 0
-                ? Math.max(...this.viewingObjective.resources.map(r => r.id))
-                : 0;
-            this.currentObjectiveResource.id = maxId + 1;
-            this.viewingObjective.resources.push({ ...this.currentObjectiveResource });
-        } else {
-            const index = this.viewingObjective.resources.findIndex(r => r.id === this.currentObjectiveResource.id);
-            if (index !== -1) {
-                this.viewingObjective.resources[index] = { ...this.currentObjectiveResource };
-            }
-        }
-        
-        // Update the objective in the project
-        const objectiveIndex = this.selectedProject.objectives.findIndex(o => o.id === this.viewingObjective!.id);
-        if (objectiveIndex !== -1) {
-            this.selectedProject.objectives[objectiveIndex] = this.viewingObjective;
-        }
-        
-        // Update the project in the main projects array
-        const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-        if (projectIndex !== -1) {
-            this.projects[projectIndex] = this.selectedProject;
-        }
-        
-        this.objectiveResourceDialogVisible = false;
+       return;
     }
     
     confirmDeleteObjectiveResource(resource: Resource) {
@@ -1772,20 +1430,7 @@ export class Projects {
     }
     
     deleteObjectiveResource(resource: Resource) {
-        if (!this.viewingObjective || !this.viewingObjective.resources || !this.selectedProject) return;
-        this.viewingObjective.resources = this.viewingObjective.resources.filter(r => r.id !== resource.id);
-        
-        // Update the objective in the project
-        const objectiveIndex = this.selectedProject.objectives.findIndex(o => o.id === this.viewingObjective!.id);
-        if (objectiveIndex !== -1) {
-            this.selectedProject.objectives[objectiveIndex] = this.viewingObjective;
-        }
-        
-        // Update the project in the main projects array
-        const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-        if (projectIndex !== -1) {
-            this.projects[projectIndex] = this.selectedProject;
-        }
+        return;
     }
     
     joinObjectiveFromDetail() {
@@ -1812,17 +1457,7 @@ export class Projects {
     }
     
     updateObjectiveInProject() {
-        if (!this.viewingObjective || !this.selectedProject) return;
-        
-        const objectiveIndex = this.selectedProject.objectives.findIndex(o => o.id === this.viewingObjective!.id);
-        if (objectiveIndex !== -1) {
-            this.selectedProject.objectives[objectiveIndex] = this.viewingObjective;
-        }
-        
-        const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-        if (projectIndex !== -1) {
-            this.projects[projectIndex] = this.selectedProject;
-        }
+       return;
     }
 
     // Member Assignment Methods
@@ -1840,20 +1475,7 @@ export class Projects {
     }
     
     saveProjectMembers() {
-        if (!this.selectedProject) return;
-        
-        // Convert selected member names to participants
-        this.selectedProject.participants = this.availableMembers.filter(m => 
-            this.tempSelectedProjectMembers.includes(m.name)
-        );
-        
-        // Update the project in the main projects array
-        const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-        if (projectIndex !== -1) {
-            this.projects[projectIndex] = this.selectedProject;
-        }
-        
-        this.assignMembersToProjectDialogVisible = false;
+        return;
     }
     
     openAssignMembersToObjectiveDialog(objective: Objective, event: Event) {
@@ -1871,55 +1493,12 @@ export class Projects {
     }
     
     saveObjectiveMembers() {
-        if (!this.assigningObjective || !this.selectedProject) return;
-        
-        // Convert selected member names to Member objects (from project participants)
-        const projectParticipants = this.getProjectParticipantsForObjective();
-        this.assigningObjective.members = projectParticipants.filter(m => 
-            this.tempSelectedObjectiveMembers.includes(m.name)
-        );
-        
-        // Update the objective in the project
-        const objectiveIndex = this.selectedProject.objectives.findIndex(o => o.id === this.assigningObjective!.id);
-        if (objectiveIndex !== -1) {
-            this.selectedProject.objectives[objectiveIndex] = this.assigningObjective;
-        }
-        
-        // Update the project in the main projects array
-        const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-        if (projectIndex !== -1) {
-            this.projects[projectIndex] = this.selectedProject;
-        }
-        
-        // Also update the viewing objective if it's the same
-        if (this.viewingObjective && this.viewingObjective.id === this.assigningObjective.id) {
-            this.viewingObjective = this.assigningObjective;
-        }
-        
-        this.assignMembersToObjectiveDialogVisible = false;
-        this.assigningObjective = null;
+        return;
     }
 
     // Remove Member Methods
     removeMemberFromProject(member: Member) {
-        if (!this.selectedProject) return;
-        
-        this.confirmationService.confirm({
-            message: `Are you sure you want to remove "${member.name}" from this project?`,
-            header: 'Remove Member',
-            icon: 'pi pi-exclamation-triangle',
-            acceptButtonStyleClass: 'p-button-danger',
-            accept: () => {
-                if (!this.selectedProject) return;
-                this.selectedProject.participants = this.selectedProject.participants.filter(p => p.name !== member.name);
-                
-                // Update the project in the main projects array
-                const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-                if (projectIndex !== -1) {
-                    this.projects[projectIndex] = this.selectedProject;
-                }
-            }
-        });
+        return;
     }
     
     removeMemberFromObjectiveDetail(member: Member) {
@@ -1940,47 +1519,12 @@ export class Projects {
     
     removeProjectMemberFromDialog(member: Member) {
         // Remove from temp selection
-        this.tempSelectedProjectMembers = this.tempSelectedProjectMembers.filter(name => name !== member.name);
-        
-        // Also remove from selected project immediately for visual feedback
-        if (this.selectedProject) {
-            this.selectedProject.participants = this.selectedProject.participants.filter(p => p.name !== member.name);
-            
-            // Update the project in the main projects array
-            const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-            if (projectIndex !== -1) {
-                this.projects[projectIndex] = this.selectedProject;
-            }
-        }
+        return;
     }
     
     removeObjectiveMemberFromDialog(member: Member) {
         // Remove from temp selection
-        this.tempSelectedObjectiveMembers = this.tempSelectedObjectiveMembers.filter(name => name !== member.name);
-        
-        // Also remove from assigning objective immediately for visual feedback
-        if (this.assigningObjective && this.assigningObjective.members) {
-            this.assigningObjective.members = this.assigningObjective.members.filter(m => m.name !== member.name);
-            
-            // Update in selected project
-            if (this.selectedProject) {
-                const objectiveIndex = this.selectedProject.objectives.findIndex(o => o.id === this.assigningObjective!.id);
-                if (objectiveIndex !== -1) {
-                    this.selectedProject.objectives[objectiveIndex] = this.assigningObjective;
-                }
-                
-                // Update the project in the main projects array
-                const projectIndex = this.projects.findIndex(p => p.id === this.selectedProject!.id);
-                if (projectIndex !== -1) {
-                    this.projects[projectIndex] = this.selectedProject;
-                }
-            }
-            
-            // Also update viewing objective if it's the same
-            if (this.viewingObjective && this.viewingObjective.id === this.assigningObjective.id) {
-                this.viewingObjective = this.assigningObjective;
-            }
-        }
+        return;
     }
 
     // GitHub Integration Properties

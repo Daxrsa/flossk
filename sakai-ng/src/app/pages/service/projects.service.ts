@@ -11,7 +11,10 @@ export class ProjectsService {
 
     constructor(private http: HttpClient) {}
 
-    getProjects(): Observable<any[]> {
+    getProjects(status?: 'Upcoming' | 'InProgress' | 'Completed'): Observable<any[]> {
+        if (status) {
+            return this.http.get<any[]>(`${this.API_URL}?status=${status}`);
+        }
         return this.http.get<any[]>(this.API_URL);
     }
 }

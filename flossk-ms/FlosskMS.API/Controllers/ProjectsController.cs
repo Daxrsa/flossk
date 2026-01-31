@@ -31,12 +31,13 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     }
 
     /// <summary>
-    /// Get all projects with pagination
+    /// Get all projects with optional status filter
     /// </summary>
+    /// <param name="status">Optional status filter: Upcoming, InProgress, or Completed</param>
     [HttpGet]
-    public async Task<IActionResult> GetProjects()
+    public async Task<IActionResult> GetProjects([FromQuery] string? status = null)
     {
-        return await _projectService.GetProjectsAsync();
+        return await _projectService.GetProjectsAsync(status);
     }
 
     /// <summary>
