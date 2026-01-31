@@ -10,7 +10,6 @@ import { HackerspacePresence } from '@/pages/dashboard/components/hackerspace-pr
 import { Settings } from '@/pages/dashboard/components/settings';
 import { Events } from '@/pages/dashboard/components/events';
 import { Announcements } from '@/pages/dashboard/components/announcements';
-import { Projects } from '@/pages/dashboard/components/projects/projects.component';
 import { Profile } from '@/pages/dashboard/components/profile';
 import { Notifications } from '@/pages/dashboard/components/notifications';
 import { Statistics } from '@/pages/dashboard/components/statistics';
@@ -18,12 +17,12 @@ import { Leaderboard } from '@/pages/dashboard/components/leaderboard';
 import { MembershipApplicationForm } from '@/pages/dashboard/components/membership-application-form';
 import { authGuard } from '@/pages/service/auth.guard';
 import { ExternalMessages } from '@/pages/dashboard/components/external-messages';
-import { ProjectDetails } from '@/pages/dashboard/components/project-details/project-details';
 import { Payments } from '@/pages/dashboard/components/payments';
 import { Rent } from '@/pages/dashboard/components/rent';
 import { Onboarding } from '@/pages/dashboard/components/onboarding';
 import { Donate } from '@/pages/dashboard/components/donate';
 import { RfidConfigurer } from '@/pages/dashboard/components/rfid-configurer';
+import { Projects } from '@/pages/dashboard/components/projects';
 
 export const appRoutes: Routes = [
     {
@@ -46,7 +45,6 @@ export const appRoutes: Routes = [
             { path: 'leaderboard', component: Leaderboard },
             { path: 'external-messages', component: ExternalMessages },
             { path: 'payments', component: Payments },
-            { path: 'project-details', component: ProjectDetails },
             { path: 'settings', component: Settings },
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'documentation', component: Documentation },
