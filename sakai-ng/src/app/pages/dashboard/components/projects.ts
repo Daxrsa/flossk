@@ -1244,6 +1244,11 @@ export class Projects {
     onDrop(event: any, newStatus: 'upcoming' | 'in-progress' | 'completed') {
         if (this.draggedProject) {
             const oldStatus = this.draggedProject.status;
+            const projectId = this.draggedProject.id;
+            const project = this.draggedProject;
+            
+            // Map frontend status to backend status (PascalCase)
+            const apiStatus = this.mapStatusToApi(newStatus);
             
             console.log(`Project "${this.draggedProject.title}" status changed: ${oldStatus} -> ${newStatus}`);
             
@@ -1252,7 +1257,7 @@ export class Projects {
             this.inProgressProjects = this.inProgressProjects.filter(p => p.id !== this.draggedProject!.id);
             this.completedProjects = this.completedProjects.filter(p => p.id !== this.draggedProject!.id);
             
-            // Update project status
+            // Update project status locally
             this.draggedProject.status = newStatus;
             
             // Add to new list
@@ -1268,7 +1273,63 @@ export class Projects {
                     break;
             }
             
+            // Send PATCH request to update status on backend
+            this.projectsService.updateProjectStatus(projectId, apiStatus).subscribe({
+                next: (response) => {
+                    console.log('Project status updated successfully:', response);
+                },
+                error: (err) => {
+                    console.error('Error updating project status:', err);
+                    // Revert the UI change on error
+                    this.revertProjectStatus(project, oldStatus, newStatus);
+                }
+            });
+            
             this.draggedProject = null;
+        }
+    }
+
+    // Revert project status change on API error
+    revertProjectStatus(project: Project, oldStatus: 'upcoming' | 'in-progress' | 'completed', newStatus: 'upcoming' | 'in-progress' | 'completed') {
+        console.log(`Reverting project "${project.title}" status from ${newStatus} back to ${oldStatus}`);
+        
+        // Remove from new list
+        switch (newStatus) {
+            case 'upcoming':
+                this.upcomingProjects = this.upcomingProjects.filter(p => p.id !== project.id);
+                break;
+            case 'in-progress':
+                this.inProgressProjects = this.inProgressProjects.filter(p => p.id !== project.id);
+                break;
+            case 'completed':
+                this.completedProjects = this.completedProjects.filter(p => p.id !== project.id);
+                break;
+        }
+        
+        // Restore old status
+        project.status = oldStatus;
+        
+        // Add back to old list
+        switch (oldStatus) {
+            case 'upcoming':
+                this.upcomingProjects.push(project);
+                break;
+            case 'in-progress':
+                this.inProgressProjects.push(project);
+                break;
+            case 'completed':
+                this.completedProjects.push(project);
+                break;
+        }
+    }
+
+    // Map frontend status (lowercase with hyphen) to API status (PascalCase)
+    mapStatusToApi(status: 'upcoming' | 'in-progress' | 'completed'): string {
+        switch (status) {
+            case 'upcoming': return 'Upcoming';
+            case 'in-progress': return 'InProgress';
+            case 'completed': return 'Completed';
+            default: return 'Upcoming';
         }
     }
     
