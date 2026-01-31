@@ -22,11 +22,19 @@ export class ProjectsService {
         return this.http.get<any>(`${this.API_URL}/${id}`);
     }
 
+    createProject(payload: { title: string; description: string; startDate: string; endDate: string; status: string }): Observable<any> {
+        return this.http.post<any>(this.API_URL, payload);
+    }
+
     updateProjectStatus(id: number, status: string): Observable<any> {
         return this.http.patch<any>(`${this.API_URL}/${id}/status?status=${status}`, {});
     }
 
     updateObjectiveStatus(id: number, status: string): Observable<any> {
         return this.http.patch<any>(`${this.API_URL}/objectives/${id}/status?status=${status}`, {});
+    }
+
+    deleteProject(id: string): Observable<any> {
+        return this.http.delete<any>(`${this.API_URL}/${id}`);
     }
 }

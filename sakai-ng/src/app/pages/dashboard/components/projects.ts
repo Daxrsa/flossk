@@ -98,12 +98,7 @@ interface GitHubRepo {
                     <label for="projectName" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Project Name</label>
                     <input pInputText id="projectName" [(ngModel)]="currentProject.title" class="w-full" />
                 </div>
-                
-                <div>
-                    <label for="description" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Description</label>
-                    <textarea pInputTextarea id="description" [(ngModel)]="currentProject.description" [rows]="4" class="w-full"></textarea>
-                </div>
-                
+
                 <div class="flex flex-col md:flex-row align-center justify-between">
                     <div class="">
                         <label for="startDate" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Start Date</label>
@@ -117,6 +112,11 @@ interface GitHubRepo {
                 </div>
                 
                 <div>
+                    <label for="description" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Description</label>
+                    <textarea pInputTextarea id="description" [(ngModel)]="currentProject.description" [rows]="4" class="w-full"></textarea>
+                </div>
+                
+                <!-- <div>
                     <label for="teamMembers" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Team Members</label>
                     <p-multiselect 
                         id="teamMembers" 
@@ -129,16 +129,11 @@ interface GitHubRepo {
                         [showClear]="true"
                         display="chip"
                     />
-                </div>
+                </div> -->
                 
-                <div *ngIf="dialogMode === 'edit'">
+                <div>
                     <label for="status" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Status</label>
                     <p-select id="status" [(ngModel)]="currentProject.status" [options]="statusOptions" placeholder="Select Status" class="w-full" />
-                </div>
-                
-                <div *ngIf="dialogMode === 'edit' && currentProject.status === 'in-progress'">
-                    <label for="progress" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Progress (%)</label>
-                    <input pInputText id="progress" [(ngModel)]="currentProject.progress" type="number" min="0" max="100" class="w-full" />
                 </div>
             </div>
             
@@ -148,7 +143,7 @@ interface GitHubRepo {
             </div>
         </p-dialog>
         
-        <!-- <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Objective' : 'Edit Objective'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
+        <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Objective' : 'Edit Objective'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="objectiveTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
@@ -166,25 +161,20 @@ interface GitHubRepo {
                 </div>
                 
                 <div>
-                    <label for="objectiveProgress" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Progress (%)</label>
-                    <input pInputText id="objectiveProgress" [(ngModel)]="currentObjective.progress" type="number" min="0" max="100" class="w-full" />
-                </div>
-                
-                <div>
                     <label for="objectiveMembers" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Team Members</label>
                     <p-multiSelect id="objectiveMembers" [(ngModel)]="selectedObjectiveMemberNames" [options]="getProjectParticipantsForObjective()" optionLabel="name" optionValue="name" placeholder="Select Team Members" display="chip" class="w-full" />
-                    <p class="flex items-center gap-1 text-xs text-muted-color mt-2"><i class="pi pi-info-circle"></i> Only project participants can be assigned</p>
+                    <p class="flex gap-1 text-xs text-muted-color mt-2"><i class="pi pi-info-circle"></i> Only project participants can be assigned</p>
                 </div>
             </div>
             
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="objectiveDialogVisible = false" />
-                <p-button [label]="objectiveDialogMode === 'add' ? 'Create' : 'Save'" (onClick)="saveObjective()" />
+                <p-button [label]="objectiveDialogMode === 'add' ? 'Create' : 'Save'" (onClick)="saveObjective()" [disabled]="objectiveDialogMode === 'add' && !isObjectiveFormValid()" />
             </div>
-        </p-dialog> -->
+        </p-dialog> 
         
         <!-- Resource Dialog -->
-        <!-- <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource' : 'Edit Resource'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
+        <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource' : 'Edit Resource'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="resourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
@@ -211,7 +201,7 @@ interface GitHubRepo {
                 <p-button label="Cancel" severity="secondary" (onClick)="resourceDialogVisible = false" />
                 <p-button [label]="resourceDialogMode === 'add' ? 'Add' : 'Save'" (onClick)="saveResource()" />
             </div>
-        </p-dialog> -->
+        </p-dialog>
         
         <!-- Objective Detail Dialog -->
         <p-dialog [(visible)]="objectiveDetailDialogVisible" [header]="viewingObjective?.title" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '80vh', 'overflow': 'auto'}" appendTo="body" [maximizable]="true">
@@ -243,7 +233,7 @@ interface GitHubRepo {
                 <p-divider></p-divider>
                 
                 <!-- Team Members -->
-                <!-- <div>
+                <div>
                     <div class="flex justify-between items-center mb-3">
                         <h6 class="text-sm font-semibold text-muted-color m-0 tracking-wide">Team Members</h6>
                         <p-button icon="pi pi-user-plus" label="Assign Members" size="small" [text]="true" (onClick)="openAssignMembersToObjectiveFromDetail()" />
@@ -262,12 +252,12 @@ interface GitHubRepo {
                         <i class="pi pi-users text-2xl mb-2"></i>
                         <p class="m-0">No team members assigned yet</p>
                     </div>
-                </div> -->
+                </div>
                 
                 <p-divider></p-divider>
                 
                 <!-- Resources -->
-                <!-- <div>
+                <div>
                     <div class="flex justify-between items-center mb-3">
                         <h6 class="text-sm font-semibold text-muted-color m-0 tracking-wide">Resources</h6>
                         <p-button icon="pi pi-plus" label="Add Resource" size="small" [text]="true" (onClick)="openAddObjectiveResourceDialog()" />
@@ -295,10 +285,10 @@ interface GitHubRepo {
                         <i class="pi pi-link text-2xl mb-2"></i>
                         <p class="m-0">No resources added yet</p>
                     </div>
-                </div> -->
+                </div>
             </div>
             
-            <!-- <div class="flex justify-between gap-2 mt-6">
+            <div class="flex justify-between gap-2 mt-6">
                 <div class="flex gap-2">
                     @if (viewingObjective && !isUserInObjective(viewingObjective)) {
                         <p-button label="Join Objective" icon="pi pi-user-plus" [outlined]="true" (onClick)="joinObjectiveFromDetail()" />
@@ -310,10 +300,10 @@ interface GitHubRepo {
                     <p-button label="Edit" icon="pi pi-pencil" severity="secondary" (onClick)="editObjectiveFromDetail()" />
                     <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="objectiveDetailDialogVisible = false" />
                 </div>
-            </div> -->
+            </div>
         </p-dialog>
         
-        <!-- Objective Resource Dialog
+        <!-- Objective Resource Dialog -->
         <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Objective' : 'Edit Resource'" [modal]="true" [style]="{width: '35rem'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
@@ -341,9 +331,9 @@ interface GitHubRepo {
                 <p-button label="Cancel" severity="secondary" (onClick)="objectiveResourceDialogVisible = false" />
                 <p-button [label]="objectiveResourceDialogMode === 'add' ? 'Add' : 'Save'" (onClick)="saveObjectiveResource()" />
             </div>
-        </p-dialog> -->
+        </p-dialog>
         
-        <!-- Assign Members to Project Dialog
+        <!-- Assign Members to Project Dialog -->
         <p-dialog [(visible)]="assignMembersToProjectDialogVisible" header="Assign Members to Project" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
@@ -386,9 +376,9 @@ interface GitHubRepo {
                 <p-button label="Cancel" severity="secondary" (onClick)="assignMembersToProjectDialogVisible = false" />
                 <p-button label="Save" (onClick)="saveProjectMembers()" />
             </div>
-        </p-dialog> -->
+        </p-dialog> 
         
-        <!-- Assign Members to Objective Dialog
+        <!-- Assign Members to Objective Dialog -->
         <p-dialog [(visible)]="assignMembersToObjectiveDialogVisible" [header]="'Assign Members to: ' + (assigningObjective?.title || '')" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
@@ -432,7 +422,7 @@ interface GitHubRepo {
                 <p-button label="Cancel" severity="secondary" (onClick)="assignMembersToObjectiveDialogVisible = false" />
                 <p-button label="Save" (onClick)="saveObjectiveMembers()" />
             </div>
-        </p-dialog> -->
+        </p-dialog>
         
         <div class="card">
             <div class="flex justify-end items-center mb-6">
@@ -608,7 +598,7 @@ interface GitHubRepo {
                                         <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
                                             {{ project.title }}
                                         </h4>
-                                        <i class="pi pi-check-circle text-green-500 text-xl"></i>
+                                        <!-- <i class="pi pi-check-circle text-green-500 text-xl"></i> -->
                                     </div>
                                     <div class="flex justify-content-center align-content-end">
                                         <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
@@ -730,7 +720,7 @@ interface GitHubRepo {
                                                         }
                                                     </div>
                                                     <div class="flex items-center gap-1">
-                                                        <p-button icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
+                                                        <p-button class="" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
                                                         @if (!isUserInObjective(objective)) {
                                                             <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" severity="secondary" pTooltip="Join" (onClick)="joinObjective(objective, $event)" />
                                                         } @else {
@@ -816,7 +806,7 @@ interface GitHubRepo {
                                                 <div class="flex justify-between items-start mb-2">
                                                     <div class="flex items-center gap-2 flex-1">
                                                         <h5 class="font-semibold text-sm text-surface-900 dark:text-surface-0 m-0">{{ objective.title }}</h5>
-                                                        <i class="pi pi-check-circle text-green-500 text-sm"></i>
+                                                        <!-- <i class="pi pi-check-circle text-green-500 text-sm"></i> -->
                                                     </div>
                                                     <div class="flex gap-1">
                                                         <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
@@ -855,7 +845,7 @@ interface GitHubRepo {
                     </div>
 
                     <div class="col-span-12 lg:col-span-4">
-                        <!-- <div class="mb-6">
+                        <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold m-0">Team Members</h3>
                                 <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" pTooltip="Assign Members" (onClick)="openAssignMembersToProjectDialog()" />
@@ -874,9 +864,9 @@ interface GitHubRepo {
                                     <p class="m-0">No team members assigned yet</p>
                                 </div>
                             </div>
-                        </div> -->
+                        </div>
                         
-                        <!-- <div class="mb-6">
+                        <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold m-0">Resources</h3>
                                 <p-button icon="pi pi-plus" size="small" [text]="true" [rounded]="true" (onClick)="openAddResourceDialog()" />
@@ -902,7 +892,7 @@ interface GitHubRepo {
                                     No resources added yet
                                 </div>
                             </div>
-                        </div> -->
+                        </div>
 
                         <!-- GitHub Commits Section -->
                         <div *ngIf="selectedProject.githubRepo">
@@ -1425,9 +1415,58 @@ export class Projects {
             this.endDate
         );
     }
+
+    isObjectiveFormValid(): boolean {
+        return !!(
+            this.currentObjective.title?.trim() &&
+            this.currentObjective.description?.trim() &&
+            this.currentObjective.status
+        );
+    }
     
     saveProject() {
-       return;
+        if (this.dialogMode === 'add') {
+            if (!this.isProjectFormValid()) {
+                return;
+            }
+
+            const payload = {
+                title: this.currentProject.title.trim(),
+                description: this.currentProject.description?.trim() || '',
+                startDate: this.startDate?.toISOString() || '',
+                endDate: this.endDate?.toISOString() || '',
+                status: this.mapStatusToApi(this.currentProject.status)
+            };
+
+            this.projectsService.createProject(payload).subscribe({
+                next: (createdProject) => {
+                    const mappedProject = this.mapProjectFromApi(createdProject);
+
+                    switch (mappedProject.status) {
+                        case 'upcoming':
+                            this.upcomingProjects.push(mappedProject);
+                            break;
+                        case 'in-progress':
+                            this.inProgressProjects.push(mappedProject);
+                            break;
+                        case 'completed':
+                            this.completedProjects.push(mappedProject);
+                            break;
+                    }
+
+                    this.dialogVisible = false;
+                    this.currentProject = this.getEmptyProject();
+                    this.startDate = null;
+                    this.endDate = null;
+                    this.selectedMemberNames = [];
+                },
+                error: (err) => {
+                    console.error('Error creating project:', err);
+                }
+            });
+
+            return;
+        }
     }
     
     confirmDeleteProject(project: Project) {
@@ -1443,7 +1482,32 @@ export class Projects {
     }
     
     deleteProject(project: Project) {
-       return;
+        this.projectsService.deleteProject(project.id.toString()).subscribe({
+            next: () => {
+                // Remove from the appropriate list based on status
+                switch (project.status) {
+                    case 'upcoming':
+                        this.upcomingProjects = this.upcomingProjects.filter(p => p.id !== project.id);
+                        break;
+                    case 'in-progress':
+                        this.inProgressProjects = this.inProgressProjects.filter(p => p.id !== project.id);
+                        break;
+                    case 'completed':
+                        this.completedProjects = this.completedProjects.filter(p => p.id !== project.id);
+                        break;
+                }
+                
+                // Clear selected project if it was deleted
+                if (this.selectedProject?.id === project.id) {
+                    this.selectedProject = null;
+                }
+                
+                console.log('Project deleted successfully');
+            },
+            error: (err) => {
+                console.error('Error deleting project:', err);
+            }
+        });
     }
     
     getEmptyObjective(): Objective {
