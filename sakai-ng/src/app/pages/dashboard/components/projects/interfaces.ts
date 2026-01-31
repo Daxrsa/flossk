@@ -5,7 +5,7 @@ export interface Member {
 }
 
 export interface Resource {
-    id: number;
+    id: string;
     title: string;
     url: string;
     description: string;
@@ -13,7 +13,7 @@ export interface Resource {
 }
 
 export interface Objective {
-    id: number;
+    id: string;
     title: string;
     description: string;
     status: 'todo' | 'in-progress' | 'completed';
@@ -24,7 +24,7 @@ export interface Objective {
 }
 
 export interface Project {
-    id: number;
+    id: string;
     title: string;
     description: string;
     status: 'upcoming' | 'in-progress' | 'completed';
