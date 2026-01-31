@@ -1042,20 +1042,27 @@ export class Projects {
         
         // Load upcoming projects
         this.projectsService.getProjects('Upcoming').subscribe({
-            next: (projects) => this.upcomingProjects = projects,
+            next: (projects) => {
+                console.log('Upcoming projects received:', projects);
+                this.upcomingProjects = this.mapProjectsFromApi(projects);
+            },
             error: (err) => console.error('Error loading upcoming projects:', err)
         });
 
         // Load in-progress projects
         this.projectsService.getProjects('InProgress').subscribe({
-            next: (projects) => this.inProgressProjects = projects,
+            next: (projects) => {
+                console.log('InProgress projects received:', projects);
+                this.inProgressProjects = this.mapProjectsFromApi(projects);
+            },
             error: (err) => console.error('Error loading in-progress projects:', err)
         });
 
         // Load completed projects
         this.projectsService.getProjects('Completed').subscribe({
             next: (projects) => {
-                this.completedProjects = projects;
+                console.log('Completed projects received:', projects);
+                this.completedProjects = this.mapProjectsFromApi(projects);
                 this.isLoading = false;
             },
             error: (err) => {
@@ -1063,6 +1070,33 @@ export class Projects {
                 this.isLoading = false;
             }
         });
+    }
+
+    // Map API response to frontend Project interface
+    mapProjectsFromApi(apiProjects: any[]): Project[] {
+        return apiProjects.map(p => ({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            status: this.mapStatusFromApi(p.status),
+            startDate: p.startDate,
+            endDate: p.endDate,
+            progress: p.progressPercentage || 0,
+            participants: p.teamMembers || [],
+            objectives: p.objectives || [],
+            resources: p.resources || [],
+            githubRepo: p.githubRepo
+        }));
+    }
+
+    // Map API status (PascalCase) to frontend status (lowercase with hyphen)
+    mapStatusFromApi(status: string): 'upcoming' | 'in-progress' | 'completed' {
+        switch (status?.toLowerCase()) {
+            case 'upcoming': return 'upcoming';
+            case 'inprogress': return 'in-progress';
+            case 'completed': return 'completed';
+            default: return 'upcoming';
+        }
     }
     
     // Current logged-in user
