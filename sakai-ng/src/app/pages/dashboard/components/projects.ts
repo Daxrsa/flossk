@@ -1712,9 +1712,55 @@ export class Projects {
     }
 
     selectProject(project: Project) {
-        this.selectedProject = project;
-        if (project.githubRepo) {
-            this.loadGithubCommits(project);
+        // Fetch full project details from API
+        this.projectsService.getProjectById(project.id).subscribe({
+            next: (projectData) => {
+                console.log('Project details received:', projectData);
+                this.selectedProject = this.mapProjectFromApi(projectData);
+                if (this.selectedProject.githubRepo) {
+                    this.loadGithubCommits(this.selectedProject);
+                }
+            },
+            error: (err) => {
+                console.error('Error loading project details:', err);
+                // Fallback to the project from the list
+                this.selectedProject = project;
+            }
+        });
+    }
+
+    // Map single project from API response
+    mapProjectFromApi(p: any): Project {
+        return {
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            status: this.mapStatusFromApi(p.status),
+            startDate: p.startDate,
+            endDate: p.endDate,
+            progress: p.progressPercentage || 0,
+            participants: p.teamMembers || [],
+            objectives: (p.objectives || []).map((o: any) => ({
+                id: o.id,
+                title: o.title,
+                description: o.description,
+                status: this.mapObjectiveStatusFromApi(o.status),
+                progress: o.progressPercentage || 0,
+                members: o.teamMembers || [],
+                resources: o.resources || []
+            })),
+            resources: p.resources || [],
+            githubRepo: p.githubRepo
+        };
+    }
+
+    // Map objective status from API
+    mapObjectiveStatusFromApi(status: string): 'todo' | 'in-progress' | 'completed' {
+        switch (status?.toLowerCase()) {
+            case 'todo': return 'todo';
+            case 'inprogress': return 'in-progress';
+            case 'completed': return 'completed';
+            default: return 'todo';
         }
     }
 }
