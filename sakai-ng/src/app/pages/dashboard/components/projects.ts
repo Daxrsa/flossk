@@ -1217,7 +1217,20 @@ export class Projects {
     }
 
     onDropObjective(event: any, newStatus: 'todo' | 'in-progress' | 'completed') {
-        return;
+        if (this.draggedObjective && this.selectedProject) {
+            const oldStatus = this.draggedObjective.status;
+            this.draggedObjective.status = newStatus;
+            
+            console.log(`Objective "${this.draggedObjective.title}" status changed: ${oldStatus} -> ${newStatus}`);
+            
+            // Update the objective in the selected project's objectives array
+            const objectiveIndex = this.selectedProject.objectives?.findIndex(o => o.id === this.draggedObjective!.id);
+            if (objectiveIndex !== undefined && objectiveIndex >= 0 && this.selectedProject.objectives) {
+                this.selectedProject.objectives[objectiveIndex].status = newStatus;
+            }
+            
+            this.draggedObjective = null;
+        }
     }
 
     dragStart(project: Project) {
@@ -1229,7 +1242,34 @@ export class Projects {
     }
 
     onDrop(event: any, newStatus: 'upcoming' | 'in-progress' | 'completed') {
-       return;
+        if (this.draggedProject) {
+            const oldStatus = this.draggedProject.status;
+            
+            console.log(`Project "${this.draggedProject.title}" status changed: ${oldStatus} -> ${newStatus}`);
+            
+            // Remove from old list
+            this.upcomingProjects = this.upcomingProjects.filter(p => p.id !== this.draggedProject!.id);
+            this.inProgressProjects = this.inProgressProjects.filter(p => p.id !== this.draggedProject!.id);
+            this.completedProjects = this.completedProjects.filter(p => p.id !== this.draggedProject!.id);
+            
+            // Update project status
+            this.draggedProject.status = newStatus;
+            
+            // Add to new list
+            switch (newStatus) {
+                case 'upcoming':
+                    this.upcomingProjects.push(this.draggedProject);
+                    break;
+                case 'in-progress':
+                    this.inProgressProjects.push(this.draggedProject);
+                    break;
+                case 'completed':
+                    this.completedProjects.push(this.draggedProject);
+                    break;
+            }
+            
+            this.draggedProject = null;
+        }
     }
     
     getEmptyProject(): Project {
