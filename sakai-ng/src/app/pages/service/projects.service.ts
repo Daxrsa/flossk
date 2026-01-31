@@ -25,4 +25,8 @@ export class ProjectsService {
     updateProjectStatus(id: number, status: string): Observable<any> {
         return this.http.patch<any>(`${this.API_URL}/${id}/status?status=${status}`, {});
     }
+
+    updateObjectiveStatus(id: number, status: string): Observable<any> {
+        return this.http.patch<any>(`${this.API_URL}/objectives/${id}/status?status=${status}`, {});
+    }
 }

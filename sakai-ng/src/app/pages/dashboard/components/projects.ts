@@ -1219,9 +1219,16 @@ export class Projects {
     onDropObjective(event: any, newStatus: 'todo' | 'in-progress' | 'completed') {
         if (this.draggedObjective && this.selectedProject) {
             const oldStatus = this.draggedObjective.status;
-            this.draggedObjective.status = newStatus;
+            const objectiveId = this.draggedObjective.id;
+            const objective = this.draggedObjective;
+            
+            // Map frontend status to backend status (PascalCase)
+            const apiStatus = this.mapObjectiveStatusToApi(newStatus);
             
             console.log(`Objective "${this.draggedObjective.title}" status changed: ${oldStatus} -> ${newStatus}`);
+            
+            // Update status locally
+            this.draggedObjective.status = newStatus;
             
             // Update the objective in the selected project's objectives array
             const objectiveIndex = this.selectedProject.objectives?.findIndex(o => o.id === this.draggedObjective!.id);
@@ -1229,7 +1236,45 @@ export class Projects {
                 this.selectedProject.objectives[objectiveIndex].status = newStatus;
             }
             
+            // Send PATCH request to update status on backend
+            this.projectsService.updateObjectiveStatus(objectiveId, apiStatus).subscribe({
+                next: (response) => {
+                    console.log('Objective status updated successfully:', response);
+                },
+                error: (err) => {
+                    console.error('Error updating objective status:', err);
+                    // Revert the UI change on error
+                    this.revertObjectiveStatus(objective, oldStatus, newStatus);
+                }
+            });
+            
             this.draggedObjective = null;
+        }
+    }
+
+    // Map frontend objective status to API status (PascalCase)
+    mapObjectiveStatusToApi(status: 'todo' | 'in-progress' | 'completed'): string {
+        switch (status) {
+            case 'todo': return 'Todo';
+            case 'in-progress': return 'InProgress';
+            case 'completed': return 'Completed';
+            default: return 'Todo';
+        }
+    }
+
+    // Revert objective status change on API error
+    revertObjectiveStatus(objective: Objective, oldStatus: 'todo' | 'in-progress' | 'completed', newStatus: 'todo' | 'in-progress' | 'completed') {
+        console.log(`Reverting objective "${objective.title}" status from ${newStatus} back to ${oldStatus}`);
+        
+        // Restore old status
+        objective.status = oldStatus;
+        
+        // Update in the selected project's objectives array
+        if (this.selectedProject?.objectives) {
+            const objectiveIndex = this.selectedProject.objectives.findIndex(o => o.id === objective.id);
+            if (objectiveIndex >= 0) {
+                this.selectedProject.objectives[objectiveIndex].status = oldStatus;
+            }
         }
     }
 
