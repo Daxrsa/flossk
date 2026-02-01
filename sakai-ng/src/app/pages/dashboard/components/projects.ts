@@ -585,10 +585,15 @@ interface GitHubRepo {
 
                 <!-- Completed Column -->
                 <div class="col-span-12 md:col-span-4">
-                    <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4" pDroppable="projects" (onDrop)="onDrop($event, 'completed')">
+                    <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4" [ngClass]="{'border-2 border-dashed border-orange-400': showCompletedWarning}" pDroppable="projects" (onDrop)="onDrop($event, 'completed')">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-semibold text-lg m-0">Completed</h3>
                             <p-tag [value]="getProjectsByStatus('completed').length.toString()" severity="success"></p-tag>
+                        </div>
+                        <!-- Warning message when dragging incomplete project -->
+                        <div *ngIf="showCompletedWarning" class="bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg p-3 mb-3 flex items-center gap-2">
+                            <i class="pi pi-exclamation-triangle text-orange-500"></i>
+                            <span class="text-sm text-orange-700 dark:text-orange-300">All project objectives must be completed first</span>
                         </div>
                         <div class="flex flex-col gap-3 min-h-32">
                             <div *ngFor="let project of getProjectsByStatus('completed')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" (click)="selectProject(project)">
@@ -1068,6 +1073,11 @@ export class Projects {
     
     selectedProject: Project | null = null;
     draggedProject: Project | null = null;
+
+    // Check if the dragged project cannot be moved to Completed (progress < 100%)
+    get showCompletedWarning(): boolean {
+        return this.draggedProject !== null && this.draggedProject.progress < 100;
+    }
     dialogVisible = false;
     dialogMode: 'add' | 'edit' = 'add';
     currentProject: Project = this.getEmptyProject();
@@ -1277,6 +1287,13 @@ export class Projects {
 
     onDrop(event: any, newStatus: 'upcoming' | 'in-progress' | 'completed') {
         if (this.draggedProject) {
+            // Prevent moving to Completed if project progress is not 100%
+            if (newStatus === 'completed' && this.draggedProject.progress < 100) {
+                console.log(`Cannot move project "${this.draggedProject.title}" to Completed - progress is ${this.draggedProject.progress}%`);
+                this.draggedProject = null;
+                return;
+            }
+            
             const oldStatus = this.draggedProject.status;
             const projectId = this.draggedProject.id;
             const project = this.draggedProject;
