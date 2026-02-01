@@ -17,6 +17,8 @@ public interface IProjectService
     Task<IActionResult> AddTeamMemberToProjectAsync(Guid projectId, AddTeamMemberDto request);
     Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId);
     Task<IActionResult> GetProjectTeamMembersAsync(Guid projectId);
+    Task<IActionResult> JoinProjectAsync(Guid projectId, string userId);
+    Task<IActionResult> LeaveProjectAsync(Guid projectId, string userId);
 
     // Objective operations
     Task<IActionResult> CreateObjectiveAsync(CreateObjectiveDto request, string userId);
@@ -30,6 +32,8 @@ public interface IProjectService
     Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request);
     Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId);
     Task<IActionResult> GetObjectiveTeamMembersAsync(Guid objectiveId);
+    Task<IActionResult> JoinObjectiveAsync(Guid objectiveId, string userId);
+    Task<IActionResult> LeaveObjectiveAsync(Guid objectiveId, string userId);
 
     // Resource operations
     Task<IActionResult> CreateResourceAsync(CreateResourceDto request);

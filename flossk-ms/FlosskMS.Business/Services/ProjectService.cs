@@ -274,6 +274,88 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<List<TeamMemberDto>>(teamMembers));
     }
 
+    public async Task<IActionResult> JoinProjectAsync(Guid projectId, string userId)
+    {
+        var project = await _dbContext.Projects.FindAsync(projectId);
+        if (project == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Project not found." });
+        }
+
+        if (project.Status == ProjectStatus.Completed)
+        {
+            return new BadRequestObjectResult(new { Error = "Cannot join a completed project." });
+        }
+
+        var user = await _dbContext.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return new NotFoundObjectResult(new { Error = "User not found." });
+        }
+
+        var existingMember = await _dbContext.ProjectTeamMembers
+            .FirstOrDefaultAsync(tm => tm.ProjectId == projectId && tm.UserId == userId);
+
+        if (existingMember != null)
+        {
+            return new BadRequestObjectResult(new { Error = "You are already a member of this project." });
+        }
+
+        var teamMember = new ProjectTeamMember
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = projectId,
+            UserId = userId,
+            Role = "Member",
+            JoinedAt = DateTime.UtcNow
+        };
+
+        _dbContext.ProjectTeamMembers.Add(teamMember);
+        await _dbContext.SaveChangesAsync();
+
+        teamMember.User = user;
+
+        _logger.LogInformation("User {UserId} joined project {ProjectId}", userId, projectId);
+
+        return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
+    }
+
+    public async Task<IActionResult> LeaveProjectAsync(Guid projectId, string userId)
+    {
+        var project = await _dbContext.Projects.FindAsync(projectId);
+        if (project == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Project not found." });
+        }
+
+        if (project.Status == ProjectStatus.Completed)
+        {
+            return new BadRequestObjectResult(new { Error = "Cannot leave a completed project." });
+        }
+
+        var teamMember = await _dbContext.ProjectTeamMembers
+            .FirstOrDefaultAsync(tm => tm.ProjectId == projectId && tm.UserId == userId);
+
+        if (teamMember == null)
+        {
+            return new NotFoundObjectResult(new { Error = "You are not a member of this project." });
+        }
+
+        // Also remove user from all objectives in this project
+        var objectiveTeamMembers = await _dbContext.ObjectiveTeamMembers
+            .Include(otm => otm.Objective)
+            .Where(otm => otm.Objective.ProjectId == projectId && otm.UserId == userId)
+            .ToListAsync();
+
+        _dbContext.ObjectiveTeamMembers.RemoveRange(objectiveTeamMembers);
+        _dbContext.ProjectTeamMembers.Remove(teamMember);
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("User {UserId} left project {ProjectId}", userId, projectId);
+
+        return new OkObjectResult(new { Message = "You have left the project successfully." });
+    }
+
     #endregion
 
     #region Objective Operations
@@ -300,11 +382,6 @@ public class ProjectService : IProjectService
         if (!Enum.TryParse<ObjectiveStatus>(request.Status, true, out _))
         {
             return new BadRequestObjectResult(new { Error = "Invalid status value. Valid values are: Todo, InProgress, Completed." });
-        }
-
-        if (request.ProgressPercentage < 0 || request.ProgressPercentage > 100)
-        {
-            return new BadRequestObjectResult(new { Error = "Progress percentage must be between 0 and 100." });
         }
 
         var objective = _mapper.Map<Objective>(request);
@@ -376,11 +453,6 @@ public class ProjectService : IProjectService
         if (!Enum.TryParse<ObjectiveStatus>(request.Status, true, out _))
         {
             return new BadRequestObjectResult(new { Error = "Invalid status value. Valid values are: Todo, InProgress, Completed." });
-        }
-
-        if (request.ProgressPercentage < 0 || request.ProgressPercentage > 100)
-        {
-            return new BadRequestObjectResult(new { Error = "Progress percentage must be between 0 and 100." });
         }
 
         _mapper.Map(request, objective);
@@ -518,6 +590,92 @@ public class ProjectService : IProjectService
             .ToListAsync();
 
         return new OkObjectResult(_mapper.Map<List<TeamMemberDto>>(teamMembers));
+    }
+
+    public async Task<IActionResult> JoinObjectiveAsync(Guid objectiveId, string userId)
+    {
+        var objective = await _dbContext.Objectives
+            .Include(o => o.Project)
+            .FirstOrDefaultAsync(o => o.Id == objectiveId);
+
+        if (objective == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Objective not found." });
+        }
+
+        if (objective.Status == ObjectiveStatus.Completed)
+        {
+            return new BadRequestObjectResult(new { Error = "Cannot join a completed objective." });
+        }
+
+        var user = await _dbContext.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return new NotFoundObjectResult(new { Error = "User not found." });
+        }
+
+        // Check if user is a member of the project
+        var isProjectMember = await _dbContext.ProjectTeamMembers
+            .AnyAsync(tm => tm.ProjectId == objective.ProjectId && tm.UserId == userId);
+
+        if (!isProjectMember)
+        {
+            return new BadRequestObjectResult(new { Error = "You must be a member of the project before joining an objective." });
+        }
+
+        var existingMember = await _dbContext.ObjectiveTeamMembers
+            .FirstOrDefaultAsync(tm => tm.ObjectiveId == objectiveId && tm.UserId == userId);
+
+        if (existingMember != null)
+        {
+            return new BadRequestObjectResult(new { Error = "You are already a member of this objective." });
+        }
+
+        var teamMember = new ObjectiveTeamMember
+        {
+            Id = Guid.NewGuid(),
+            ObjectiveId = objectiveId,
+            UserId = userId,
+            AssignedAt = DateTime.UtcNow
+        };
+
+        _dbContext.ObjectiveTeamMembers.Add(teamMember);
+        await _dbContext.SaveChangesAsync();
+
+        teamMember.User = user;
+
+        _logger.LogInformation("User {UserId} joined objective {ObjectiveId}", userId, objectiveId);
+
+        return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
+    }
+
+    public async Task<IActionResult> LeaveObjectiveAsync(Guid objectiveId, string userId)
+    {
+        var objective = await _dbContext.Objectives.FindAsync(objectiveId);
+        if (objective == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Objective not found." });
+        }
+
+        if (objective.Status == ObjectiveStatus.Completed)
+        {
+            return new BadRequestObjectResult(new { Error = "Cannot leave a completed objective." });
+        }
+
+        var teamMember = await _dbContext.ObjectiveTeamMembers
+            .FirstOrDefaultAsync(tm => tm.ObjectiveId == objectiveId && tm.UserId == userId);
+
+        if (teamMember == null)
+        {
+            return new NotFoundObjectResult(new { Error = "You are not a member of this objective." });
+        }
+
+        _dbContext.ObjectiveTeamMembers.Remove(teamMember);
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("User {UserId} left objective {ObjectiveId}", userId, objectiveId);
+
+        return new OkObjectResult(new { Message = "You have left the objective successfully." });
     }
 
     #endregion
@@ -735,7 +893,6 @@ public class ProjectService : IProjectService
                 Title = "Design System Creation",
                 Description = "Create a comprehensive design system with reusable components and style guidelines.",
                 Status = ObjectiveStatus.Completed,
-                ProgressPercentage = 100,
                 ProjectId = projects[0].Id,
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -746,7 +903,6 @@ public class ProjectService : IProjectService
                 Title = "Frontend Development",
                 Description = "Implement the new design using modern frontend technologies (Angular/React).",
                 Status = ObjectiveStatus.InProgress,
-                ProgressPercentage = 60,
                 ProjectId = projects[0].Id,
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -757,7 +913,6 @@ public class ProjectService : IProjectService
                 Title = "Backend API Integration",
                 Description = "Connect the frontend to the existing backend APIs and implement new endpoints.",
                 Status = ObjectiveStatus.InProgress,
-                ProgressPercentage = 40,
                 ProjectId = projects[0].Id,
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -768,7 +923,6 @@ public class ProjectService : IProjectService
                 Title = "Testing & QA",
                 Description = "Comprehensive testing including unit tests, integration tests, and user acceptance testing.",
                 Status = ObjectiveStatus.Todo,
-                ProgressPercentage = 0,
                 ProjectId = projects[0].Id,
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -781,7 +935,6 @@ public class ProjectService : IProjectService
                 Title = "Curriculum Development",
                 Description = "Develop workshop materials, slides, and hands-on exercises for each session.",
                 Status = ObjectiveStatus.InProgress,
-                ProgressPercentage = 30,
                 ProjectId = projects[1].Id,
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -792,7 +945,6 @@ public class ProjectService : IProjectService
                 Title = "Venue & Logistics",
                 Description = "Secure venues, equipment, and handle registration for all workshop sessions.",
                 Status = ObjectiveStatus.Todo,
-                ProgressPercentage = 0,
                 ProjectId = projects[1].Id,
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -803,7 +955,6 @@ public class ProjectService : IProjectService
                 Title = "Speaker Recruitment",
                 Description = "Identify and recruit experienced open source contributors as guest speakers.",
                 Status = ObjectiveStatus.InProgress,
-                ProgressPercentage = 50,
                 ProjectId = projects[1].Id,
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -816,7 +967,6 @@ public class ProjectService : IProjectService
                 Title = "Event Planning",
                 Description = "Plan the hackathon schedule, themes, and judging criteria.",
                 Status = ObjectiveStatus.Completed,
-                ProgressPercentage = 100,
                 ProjectId = projects[2].Id,
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -827,7 +977,6 @@ public class ProjectService : IProjectService
                 Title = "Sponsor Acquisition",
                 Description = "Reach out to potential sponsors and secure funding for prizes and refreshments.",
                 Status = ObjectiveStatus.Completed,
-                ProgressPercentage = 100,
                 ProjectId = projects[2].Id,
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -838,7 +987,6 @@ public class ProjectService : IProjectService
                 Title = "Post-Event Documentation",
                 Description = "Document winning projects, participant feedback, and lessons learned.",
                 Status = ObjectiveStatus.Completed,
-                ProgressPercentage = 100,
                 ProjectId = projects[2].Id,
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow

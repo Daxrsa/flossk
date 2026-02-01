@@ -114,6 +114,34 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         return await _projectService.RemoveTeamMemberFromProjectAsync(projectId, userId);
     }
 
+    /// <summary>
+    /// Join a project (current user)
+    /// </summary>
+    [HttpPost("{projectId:guid}/join")]
+    public async Task<IActionResult> JoinProject(Guid projectId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _projectService.JoinProjectAsync(projectId, userId);
+    }
+
+    /// <summary>
+    /// Leave a project (current user)
+    /// </summary>
+    [HttpPost("{projectId:guid}/leave")]
+    public async Task<IActionResult> LeaveProject(Guid projectId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _projectService.LeaveProjectAsync(projectId, userId);
+    }
+
     #endregion
 
     #region Objective Endpoints
@@ -215,6 +243,35 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     public async Task<IActionResult> RemoveTeamMemberFromObjective(Guid objectiveId, string userId)
     {
         return await _projectService.RemoveTeamMemberFromObjectiveAsync(objectiveId, userId);
+    }
+
+    /// <summary>
+    /// Join an objective (current user)
+    /// User must already be a team member of the project
+    /// </summary>
+    [HttpPost("objectives/{objectiveId:guid}/join")]
+    public async Task<IActionResult> JoinObjective(Guid objectiveId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _projectService.JoinObjectiveAsync(objectiveId, userId);
+    }
+
+    /// <summary>
+    /// Leave an objective (current user)
+    /// </summary>
+    [HttpPost("objectives/{objectiveId:guid}/leave")]
+    public async Task<IActionResult> LeaveObjective(Guid objectiveId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _projectService.LeaveObjectiveAsync(objectiveId, userId);
     }
 
     #endregion

@@ -6,7 +6,6 @@ public class ObjectiveDto
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
-    public int ProgressPercentage { get; set; }
     public Guid ProjectId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

@@ -13,8 +13,4 @@ public class UpdateObjectiveDto
 
     [Required]
     public string Status { get; set; } = string.Empty;
-
-    [Required]
-    [Range(0, 100)]
-    public int ProgressPercentage { get; set; }
 }

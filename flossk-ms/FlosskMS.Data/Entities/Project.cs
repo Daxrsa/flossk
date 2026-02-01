@@ -20,7 +20,7 @@ public class Project
     public ICollection<Objective> Objectives { get; set; } = [];
     public ICollection<Resource> Resources { get; set; } = [];
 
-    // Calculated progress percentage based on objectives
+    // Calculated progress percentage based on completed objectives
     public double ProgressPercentage
     {
         get
@@ -28,7 +28,8 @@ public class Project
             if (Objectives == null || Objectives.Count == 0)
                 return 0;
 
-            return Objectives.Average(o => o.ProgressPercentage);
+            var completedCount = Objectives.Count(o => o.Status == ObjectiveStatus.Completed);
+            return (double)completedCount / Objectives.Count * 100;
         }
     }
 }

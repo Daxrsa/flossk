@@ -42,7 +42,6 @@ interface Objective {
     description: string;
     status: 'todo' | 'in-progress' | 'completed';
     assignedTo: Member;
-    progress: number;
     members?: Member[];
     resources?: Resource[];
 }
@@ -163,7 +162,7 @@ interface GitHubRepo {
                 <div>
                     <label for="objectiveMembers" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Team Members</label>
                     <p-multiSelect id="objectiveMembers" [(ngModel)]="selectedObjectiveMemberNames" [options]="getProjectParticipantsForObjective()" optionLabel="name" optionValue="name" placeholder="Select Team Members" display="chip" class="w-full" />
-                    <p class="flex gap-1 text-xs text-muted-color mt-2"><i class="pi pi-info-circle"></i> Only project participants can be assigned</p>
+                    <p class="flex gap-1 text-xs text-muted-color mt-2"><i class="pi pi-info-circle"></i> Only project members can be assigned to objectives</p>
                 </div>
             </div>
             
@@ -616,25 +615,11 @@ interface GitHubRepo {
                                 </div>
 
                                 <div class="mb-3">
-                                    <p-button 
-                                        *ngIf="!isUserMember(project)"
-                                        label="Join"
-                                        icon="pi pi-user-plus"
-                                        size="small"
-                                        [outlined]="true"
-                                        (onClick)="joinProject(project, $event)"
-                                        styleClass="w-full"
-                                    />
-                                    <p-button 
-                                        *ngIf="isUserMember(project)"
-                                        label="Leave"
-                                        icon="pi pi-user-minus"
-                                        size="small"
-                                        [outlined]="true"
-                                        severity="danger"
-                                        (onClick)="leaveProject(project, $event)"
-                                        styleClass="w-full"
-                                    />
+                                    <div class="flex justify-between text-xs mb-2">
+                                        <span class="text-muted-color">Progress</span>
+                                        <span class="font-semibold">{{ project.progress }}%</span>
+                                    </div>
+                                    <p-progressbar [value]="project.progress" [showValue]="false"></p-progressbar>
                                 </div>
 
                                 <p-divider></p-divider>
@@ -755,13 +740,6 @@ interface GitHubRepo {
                                                     </div>
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
-                                                <div class="mb-2">
-                                                    <div class="flex justify-between text-xs mb-1">
-                                                        <span class="text-muted-color">Progress</span>
-                                                        <span class="font-semibold">{{ objective.progress }}%</span>
-                                                    </div>
-                                                    <p-progressbar [value]="objective.progress" [showValue]="false" styleClass="h-1"></p-progressbar>
-                                                </div>
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center gap-1">
                                                         @if (objective.members && objective.members.length > 0) {
@@ -827,14 +805,6 @@ interface GitHubRepo {
                                                             </p-avatarGroup>
                                                         }
                                                     </div>
-                                                    <div class="flex items-center gap-1">
-                                                        <p-button icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
-                                                        @if (!isUserInObjective(objective)) {
-                                                            <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" severity="secondary" pTooltip="Join" (onClick)="joinObjective(objective, $event)" />
-                                                        } @else {
-                                                            <p-button icon="pi pi-user-minus" size="small" [text]="true" [rounded]="true" severity="warn" pTooltip="Leave" (onClick)="leaveObjective(objective, $event)" />
-                                                        }
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -848,7 +818,7 @@ interface GitHubRepo {
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold m-0">Team Members</h3>
-                                <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" pTooltip="Assign Members" (onClick)="openAssignMembersToProjectDialog()" />
+                                <p-button *ngIf="selectedProject.status !== 'completed'" icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" pTooltip="Assign Members" (onClick)="openAssignMembersToProjectDialog()" />
                             </div>
                             <div class="flex flex-col gap-3">
                                 <div *ngFor="let member of selectedProject.participants" class="flex items-center gap-3">
@@ -857,7 +827,7 @@ interface GitHubRepo {
                                         <p class="font-semibold m-0">{{ member.name }}</p>
                                         <p class="text-sm text-muted-color m-0">{{ member.role }}</p>
                                     </div>
-                                    <p-button icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromProject(member)" />
+                                    <p-button *ngIf="selectedProject.status !== 'completed'" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromProject(member)" />
                                 </div>
                                 <div *ngIf="!selectedProject.participants || selectedProject.participants.length === 0" class="text-center text-muted-color py-4">
                                     <i class="pi pi-users text-2xl mb-2"></i>
@@ -1226,6 +1196,9 @@ export class Projects {
                 this.selectedProject.objectives[objectiveIndex].status = newStatus;
             }
             
+            // Recalculate project progress based on completed objectives
+            this.updateProjectProgress();
+            
             // Send PATCH request to update status on backend
             this.projectsService.updateObjectiveStatus(objectiveId, apiStatus).subscribe({
                 next: (response) => {
@@ -1266,6 +1239,32 @@ export class Projects {
                 this.selectedProject.objectives[objectiveIndex].status = oldStatus;
             }
         }
+        
+        // Recalculate project progress after revert
+        this.updateProjectProgress();
+    }
+
+    // Calculate and update project progress based on completed objectives
+    updateProjectProgress() {
+        if (!this.selectedProject || !this.selectedProject.objectives || this.selectedProject.objectives.length === 0) {
+            return;
+        }
+        
+        const totalObjectives = this.selectedProject.objectives.length;
+        const completedObjectives = this.selectedProject.objectives.filter(o => o.status === 'completed').length;
+        const newProgress = Math.round((completedObjectives / totalObjectives) * 100);
+        
+        this.selectedProject.progress = newProgress;
+        
+        // Also update the project in the appropriate status list
+        const projectInList = [...this.upcomingProjects, ...this.inProgressProjects, ...this.completedProjects]
+            .find(p => p.id === this.selectedProject!.id);
+        
+        if (projectInList) {
+            projectInList.progress = newProgress;
+        }
+        
+        console.log(`Project progress updated: ${completedObjectives}/${totalObjectives} = ${newProgress}%`);
     }
 
     dragStart(project: Project) {
@@ -1517,7 +1516,6 @@ export class Projects {
             description: '',
             status: 'todo',
             assignedTo: { name: 'Unassigned', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png', role: 'Member' },
-            progress: 0,
             members: []
         };
     }

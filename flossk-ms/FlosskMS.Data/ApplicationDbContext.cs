@@ -204,7 +204,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(e => e.Status)
                 .HasConversion<string>()
                 .HasMaxLength(20);
-            entity.Property(e => e.ProgressPercentage).HasDefaultValue(0);
             
             entity.HasOne(e => e.Project)
                 .WithMany(p => p.Objectives)
