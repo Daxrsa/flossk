@@ -21,8 +21,12 @@ import { ConfirmationService } from 'primeng/api';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
 import { ProjectsService } from '../../service/projects.service';
+import { AuthService, DEFAULT_AVATAR } from '../../service/auth.service';
+import { environment } from '@environments/environment.prod';
 
 interface Member {
+    id?: string;
+    userId?: string;
     name: string;
     avatar: string;
     role: string;
@@ -991,9 +995,12 @@ export class Projects {
     constructor(
         private confirmationService: ConfirmationService,
         private http: HttpClient,
-        private projectsService: ProjectsService
+        private projectsService: ProjectsService,
+        private authService: AuthService
     ) {
         this.loadProjectsByStatus();
+        this.loadAvailableMembers();
+        this.loadCurrentUser();
     }
 
     // Projects loaded from API by status
@@ -1047,11 +1054,31 @@ export class Projects {
             startDate: p.startDate,
             endDate: p.endDate,
             progress: p.progressPercentage || 0,
-            participants: p.teamMembers || [],
+            participants: this.mapTeamMembersFromApi(p.teamMembers || []),
             objectives: p.objectives || [],
             resources: p.resources || [],
             githubRepo: p.githubRepo
         }));
+    }
+
+    // Map team members from API to frontend Member interface
+    mapTeamMembersFromApi(teamMembers: any[]): Member[] {
+        return teamMembers.map(tm => {
+            let avatarUrl = DEFAULT_AVATAR;
+            if (tm.profilePictureUrl) {
+                avatarUrl = tm.profilePictureUrl.startsWith('http')
+                    ? tm.profilePictureUrl
+                    : `${environment.baseUrl}${tm.profilePictureUrl}`;
+            }
+            
+            return {
+                id: tm.id,
+                userId: tm.userId,
+                name: `${tm.firstName || ''} ${tm.lastName || ''}`.trim() || tm.email || 'Unknown',
+                avatar: avatarUrl,
+                role: tm.role || 'Member'
+            };
+        });
     }
 
     // Map API status (PascalCase) to frontend status (lowercase with hyphen)
@@ -1064,12 +1091,37 @@ export class Projects {
         }
     }
     
-    // Current logged-in user
+    // Current logged-in user (loaded from auth service)
     currentUser: Member = {
-        name: 'Ioni Bowcher',
-        avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png',
-        role: 'Developer'
+        userId: '',
+        name: '',
+        avatar: DEFAULT_AVATAR,
+        role: 'Member'
     };
+
+    loadCurrentUser() {
+        const user = this.authService.currentUser();
+        if (user) {
+            const firstName = (user as any).firstName || '';
+            const lastName = (user as any).lastName || '';
+            const fullName = `${firstName} ${lastName}`.trim() || (user as any).fullName || user.email || '';
+            
+            let avatarUrl = DEFAULT_AVATAR;
+            if ((user as any).profilePictureUrl) {
+                avatarUrl = (user as any).profilePictureUrl.startsWith('http')
+                    ? (user as any).profilePictureUrl
+                    : `${environment.baseUrl}${(user as any).profilePictureUrl}`;
+            }
+            
+            this.currentUser = {
+                userId: (user as any).id || '',
+                name: fullName,
+                avatar: avatarUrl,
+                role: user.roles?.[0] || user.role || 'Member'
+            };
+            console.log('Current user loaded:', this.currentUser);
+        }
+    }
     
     selectedProject: Project | null = null;
     draggedProject: Project | null = null;
@@ -1113,14 +1165,24 @@ export class Projects {
     resourceDialogMode: 'add' | 'edit' = 'add';
     currentResource: Resource = this.getEmptyResource();
     
-    availableMembers: Member[] = [
-        { name: 'Amy Elsner', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png', role: 'Project Lead' },
-        { name: 'Bernardo Dominic', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png', role: 'Hardware Engineer' },
-        { name: 'Anna Fali', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/annafali.png', role: 'Software Developer' },
-        { name: 'Asiya Javayant', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png', role: 'UI/UX Designer' },
-        { name: 'Elwin Sharvill', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png', role: 'Lead Engineer' },
-        { name: 'Ioni Bowcher', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png', role: 'Technician' }
-    ];
+    availableMembers: Member[] = [];
+    
+    loadAvailableMembers() {
+        this.projectsService.getAllUsers().subscribe({
+            next: (response) => {
+                console.log('Users loaded:', response.users);
+                this.availableMembers = response.users.map(user => ({
+                    name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+                    avatar: user.profilePictureUrl || DEFAULT_AVATAR,
+                    role: user.roles?.length > 0 ? user.roles[0] : 'Member'
+                }));
+            },
+            error: (err) => {
+                console.error('Error loading users:', err);
+                // Keep availableMembers empty on error
+            }
+        });
+    }
     
     statusOptions = [
         { label: 'Upcoming', value: 'upcoming' },
@@ -1532,7 +1594,7 @@ export class Projects {
             title: '',
             description: '',
             status: 'todo',
-            assignedTo: { name: 'Unassigned', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png', role: 'Member' },
+            assignedTo: { name: 'Unassigned', avatar: DEFAULT_AVATAR, role: 'Member' },
             members: []
         };
     }
@@ -1573,19 +1635,50 @@ export class Projects {
     }
     
     isUserMember(project: Project): boolean {
-        return project.participants.some(p => p.name === this.currentUser.name);
+        return project.participants.some(p => p.userId === this.currentUser.userId);
     }
     
     joinProject(project: Project, event: Event) {
         event.stopPropagation();
         if (!this.isUserMember(project)) {
+            // Optimistically add user to UI
             project.participants.push({ ...this.currentUser });
+            
+            // Send POST request to backend
+            this.projectsService.joinProject(project.id).subscribe({
+                next: (response) => {
+                    console.log('Successfully joined project:', response);
+                },
+                error: (err) => {
+                    console.error('Error joining project:', err);
+                    // Revert UI change on error
+                    project.participants = project.participants.filter(p => p.userId !== this.currentUser.userId);
+                }
+            });
         }
     }
     
     leaveProject(project: Project, event: Event) {
         event.stopPropagation();
-        project.participants = project.participants.filter(p => p.name !== this.currentUser.name);
+        // Store current user for potential revert
+        const removedMember = project.participants.find(p => p.userId === this.currentUser.userId);
+        
+        // Optimistically remove user from UI
+        project.participants = project.participants.filter(p => p.userId !== this.currentUser.userId);
+        
+        // Send POST request to backend
+        this.projectsService.leaveProject(project.id).subscribe({
+            next: (response) => {
+                console.log('Successfully left project:', response);
+            },
+            error: (err) => {
+                console.error('Error leaving project:', err);
+                // Revert UI change on error
+                if (removedMember) {
+                    project.participants.push(removedMember);
+                }
+            }
+        });
     }
     
     getEmptyResource(): Resource {
@@ -1632,7 +1725,7 @@ export class Projects {
     }
     
     isUserInObjective(objective: Objective): boolean {
-        return objective.members ? objective.members.some(m => m.name === this.currentUser.name) : false;
+        return objective.members ? objective.members.some(m => m.userId === this.currentUser.userId) : false;
     }
     
     joinObjective(objective: Objective, event: Event) {
@@ -1648,7 +1741,7 @@ export class Projects {
     leaveObjective(objective: Objective, event: Event) {
         event.stopPropagation();
         if (objective.members) {
-            objective.members = objective.members.filter(m => m.name !== this.currentUser.name);
+            objective.members = objective.members.filter(m => m.userId !== this.currentUser.userId);
         }
     }
     
@@ -1714,7 +1807,7 @@ export class Projects {
     
     leaveObjectiveFromDetail() {
         if (!this.viewingObjective || !this.viewingObjective.members) return;
-        this.viewingObjective.members = this.viewingObjective.members.filter(m => m.name !== this.currentUser.name);
+        this.viewingObjective.members = this.viewingObjective.members.filter(m => m.userId !== this.currentUser.userId);
         this.updateObjectiveInProject();
     }
     
@@ -1786,8 +1879,32 @@ export class Projects {
     }
     
     removeProjectMemberFromDialog(member: Member) {
-        // Remove from temp selection
-        return;
+        if (!this.selectedProject || !member.userId) {
+            console.error('Cannot remove member: missing project or userId');
+            return;
+        }
+        
+        const projectId = this.selectedProject.id;
+        const userId = member.userId;
+        
+        // Optimistically remove from UI
+        if (this.selectedProject.participants) {
+            this.selectedProject.participants = this.selectedProject.participants.filter(p => p.userId !== userId);
+        }
+        
+        // Send DELETE request to backend
+        this.projectsService.removeTeamMember(projectId, userId).subscribe({
+            next: (response) => {
+                console.log('Team member removed successfully:', response);
+            },
+            error: (err) => {
+                console.error('Error removing team member:', err);
+                // Revert UI change on error
+                if (this.selectedProject?.participants) {
+                    this.selectedProject.participants.push(member);
+                }
+            }
+        });
     }
     
     removeObjectiveMemberFromDialog(member: Member) {
@@ -1973,14 +2090,14 @@ export class Projects {
             startDate: p.startDate,
             endDate: p.endDate,
             progress: p.progressPercentage || 0,
-            participants: p.teamMembers || [],
+            participants: this.mapTeamMembersFromApi(p.teamMembers || []),
             objectives: (p.objectives || []).map((o: any) => ({
                 id: o.id,
                 title: o.title,
                 description: o.description,
                 status: this.mapObjectiveStatusFromApi(o.status),
                 progress: o.progressPercentage || 0,
-                members: o.teamMembers || [],
+                members: this.mapTeamMembersFromApi(o.teamMembers || []),
                 resources: o.resources || []
             })),
             resources: p.resources || [],

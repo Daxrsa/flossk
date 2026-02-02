@@ -3,11 +3,37 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment.prod';
 import { Observable } from 'rxjs';
 
+export interface UserDto {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    biography?: string;
+    phoneNumber?: string;
+    location?: string;
+    rfid: boolean;
+    websiteUrl?: string;
+    socialLinks?: string[];
+    skills?: string[];
+    createdAt: string;
+    roles: string[];
+    profilePictureUrl?: string;
+}
+
+export interface UsersResponse {
+    users: UserDto[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+}
+
 @Injectable({
     providedIn: 'root'
 })
 export class ProjectsService {
     private readonly API_URL = `${environment.apiUrl}/Projects`;
+    private readonly AUTH_API_URL = `${environment.apiUrl}/Auth`;
 
     constructor(private http: HttpClient) {}
 
@@ -36,5 +62,21 @@ export class ProjectsService {
 
     deleteProject(id: string): Observable<any> {
         return this.http.delete<any>(`${this.API_URL}/${id}`);
+    }
+
+    joinProject(projectId: number | string): Observable<any> {
+        return this.http.post<any>(`${this.API_URL}/${projectId}/join`, {});
+    }
+
+    leaveProject(projectId: number | string): Observable<any> {
+        return this.http.post<any>(`${this.API_URL}/${projectId}/leave`, {});
+    }
+
+    removeTeamMember(projectId: number | string, userId: string): Observable<any> {
+        return this.http.delete<any>(`${this.API_URL}/${projectId}/team-members/${userId}`);
+    }
+
+    getAllUsers(page: number = 1, pageSize: number = 100): Observable<UsersResponse> {
+        return this.http.get<UsersResponse>(`${this.AUTH_API_URL}/users?page=${page}&pageSize=${pageSize}`);
     }
 }

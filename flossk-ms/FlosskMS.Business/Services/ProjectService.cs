@@ -69,6 +69,8 @@ public class ProjectService : IProjectService
         var query = _dbContext.Projects
             .Include(p => p.CreatedByUser)
             .Include(p => p.TeamMembers)
+                .ThenInclude(tm => tm.User)
+                    .ThenInclude(u => u.UploadedFiles)
             .Include(p => p.Objectives)
             .Include(p => p.Resources)
             .AsQueryable();
@@ -96,11 +98,13 @@ public class ProjectService : IProjectService
             .Include(p => p.CreatedByUser)
             .Include(p => p.TeamMembers)
                 .ThenInclude(tm => tm.User)
+                    .ThenInclude(u => u.UploadedFiles)
             .Include(p => p.Objectives)
                 .ThenInclude(o => o.CreatedByUser)
             .Include(p => p.Objectives)
                 .ThenInclude(o => o.TeamMembers)
                     .ThenInclude(tm => tm.User)
+                        .ThenInclude(u => u.UploadedFiles)
             .Include(p => p.Objectives)
                 .ThenInclude(o => o.Resources)
             .Include(p => p.Resources)

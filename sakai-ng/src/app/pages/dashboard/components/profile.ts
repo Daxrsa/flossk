@@ -18,7 +18,7 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { SelectModule } from 'primeng/select';
 import { SkeletonModule } from 'primeng/skeleton';
 import { AccordionModule } from 'primeng/accordion';
-import { AuthService } from '@/pages/service/auth.service';
+import { AuthService, DEFAULT_AVATAR } from '@/pages/service/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment.prod';
 
@@ -498,7 +498,7 @@ export class Profile implements OnInit {
     ];
 
     userProfile = {
-        picture: 'assets/images/avatar.jpg',
+        picture: DEFAULT_AVATAR,
         firstName: '',
         lastName: '',
         email: '',
@@ -553,7 +553,7 @@ export class Profile implements OnInit {
     }
 
     mapUserToProfile(user: User) {
-        let pictureUrl = 'assets/images/avatar.jpg';
+        let pictureUrl = DEFAULT_AVATAR;
         if (user.profilePictureUrl) {
             pictureUrl = user.profilePictureUrl.startsWith('http')
                 ? user.profilePictureUrl
@@ -582,7 +582,7 @@ export class Profile implements OnInit {
         console.log('Logged in user data:', user);
         if (user) {
             // Construct full picture URL if it's a relative path
-            let pictureUrl = 'assets/images/avatar.jpg';
+            let pictureUrl = DEFAULT_AVATAR;
             if (user.profilePictureUrl) {
                 pictureUrl = user.profilePictureUrl.startsWith('http')
                     ? user.profilePictureUrl
@@ -735,8 +735,8 @@ export class Profile implements OnInit {
             next: () => {
                 console.log('Profile picture deleted successfully');
                 // Reset to default avatar
-                this.editProfile.picture = 'assets/images/avatar.jpg';
-                this.userProfile.picture = 'assets/images/avatar.jpg';
+                this.editProfile.picture = DEFAULT_AVATAR;
+                this.userProfile.picture = DEFAULT_AVATAR;
                 this.selectedFile = null;
                 
                 // Update auth service

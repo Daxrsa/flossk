@@ -107,6 +107,13 @@ public class ProjectProfile : Profile
             .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.User.FirstName))
             .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.User.LastName))
             .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email))
+            .ForMember(dest => dest.ProfilePictureUrl, opt => opt.MapFrom(src => 
+                src.User.UploadedFiles != null 
+                    ? src.User.UploadedFiles
+                        .Where(f => f.FileType == FileType.ProfilePicture)
+                        .Select(f => "/uploads/" + f.FileName)
+                        .FirstOrDefault()
+                    : null))
             .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.JoinedAt));
 
         // Team member mappings (ObjectiveTeamMember)
@@ -114,6 +121,13 @@ public class ProjectProfile : Profile
             .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.User.FirstName))
             .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.User.LastName))
             .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email))
+            .ForMember(dest => dest.ProfilePictureUrl, opt => opt.MapFrom(src => 
+                src.User.UploadedFiles != null 
+                    ? src.User.UploadedFiles
+                        .Where(f => f.FileType == FileType.ProfilePicture)
+                        .Select(f => "/uploads/" + f.FileName)
+                        .FirstOrDefault()
+                    : null))
             .ForMember(dest => dest.Role, opt => opt.Ignore())
             .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.AssignedAt));
     }

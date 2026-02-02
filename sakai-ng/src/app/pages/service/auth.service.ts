@@ -4,6 +4,9 @@ import { Router } from '@angular/router';
 import { Observable, tap, catchError, of } from 'rxjs';
 import { environment } from '@environments/environment.prod';
 
+// Default avatar URL - use this constant throughout the app
+export const DEFAULT_AVATAR = 'assets/images/avatar.jpg';
+
 export interface LoginRequest {
     email: string;
     password: string;
