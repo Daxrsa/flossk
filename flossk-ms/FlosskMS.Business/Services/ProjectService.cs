@@ -237,8 +237,20 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
 
-    public async Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId)
+    public async Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId, string currentUserId)
     {
+        // Check if the current user is the project creator
+        var project = await _dbContext.Projects.FindAsync(projectId);
+        if (project == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Project not found." });
+        }
+
+        if (project.CreatedByUserId != currentUserId)
+        {
+            return new ForbidResult();
+        }
+
         var teamMember = await _dbContext.ProjectTeamMembers
             .FirstOrDefaultAsync(tm => tm.ProjectId == projectId && tm.UserId == userId);
 
@@ -527,13 +539,22 @@ public class ProjectService : IProjectService
             return new NotFoundObjectResult(new { Error = "User not found." });
         }
 
-        // Check if user is a member of the project
+        // Check if user is a member of the project, if not, add them automatically
         var isProjectMember = await _dbContext.ProjectTeamMembers
             .AnyAsync(tm => tm.ProjectId == objective.ProjectId && tm.UserId == request.UserId);
 
         if (!isProjectMember)
         {
-            return new BadRequestObjectResult(new { Error = "User must be a team member of the project before being assigned to an objective." });
+            var projectTeamMember = new ProjectTeamMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = objective.ProjectId,
+                UserId = request.UserId,
+                Role = "Member",
+                JoinedAt = DateTime.UtcNow
+            };
+            _dbContext.ProjectTeamMembers.Add(projectTeamMember);
+            _logger.LogInformation("User {UserId} automatically added to project {ProjectId} when assigned to objective", request.UserId, objective.ProjectId);
         }
 
         var existingMember = await _dbContext.ObjectiveTeamMembers
@@ -618,13 +639,22 @@ public class ProjectService : IProjectService
             return new NotFoundObjectResult(new { Error = "User not found." });
         }
 
-        // Check if user is a member of the project
+        // Check if user is a member of the project, if not, add them automatically
         var isProjectMember = await _dbContext.ProjectTeamMembers
             .AnyAsync(tm => tm.ProjectId == objective.ProjectId && tm.UserId == userId);
 
         if (!isProjectMember)
         {
-            return new BadRequestObjectResult(new { Error = "You must be a member of the project before joining an objective." });
+            var projectTeamMember = new ProjectTeamMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = objective.ProjectId,
+                UserId = userId,
+                Role = "Member",
+                JoinedAt = DateTime.UtcNow
+            };
+            _dbContext.ProjectTeamMembers.Add(projectTeamMember);
+            _logger.LogInformation("User {UserId} automatically added to project {ProjectId} when joining objective", userId, objective.ProjectId);
         }
 
         var existingMember = await _dbContext.ObjectiveTeamMembers

@@ -105,13 +105,18 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     }
 
     /// <summary>
-    /// Remove a team member from a project (Admin only)
+    /// Remove a team member from a project (Project creator only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("{projectId:guid}/team-members/{userId}")]
     public async Task<IActionResult> RemoveTeamMemberFromProject(Guid projectId, string userId)
     {
-        return await _projectService.RemoveTeamMemberFromProjectAsync(projectId, userId);
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            return Unauthorized();
+        }
+        return await _projectService.RemoveTeamMemberFromProjectAsync(projectId, userId, currentUserId);
     }
 
     /// <summary>

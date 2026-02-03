@@ -15,7 +15,7 @@ public interface IProjectService
 
     // Project team member operations
     Task<IActionResult> AddTeamMemberToProjectAsync(Guid projectId, AddTeamMemberDto request);
-    Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId);
+    Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId, string currentUserId);
     Task<IActionResult> GetProjectTeamMembersAsync(Guid projectId);
     Task<IActionResult> JoinProjectAsync(Guid projectId, string userId);
     Task<IActionResult> LeaveProjectAsync(Guid projectId, string userId);
