@@ -1649,18 +1649,13 @@ export class Projects {
     joinProject(project: Project, event: Event) {
         event.stopPropagation();
         if (!this.isUserMember(project)) {
-            // Optimistically add user to UI
-            project.participants.push({ ...this.currentUser });
-            
-            // Send POST request to backend
             this.projectsService.joinProject(project.id).subscribe({
                 next: (response) => {
                     console.log('Successfully joined project:', response);
+                    project.participants.push({ ...this.currentUser });
                 },
                 error: (err) => {
                     console.error('Error joining project:', err);
-                    // Revert UI change on error
-                    project.participants = project.participants.filter(p => p.userId !== this.currentUser.userId);
                 }
             });
         }
@@ -1668,23 +1663,13 @@ export class Projects {
     
     leaveProject(project: Project, event: Event) {
         event.stopPropagation();
-        // Store current user for potential revert
-        const removedMember = project.participants.find(p => p.userId === this.currentUser.userId);
-        
-        // Optimistically remove user from UI
-        project.participants = project.participants.filter(p => p.userId !== this.currentUser.userId);
-        
-        // Send POST request to backend
         this.projectsService.leaveProject(project.id).subscribe({
             next: (response) => {
                 console.log('Successfully left project:', response);
+                project.participants = project.participants.filter(p => p.userId !== this.currentUser.userId);
             },
             error: (err) => {
                 console.error('Error leaving project:', err);
-                // Revert UI change on error
-                if (removedMember) {
-                    project.participants.push(removedMember);
-                }
             }
         });
     }
@@ -1895,22 +1880,15 @@ export class Projects {
         const projectId = this.selectedProject.id;
         const userId = member.userId;
         
-        // Optimistically remove from UI
-        if (this.selectedProject.participants) {
-            this.selectedProject.participants = this.selectedProject.participants.filter(p => p.userId !== userId);
-        }
-        
-        // Send DELETE request to backend
         this.projectsService.removeTeamMember(projectId, userId).subscribe({
             next: (response) => {
                 console.log('Team member removed successfully:', response);
+                if (this.selectedProject?.participants) {
+                    this.selectedProject.participants = this.selectedProject.participants.filter(p => p.userId !== userId);
+                }
             },
             error: (err) => {
                 console.error('Error removing team member:', err);
-                // Revert UI change on error
-                if (this.selectedProject?.participants) {
-                    this.selectedProject.participants.push(member);
-                }
             }
         });
     }
