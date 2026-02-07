@@ -221,7 +221,7 @@ interface GitHubRepo {
                             <div style="width: 120px;">
                                 <p-progressbar [value]="viewingObjective.progress" [showValue]="false"></p-progressbar>
                             </div>
-                            <span class="font-semibold">{{ viewingObjective.progress }}%</span>
+                            <span class="font-semibold">{{ viewingObjective.progress | number:'1.0-1' }}%</span>
                         </div>
                     </div>
                 </div> -->
@@ -533,7 +533,7 @@ interface GitHubRepo {
                                 <div class="mb-3">
                                     <div class="flex justify-between text-xs mb-2">
                                         <span class="text-muted-color">Progress</span>
-                                        <span class="font-semibold">{{ project.progress }}%</span>
+                                        <span class="font-semibold">{{ project.progress | number:'1.0-1' }}%</span>
                                     </div>
                                     <p-progressbar [value]="project.progress" [showValue]="false"></p-progressbar>
                                 </div>
@@ -624,7 +624,7 @@ interface GitHubRepo {
                                 <div class="mb-3">
                                     <div class="flex justify-between text-xs mb-2">
                                         <span class="text-muted-color">Progress</span>
-                                        <span class="font-semibold">{{ project.progress }}%</span>
+                                        <span class="font-semibold">{{ project.progress | number:'1.0-1' }}%</span>
                                     </div>
                                     <p-progressbar [value]="project.progress" [showValue]="false"></p-progressbar>
                                 </div>
