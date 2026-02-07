@@ -165,8 +165,7 @@ interface GitHubRepo {
                 
                 <div>
                     <label for="objectiveMembers" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Team Members</label>
-                    <p-multiSelect id="objectiveMembers" [(ngModel)]="selectedObjectiveMemberNames" [options]="getProjectParticipantsForObjective()" optionLabel="name" optionValue="name" placeholder="Select Team Members" display="chip" class="w-full" />
-                    <p class="flex gap-1 text-xs text-muted-color mt-2"><i class="pi pi-info-circle"></i> Only project members can be assigned to objectives</p>
+                    <p-multiSelect id="objectiveMembers" [(ngModel)]="selectedObjectiveMemberNames" [options]="availableMembers" optionLabel="name" optionValue="name" placeholder="Select Team Members" display="chip" class="w-full" />
                 </div>
             </div>
             
@@ -388,10 +387,10 @@ interface GitHubRepo {
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Select Team Members</label>
                     <p-multiselect 
                         [(ngModel)]="tempSelectedObjectiveMembers" 
-                        [options]="getProjectParticipantsForObjective()" 
+                        [options]="availableMembers" 
                         optionLabel="name" 
                         optionValue="name"
-                        placeholder="Select project members to assign" 
+                        placeholder="Select members to assign" 
                         class="w-full"
                         [showClear]="true"
                         display="chip"
@@ -406,7 +405,6 @@ interface GitHubRepo {
                             </div>
                         </ng-template>
                     </p-multiselect>
-                    <p class="text-xs text-muted-color mt-5">Only project participants can be assigned to objectives</p>
                 </div>
                 
                 <div *ngIf="assigningObjective?.members?.length" class="mt-2">
@@ -1623,7 +1621,46 @@ export class Projects {
     }
     
     saveObjective() {
-        return;
+        if (this.objectiveDialogMode === 'add') {
+            if (!this.isObjectiveFormValid() || !this.selectedProject) {
+                return;
+            }
+
+            const payload = {
+                projectId: this.selectedProject.id.toString(),
+                title: this.currentObjective.title.trim(),
+                description: this.currentObjective.description?.trim() || '',
+                status: this.mapObjectiveStatusToApi(this.currentObjective.status)
+            };
+
+            this.projectsService.createObjective(payload).subscribe({
+                next: (createdObjective) => {
+                    console.log('Objective created successfully:', createdObjective);
+                    
+                    // Map the response to frontend format and add to selected project
+                    const newObjective: Objective = {
+                        id: createdObjective.id,
+                        title: createdObjective.title,
+                        description: createdObjective.description,
+                        status: this.mapObjectiveStatusFromApi(createdObjective.status),
+                        assignedTo: { name: 'Unassigned', avatar: DEFAULT_AVATAR, role: 'Member' },
+                        members: []
+                    };
+                    
+                    if (this.selectedProject) {
+                        this.selectedProject.objectives.push(newObjective);
+                        this.updateProjectProgress();
+                    }
+                    
+                    this.objectiveDialogVisible = false;
+                    this.currentObjective = this.getEmptyObjective();
+                    this.selectedObjectiveMemberNames = [];
+                },
+                error: (err) => {
+                    console.error('Error creating objective:', err);
+                }
+            });
+        }
     }
     
     confirmDeleteObjective(objective: Objective) {

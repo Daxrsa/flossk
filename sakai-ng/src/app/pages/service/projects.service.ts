@@ -76,6 +76,10 @@ export class ProjectsService {
         return this.http.delete<any>(`${this.API_URL}/${projectId}/team-members/${userId}`);
     }
 
+    createObjective(payload: { projectId: string; title: string; description: string; status: string }): Observable<any> {
+        return this.http.post<any>(`${this.API_URL}/objectives`, payload);
+    }
+
     getAllUsers(page: number = 1, pageSize: number = 100): Observable<UsersResponse> {
         return this.http.get<UsersResponse>(`${this.AUTH_API_URL}/users?page=${page}&pageSize=${pageSize}`);
     }
