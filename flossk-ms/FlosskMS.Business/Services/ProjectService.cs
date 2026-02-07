@@ -120,7 +120,9 @@ public class ProjectService : IProjectService
 
     public async Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request)
     {
-        var project = await _dbContext.Projects.FindAsync(id);
+        var project = await _dbContext.Projects
+            .Include(p => p.Objectives)
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (project == null)
         {
             return new NotFoundObjectResult(new { Error = "Project not found." });
@@ -131,7 +133,7 @@ public class ProjectService : IProjectService
             return new BadRequestObjectResult(new { Error = "Title is required." });
         }
 
-        if (!Enum.TryParse<ProjectStatus>(request.Status, true, out _))
+        if (!Enum.TryParse<ProjectStatus>(request.Status, true, out var newStatus))
         {
             return new BadRequestObjectResult(new { Error = "Invalid status value. Valid values are: Upcoming, InProgress, Completed." });
         }
@@ -139,6 +141,26 @@ public class ProjectService : IProjectService
         if (request.EndDate < request.StartDate)
         {
             return new BadRequestObjectResult(new { Error = "End date must be after start date." });
+        }
+
+        // Constraint: Cannot move from Upcoming to InProgress unless at least one objective is InProgress
+        if (project.Status == ProjectStatus.Upcoming && newStatus == ProjectStatus.InProgress)
+        {
+            var hasInProgressObjective = project.Objectives.Any(o => o.Status == ObjectiveStatus.InProgress);
+            if (!hasInProgressObjective)
+            {
+                return new BadRequestObjectResult(new { Error = "Cannot start project. At least one objective must be in progress." });
+            }
+        }
+
+        // Constraint: Cannot move from InProgress to Completed unless all objectives are Completed
+        if (project.Status == ProjectStatus.InProgress && newStatus == ProjectStatus.Completed)
+        {
+            var allObjectivesCompleted = project.Objectives.All(o => o.Status == ObjectiveStatus.Completed);
+            if (!allObjectivesCompleted)
+            {
+                return new BadRequestObjectResult(new { Error = "Cannot complete project. All objectives must be completed first." });
+            }
         }
 
         _mapper.Map(request, project);
@@ -170,7 +192,9 @@ public class ProjectService : IProjectService
 
     public async Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status)
     {
-        var project = await _dbContext.Projects.FindAsync(id);
+        var project = await _dbContext.Projects
+            .Include(p => p.Objectives)
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (project == null)
         {
             return new NotFoundObjectResult(new { Error = "Project not found." });
@@ -180,6 +204,16 @@ public class ProjectService : IProjectService
         {
             var validStatuses = string.Join(", ", Enum.GetNames<ProjectStatus>());
             return new BadRequestObjectResult(new { Error = $"Invalid status '{status}'. Valid statuses are: {validStatuses}" });
+        }
+
+        // Constraint: Cannot move from Upcoming to InProgress unless at least one objective is InProgress
+        if (project.Status == ProjectStatus.Upcoming && projectStatus == ProjectStatus.InProgress)
+        {
+            var hasInProgressObjective = project.Objectives.Any(o => o.Status == ObjectiveStatus.InProgress);
+            if (!hasInProgressObjective)
+            {
+                return new BadRequestObjectResult(new { Error = "Cannot start project. At least one objective must be in progress." });
+            }
         }
 
         project.Status = projectStatus;

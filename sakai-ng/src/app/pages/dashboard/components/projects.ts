@@ -138,10 +138,16 @@ interface GitHubRepo {
                     <label for="status" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Status</label>
                     <p-select id="status" [(ngModel)]="currentProject.status" [options]="statusOptions" placeholder="Select Status" class="w-full" />
                 </div>
+
+                <!-- Error message -->
+                <div *ngIf="projectDialogError" class="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg p-3 flex items-center gap-2">
+                    <i class="pi pi-exclamation-circle text-red-500"></i>
+                    <span class="text-sm text-red-700 dark:text-red-300">{{ projectDialogError }}</span>
+                </div>
             </div>
             
             <div class="flex justify-end gap-2 mt-6">
-                <p-button label="Cancel" severity="secondary" (onClick)="dialogVisible = false" />
+                <p-button label="Cancel" severity="secondary" (onClick)="closeProjectDialog()" />
                 <p-button [label]="dialogMode === 'add' ? 'Create' : 'Save'" (onClick)="saveProject()" [disabled]="dialogMode === 'add' && !isProjectFormValid()" />
             </div>
         </p-dialog>
@@ -509,10 +515,15 @@ interface GitHubRepo {
 
                 <!-- In Progress Column -->
                 <div class="col-span-12 md:col-span-4">
-                    <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4" pDroppable="projects" (onDrop)="onDrop($event, 'in-progress')">
+                    <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4" [ngClass]="{'border-2 border-dashed border-orange-400': showInProgressWarning}" pDroppable="projects" (onDrop)="onDrop($event, 'in-progress')">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-semibold text-lg m-0">In Progress</h3>
                             <p-tag [value]="getProjectsByStatus('in-progress').length.toString()" severity="info"></p-tag>
+                        </div>
+                        <!-- Warning message when dragging project without in-progress objectives -->
+                        <div *ngIf="showInProgressWarning" class="bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg p-3 mb-3 flex items-center gap-2">
+                            <i class="pi pi-exclamation-triangle text-orange-500"></i>
+                            <span class="text-sm text-orange-700 dark:text-orange-300">At least one objective must be in progress first</span>
                         </div>
                         <div class="flex flex-col gap-3 min-h-32">
                             <div *ngFor="let project of getProjectsByStatus('in-progress')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" (click)="selectProject(project)">
@@ -1061,7 +1072,15 @@ export class Projects {
             endDate: p.endDate,
             progress: p.progressPercentage || 0,
             participants: this.mapTeamMembersFromApi(p.teamMembers || []),
-            objectives: p.objectives || [],
+            objectives: (p.objectives || []).map((o: any) => ({
+                id: o.id,
+                title: o.title,
+                description: o.description,
+                status: this.mapObjectiveStatusFromApi(o.status),
+                assignedTo: { name: 'Unassigned', avatar: DEFAULT_AVATAR, role: 'Member' },
+                members: this.mapTeamMembersFromApi(o.teamMembers || []),
+                resources: o.resources || []
+            })),
             resources: p.resources || [],
             githubRepo: p.githubRepo
         }));
@@ -1136,8 +1155,19 @@ export class Projects {
     get showCompletedWarning(): boolean {
         return this.draggedProject !== null && this.draggedProject.progress < 100;
     }
+
+    // Check if the dragged project cannot be moved to In Progress (no objectives in progress)
+    get showInProgressWarning(): boolean {
+        if (!this.draggedProject || this.draggedProject.status !== 'upcoming') {
+            return false;
+        }
+        const hasInProgressObjective = this.draggedProject.objectives?.some(o => o.status === 'in-progress');
+        return !hasInProgressObjective;
+    }
+
     dialogVisible = false;
     dialogMode: 'add' | 'edit' = 'add';
+    projectDialogError: string | null = null;
     currentProject: Project = this.getEmptyProject();
     startDate: Date | null = null;
     endDate: Date | null = null;
@@ -1355,11 +1385,27 @@ export class Projects {
 
     onDrop(event: any, newStatus: 'upcoming' | 'in-progress' | 'completed') {
         if (this.draggedProject) {
+            // Skip if status is unchanged
+            if (this.draggedProject.status === newStatus) {
+                this.draggedProject = null;
+                return;
+            }
+
             // Prevent moving to Completed if project progress is not 100%
             if (newStatus === 'completed' && this.draggedProject.progress < 100) {
                 console.log(`Cannot move project "${this.draggedProject.title}" to Completed - progress is ${this.draggedProject.progress}%`);
                 this.draggedProject = null;
                 return;
+            }
+
+            // Prevent moving from Upcoming to In Progress unless at least one objective is in progress
+            if (this.draggedProject.status === 'upcoming' && newStatus === 'in-progress') {
+                const hasInProgressObjective = this.draggedProject.objectives?.some(o => o.status === 'in-progress');
+                if (!hasInProgressObjective) {
+                    console.log(`Cannot start project "${this.draggedProject.title}" - at least one objective must be in progress`);
+                    this.draggedProject = null;
+                    return;
+                }
             }
             
             const oldStatus = this.draggedProject.status;
@@ -1477,6 +1523,7 @@ export class Projects {
         this.startDate = null;
         this.endDate = null;
         this.selectedMemberNames = [];
+        this.projectDialogError = null;
         this.dialogVisible = true;
     }
     
@@ -1488,6 +1535,7 @@ export class Projects {
         this.endDate = project.endDate ? new Date(project.endDate) : null;
         // Load current team member names
         this.selectedMemberNames = project.participants.map(p => p.name);
+        this.projectDialogError = null;
         this.dialogVisible = true;
     }
 
@@ -1551,6 +1599,63 @@ export class Projects {
 
             return;
         }
+
+        // Edit mode
+        if (this.dialogMode === 'edit') {
+            const payload = {
+                title: this.currentProject.title.trim(),
+                description: this.currentProject.description?.trim() || '',
+                startDate: this.startDate?.toISOString() || '',
+                endDate: this.endDate?.toISOString() || '',
+                status: this.mapStatusToApi(this.currentProject.status)
+            };
+
+            this.projectsService.updateProject(this.currentProject.id, payload).subscribe({
+                next: (updatedProject) => {
+                    console.log('Project updated successfully:', updatedProject);
+                    const mappedProject = this.mapProjectFromApi(updatedProject);
+
+                    // Remove from old lists
+                    this.upcomingProjects = this.upcomingProjects.filter(p => p.id !== mappedProject.id);
+                    this.inProgressProjects = this.inProgressProjects.filter(p => p.id !== mappedProject.id);
+                    this.completedProjects = this.completedProjects.filter(p => p.id !== mappedProject.id);
+
+                    // Add to appropriate list based on status
+                    switch (mappedProject.status) {
+                        case 'upcoming':
+                            this.upcomingProjects.push(mappedProject);
+                            break;
+                        case 'in-progress':
+                            this.inProgressProjects.push(mappedProject);
+                            break;
+                        case 'completed':
+                            this.completedProjects.push(mappedProject);
+                            break;
+                    }
+
+                    // Update selectedProject if it's the same project
+                    if (this.selectedProject?.id === mappedProject.id) {
+                        this.selectedProject = mappedProject;
+                    }
+
+                    this.dialogVisible = false;
+                    this.currentProject = this.getEmptyProject();
+                    this.startDate = null;
+                    this.endDate = null;
+                    this.selectedMemberNames = [];
+                    this.projectDialogError = null;
+                },
+                error: (err) => {
+                    console.error('Error updating project:', err);
+                    this.projectDialogError = err.error?.Error || err.error?.error || 'An error occurred while updating the project.';
+                }
+            });
+        }
+    }
+
+    closeProjectDialog() {
+        this.dialogVisible = false;
+        this.projectDialogError = null;
     }
     
     confirmDeleteProject(project: Project) {

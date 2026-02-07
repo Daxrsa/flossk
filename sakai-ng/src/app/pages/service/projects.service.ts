@@ -52,6 +52,10 @@ export class ProjectsService {
         return this.http.post<any>(this.API_URL, payload);
     }
 
+    updateProject(id: number | string, payload: { title: string; description: string; startDate: string; endDate: string; status: string }): Observable<any> {
+        return this.http.put<any>(`${this.API_URL}/${id}`, payload);
+    }
+
     updateProjectStatus(id: number, status: string): Observable<any> {
         return this.http.patch<any>(`${this.API_URL}/${id}/status?status=${status}`, {});
     }
