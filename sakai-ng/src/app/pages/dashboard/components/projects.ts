@@ -1676,7 +1676,20 @@ export class Projects {
     }
     
     deleteObjective(objective: Objective) {
-        return;
+        this.projectsService.deleteObjective(objective.id).subscribe({
+            next: (response) => {
+                console.log('Objective deleted successfully:', response);
+                
+                // Remove objective from selected project
+                if (this.selectedProject) {
+                    this.selectedProject.objectives = this.selectedProject.objectives.filter(o => o.id !== objective.id);
+                    this.updateProjectProgress();
+                }
+            },
+            error: (err) => {
+                console.error('Error deleting objective:', err);
+            }
+        });
     }
     
     isUserMember(project: Project): boolean {
