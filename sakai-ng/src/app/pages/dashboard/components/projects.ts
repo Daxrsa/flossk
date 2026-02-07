@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -1001,6 +1001,14 @@ export class Projects {
         this.loadProjectsByStatus();
         this.loadAvailableMembers();
         this.loadCurrentUser();
+
+        // Watch for auth user changes (handles page reload where user is loaded async)
+        effect(() => {
+            const user = this.authService.currentUser();
+            if (user && (!this.currentUser.userId || this.currentUser.userId !== (user as any).id)) {
+                this.loadCurrentUser();
+            }
+        });
     }
 
     // Projects loaded from API by status
