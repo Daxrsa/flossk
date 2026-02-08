@@ -567,6 +567,12 @@ public class ProjectService : IProjectService
             return new NotFoundObjectResult(new { Error = "Objective not found." });
         }
 
+        // Prevent assigning members to completed objectives
+        if (objective.Status == "completed")
+        {
+            return new BadRequestObjectResult(new { Error = "Cannot assign team members to a completed objective." });
+        }
+
         var user = await _dbContext.Users.FindAsync(request.UserId);
         if (user == null)
         {
@@ -619,6 +625,18 @@ public class ProjectService : IProjectService
 
     public async Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId)
     {
+        var objective = await _dbContext.Objectives.FindAsync(objectiveId);
+        if (objective == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Objective not found." });
+        }
+
+        // Prevent removing members from completed objectives
+        if (objective.Status == "completed")
+        {
+            return new BadRequestObjectResult(new { Error = "Cannot remove team members from a completed objective." });
+        }
+
         var teamMember = await _dbContext.ObjectiveTeamMembers
             .FirstOrDefaultAsync(tm => tm.ObjectiveId == objectiveId && tm.UserId == userId);
 

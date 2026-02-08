@@ -169,9 +169,16 @@ interface GitHubRepo {
                     <p-select id="objectiveStatus" [(ngModel)]="currentObjective.status" [options]="objectiveStatusOptions" placeholder="Select Status" class="w-full" />
                 </div>
                 
-                <div>
+                <div *ngIf="currentObjective.status !== 'completed'">
                     <label for="objectiveMembers" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Team Members</label>
                     <p-multiSelect id="objectiveMembers" [(ngModel)]="selectedObjectiveMemberNames" [options]="availableMembers" optionLabel="name" optionValue="name" placeholder="Select Team Members" display="chip" class="w-full" />
+                </div>
+                
+                <div *ngIf="currentObjective.status === 'completed'" class="bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg p-3">
+                    <p class="text-sm text-surface-600 dark:text-surface-400 m-0">
+                        <i class="pi pi-info-circle mr-2"></i>
+                        Team members cannot be modified for completed objectives.
+                    </p>
                 </div>
             </div>
             
@@ -244,7 +251,7 @@ interface GitHubRepo {
                 <div>
                     <div class="flex justify-between items-center mb-3">
                         <h6 class="text-sm font-semibold text-muted-color m-0 tracking-wide">Team Members</h6>
-                        <p-button icon="pi pi-user-plus" label="Assign Members" size="small" [text]="true" (onClick)="openAssignMembersToObjectiveFromDetail()" />
+                        <p-button *ngIf="viewingObjective.status !== 'completed'" icon="pi pi-user-plus" label="Assign Members" size="small" [text]="true" (onClick)="openAssignMembersToObjectiveFromDetail()" />
                     </div>
                     <div *ngIf="viewingObjective.members && viewingObjective.members.length > 0" class="flex flex-col gap-3">
                         <div *ngFor="let member of viewingObjective.members" class="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -253,7 +260,7 @@ interface GitHubRepo {
                                 <p class="font-semibold text-surface-900 dark:text-surface-0 m-0">{{ member.name }}</p>
                                 <p class="text-sm text-muted-color m-0">{{ member.role }}</p>
                             </div>
-                            <p-button icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromObjectiveDetail(member)" />
+                            <p-button *ngIf="viewingObjective.status !== 'completed'" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromObjectiveDetail(member)" />
                         </div>
                     </div>
                     <div *ngIf="!viewingObjective.members || viewingObjective.members.length === 0" class="text-center text-muted-color py-4 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -298,9 +305,9 @@ interface GitHubRepo {
             
             <div class="flex justify-between gap-2 mt-6">
                 <div class="flex gap-2">
-                    @if (viewingObjective && !isUserInObjective(viewingObjective)) {
+                    @if (viewingObjective && viewingObjective.status !== 'completed' && !isUserInObjective(viewingObjective)) {
                         <p-button label="Join Objective" icon="pi pi-user-plus" [outlined]="true" (onClick)="joinObjectiveFromDetail()" />
-                    } @else if (viewingObjective) {
+                    } @else if (viewingObjective && viewingObjective.status !== 'completed' && isUserInObjective(viewingObjective)) {
                         <p-button label="Leave Objective" icon="pi pi-user-minus" [outlined]="true" severity="warn" (onClick)="leaveObjectiveFromDetail()" />
                     }
                 </div>
@@ -463,7 +470,7 @@ interface GitHubRepo {
 
                                 <div class="flex items-center gap-2 text-xs text-muted-color mb-3">
                                     <i class="pi pi-calendar"></i>
-                                    <span>Starts {{ project.startDate }}</span>
+                                    <span>Starts {{ project.startDate | date:'MMM d, y' }}</span>
                                 </div>
 
                                 <div class="mb-3">
@@ -629,7 +636,7 @@ interface GitHubRepo {
 
                                 <div class="flex items-center gap-2 text-xs text-muted-color mb-3">
                                     <i class="pi pi-calendar"></i>
-                                    <span>Completed {{ project.endDate }}</span>
+                                    <span>Completed {{ project.endDate | date:'MMM d, y' }}</span>
                                 </div>
 
                                 <div class="mb-3">
@@ -668,8 +675,16 @@ interface GitHubRepo {
 
             <!-- Project Details Modal/Section -->
             <div *ngIf="selectedProject" class="mt-8 border-t border-surface pt-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ selectedProject.title }}</h2>
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-3">
+                            <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ selectedProject.title }}</h2>
+                            <p-tag 
+                                [value]="selectedProject.status === 'in-progress' ? 'In Progress' : selectedProject.status === 'upcoming' ? 'Upcoming' : 'Completed'" 
+                                [severity]="selectedProject.status === 'in-progress' ? 'info' : selectedProject.status === 'upcoming' ? 'warn' : 'success'"
+                            ></p-tag>
+                        </div>
+                    </div>
                     <div class="flex gap-2">
                         <p-button label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
                         <p-button label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
@@ -723,10 +738,10 @@ interface GitHubRepo {
                                                         }
                                                     </div>
                                                     <div class="flex items-center gap-1">
-                                                        <p-button class="" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
-                                                        @if (!isUserInObjective(objective)) {
+                                                        <p-button *ngIf="objective.status !== 'completed'" class="" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
+                                                        @if (objective.status !== 'completed' && !isUserInObjective(objective)) {
                                                             <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" severity="secondary" pTooltip="Join" (onClick)="joinObjective(objective, $event)" />
-                                                        } @else {
+                                                        } @else if (objective.status !== 'completed' && isUserInObjective(objective)) {
                                                             <p-button icon="pi pi-user-minus" size="small" [text]="true" [rounded]="true" severity="warn" pTooltip="Leave" (onClick)="leaveObjective(objective, $event)" />
                                                         }
                                                     </div>
@@ -772,10 +787,10 @@ interface GitHubRepo {
                                                         }
                                                     </div>
                                                     <div class="flex items-center gap-1">
-                                                        <p-button icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
-                                                        @if (!isUserInObjective(objective)) {
+                                                        <p-button *ngIf="objective.status !== 'completed'" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
+                                                        @if (objective.status !== 'completed' && !isUserInObjective(objective)) {
                                                             <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" severity="secondary" pTooltip="Join" (onClick)="joinObjective(objective, $event)" />
-                                                        } @else {
+                                                        } @else if (objective.status !== 'completed' && isUserInObjective(objective)) {
                                                             <p-button icon="pi pi-user-minus" size="small" [text]="true" [rounded]="true" severity="warn" pTooltip="Leave" (onClick)="leaveObjective(objective, $event)" />
                                                         }
                                                     </div>
@@ -833,9 +848,55 @@ interface GitHubRepo {
                     </div>
 
                     <div class="col-span-12 lg:col-span-4">
+                        <h3 class="text-lg font-semibold m-0">Project details</h3>
+                        <!-- Project Overview Card -->
+                        <div class="mb-6">
+                            <!-- Description -->
+                            <p class="text-surface-700 dark:text-surface-300 m-0 mb-4">
+                                {{ selectedProject.description }}
+                            </p>
+
+                            <!-- Dates and Info -->
+                            <div class="flex flex-wrap items-center gap-4 mb-4 text-sm">
+                                <div class="flex items-center gap-2">
+                                    <i class="pi pi-calendar text-primary"></i>
+                                    <span class="font-semibold text-surface-600 dark:text-surface-400">Start:</span>
+                                    <span class="text-surface-900 dark:text-surface-0">{{ selectedProject.startDate | date:'MMM d, y' }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="pi pi-calendar-times text-primary"></i>
+                                    <span class="font-semibold text-surface-600 dark:text-surface-400">End:</span>
+                                    <span class="text-surface-900 dark:text-surface-0">{{ selectedProject.endDate | date:'MMM d, y' }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="pi pi-users text-primary"></i>
+                                    <span class="text-surface-900 dark:text-surface-0">{{ selectedProject.participants.length }} member{{ selectedProject.participants.length !== 1 ? 's' : '' }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="pi pi-list text-primary"></i>
+                                    <span class="text-surface-900 dark:text-surface-0">{{ selectedProject.objectives.length }} objective{{ selectedProject.objectives.length !== 1 ? 's' : '' }}</span>
+                                </div>
+                                <div *ngIf="selectedProject.githubRepo" class="flex items-center gap-2">
+                                    <i class="pi pi-github text-primary"></i>
+                                    <a [href]="getGithubRepoUrl(selectedProject.githubRepo)" target="_blank" class="text-primary hover:underline">
+                                        {{ selectedProject.githubRepo }}
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div class="border-t border-surface-200 dark:border-surface-700 pt-3">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm font-semibold text-surface-600 dark:text-surface-400">Overall Progress</span>
+                                    <span class="text-xl font-bold text-primary">{{ selectedProject.progress | number:'1.0-1' }}%</span>
+                                </div>
+                                <p-progressbar [value]="selectedProject.progress" [showValue]="false"></p-progressbar>
+                            </div>
+                        </div>
+
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold m-0">Team Members</h3>
+                                <h3 class="text-lg font-semibold m-0">Team members</h3>
                                 <p-button *ngIf="selectedProject.status !== 'completed'" icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" pTooltip="Assign Members" (onClick)="openAssignMembersToProjectDialog()" />
                             </div>
                             <div class="flex flex-col gap-3">
@@ -1878,6 +1939,12 @@ export class Projects {
     
     joinObjective(objective: Objective, event: Event) {
         event.stopPropagation();
+        
+        // Prevent joining completed objectives
+        if (objective.status === 'completed') {
+            return;
+        }
+        
         if (!objective.members) {
             objective.members = [];
         }
@@ -1888,6 +1955,12 @@ export class Projects {
     
     leaveObjective(objective: Objective, event: Event) {
         event.stopPropagation();
+        
+        // Prevent leaving completed objectives
+        if (objective.status === 'completed') {
+            return;
+        }
+        
         if (objective.members) {
             objective.members = objective.members.filter(m => m.userId !== this.currentUser.userId);
         }
@@ -1944,6 +2017,12 @@ export class Projects {
     
     joinObjectiveFromDetail() {
         if (!this.viewingObjective) return;
+        
+        // Prevent joining completed objectives
+        if (this.viewingObjective.status === 'completed') {
+            return;
+        }
+        
         if (!this.viewingObjective.members) {
             this.viewingObjective.members = [];
         }
@@ -1955,6 +2034,12 @@ export class Projects {
     
     leaveObjectiveFromDetail() {
         if (!this.viewingObjective || !this.viewingObjective.members) return;
+        
+        // Prevent leaving completed objectives
+        if (this.viewingObjective.status === 'completed') {
+            return;
+        }
+        
         this.viewingObjective.members = this.viewingObjective.members.filter(m => m.userId !== this.currentUser.userId);
         this.updateObjectiveInProject();
     }
@@ -1989,6 +2074,12 @@ export class Projects {
     
     openAssignMembersToObjectiveDialog(objective: Objective, event: Event) {
         event.stopPropagation();
+        
+        // Prevent opening dialog for completed objectives
+        if (objective.status === 'completed') {
+            return;
+        }
+        
         this.assigningObjective = objective;
         this.tempSelectedObjectiveMembers = objective.members ? objective.members.map(m => m.name) : [];
         this.assignMembersToObjectiveDialogVisible = true;
@@ -1996,6 +2087,12 @@ export class Projects {
     
     openAssignMembersToObjectiveFromDetail() {
         if (!this.viewingObjective) return;
+        
+        // Prevent opening dialog for completed objectives
+        if (this.viewingObjective.status === 'completed') {
+            return;
+        }
+        
         this.assigningObjective = this.viewingObjective;
         this.tempSelectedObjectiveMembers = this.viewingObjective.members ? this.viewingObjective.members.map(m => m.name) : [];
         this.assignMembersToObjectiveDialogVisible = true;
@@ -2012,6 +2109,11 @@ export class Projects {
     
     removeMemberFromObjectiveDetail(member: Member) {
         if (!this.viewingObjective || !this.selectedProject) return;
+        
+        // Prevent removing members from completed objectives
+        if (this.viewingObjective.status === 'completed') {
+            return;
+        }
         
         this.confirmationService.confirm({
             message: `Are you sure you want to remove "${member.name}" from this objective?`,
