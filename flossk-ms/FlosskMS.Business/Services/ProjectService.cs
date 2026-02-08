@@ -568,7 +568,7 @@ public class ProjectService : IProjectService
         }
 
         // Prevent assigning members to completed objectives
-        if (objective.Status == "completed")
+        if (objective.Status == ObjectiveStatus.Completed)
         {
             return new BadRequestObjectResult(new { Error = "Cannot assign team members to a completed objective." });
         }
@@ -632,7 +632,7 @@ public class ProjectService : IProjectService
         }
 
         // Prevent removing members from completed objectives
-        if (objective.Status == "completed")
+        if (objective.Status == ObjectiveStatus.Completed)
         {
             return new BadRequestObjectResult(new { Error = "Cannot remove team members from a completed objective." });
         }

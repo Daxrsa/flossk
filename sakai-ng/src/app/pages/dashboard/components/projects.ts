@@ -62,6 +62,7 @@ interface Project {
     objectives: Objective[];
     resources?: Resource[];
     githubRepo?: string; // GitHub repository URL for tracking commits
+    createdByUserId?: string; // Project creator user ID
 }
 
 interface GitHubCommit {
@@ -381,7 +382,7 @@ interface GitHubRepo {
                         <div *ngFor="let member of selectedProject?.participants" class="flex items-center gap-2 bg-surface-100 dark:bg-surface-800 rounded-full pl-3 pr-1 py-1">
                             <p-avatar [image]="member.avatar" shape="circle" size="normal"></p-avatar>
                             <span class="text-sm">{{ member.name }}</span>
-                            <p-button icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" (onClick)="removeProjectMemberFromDialog(member)" />
+                            <p-button *ngIf="isProjectCreator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" (onClick)="removeProjectMemberFromDialog(member)" />
                         </div>
                     </div>
                 </div>
@@ -906,7 +907,7 @@ interface GitHubRepo {
                                         <p class="font-semibold m-0">{{ member.name }}</p>
                                         <p class="text-sm text-muted-color m-0">{{ member.role }}</p>
                                     </div>
-                                    <p-button *ngIf="selectedProject.status !== 'completed'" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromProject(member)" />
+                                    <p-button *ngIf="selectedProject.status !== 'completed' && isProjectCreator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromProject(member)" />
                                 </div>
                                 <div *ngIf="!selectedProject.participants || selectedProject.participants.length === 0" class="text-center text-muted-color py-4">
                                     <i class="pi pi-users text-2xl mb-2"></i>
@@ -1124,27 +1125,32 @@ export class Projects {
 
     // Map API response to frontend Project interface
     mapProjectsFromApi(apiProjects: any[]): Project[] {
-        return apiProjects.map(p => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            status: this.mapStatusFromApi(p.status),
-            startDate: p.startDate,
-            endDate: p.endDate,
-            progress: p.progressPercentage || 0,
-            participants: this.mapTeamMembersFromApi(p.teamMembers || []),
-            objectives: (p.objectives || []).map((o: any) => ({
-                id: o.id,
-                title: o.title,
-                description: o.description,
-                status: this.mapObjectiveStatusFromApi(o.status),
-                assignedTo: { name: 'Unassigned', avatar: DEFAULT_AVATAR, role: 'Member' },
-                members: this.mapTeamMembersFromApi(o.teamMembers || []),
-                resources: o.resources || []
-            })),
-            resources: p.resources || [],
-            githubRepo: p.githubRepo
-        }));
+        return apiProjects.map(p => {
+            const project = {
+                id: p.id,
+                title: p.title,
+                description: p.description,
+                status: this.mapStatusFromApi(p.status),
+                startDate: p.startDate,
+                endDate: p.endDate,
+                progress: p.progressPercentage || 0,
+                participants: this.mapTeamMembersFromApi(p.teamMembers || []),
+                objectives: (p.objectives || []).map((o: any) => ({
+                    id: o.id,
+                    title: o.title,
+                    description: o.description,
+                    status: this.mapObjectiveStatusFromApi(o.status),
+                    assignedTo: { name: 'Unassigned', avatar: DEFAULT_AVATAR, role: 'Member' },
+                    members: this.mapTeamMembersFromApi(o.teamMembers || []),
+                    resources: o.resources || []
+                })),
+                resources: p.resources || [],
+                githubRepo: p.githubRepo,
+                createdByUserId: p.createdByUserId
+            };
+            console.log('Mapped project:', project.title, 'createdByUserId:', p.createdByUserId);
+            return project;
+        });
     }
 
     // Map team members from API to frontend Member interface
@@ -1269,6 +1275,7 @@ export class Projects {
             next: (response) => {
                 console.log('Users loaded:', response.users);
                 this.availableMembers = response.users.map(user => ({
+                    userId: user.id,
                     name: `${user.firstName} ${user.lastName}`.trim() || user.email,
                     avatar: user.profilePictureUrl || DEFAULT_AVATAR,
                     role: user.roles?.length > 0 ? user.roles[0] : 'Member'
@@ -1937,6 +1944,17 @@ export class Projects {
         return objective.members ? objective.members.some(m => m.userId === this.currentUser.userId) : false;
     }
     
+    isProjectCreator(project: Project | null): boolean {
+        if (!project) return false;
+        const isCreator = project.createdByUserId === this.currentUser.userId;
+        console.log('isProjectCreator check:', {
+            projectCreatorId: project.createdByUserId,
+            currentUserId: this.currentUser.userId,
+            isCreator: isCreator
+        });
+        return isCreator;
+    }
+    
     joinObjective(objective: Objective, event: Event) {
         event.stopPropagation();
         
@@ -2069,7 +2087,58 @@ export class Projects {
     }
     
     saveProjectMembers() {
-        return;
+        if (!this.selectedProject) return;
+        
+        const projectId = this.selectedProject.id;
+        const currentMemberNames = this.selectedProject.participants.map(p => p.name);
+        const newMemberNames = this.tempSelectedProjectMembers.filter(name => !currentMemberNames.includes(name));
+        
+        if (newMemberNames.length === 0) {
+            this.assignMembersToProjectDialogVisible = false;
+            return;
+        }
+        
+        // Send POST request for each new member
+        let completed = 0;
+        const total = newMemberNames.length;
+        
+        newMemberNames.forEach(memberName => {
+            const member = this.availableMembers.find(m => m.name === memberName);
+            if (!member || !member.userId) {
+                console.error('Member or userId not found for:', memberName);
+                completed++;
+                return;
+            }
+            
+            const payload = {
+                userId: member.userId,
+                role: member.role || 'Member'
+            };
+            
+            this.http.post(`${environment.apiUrl}/Projects/${projectId}/team-members`, payload)
+                .subscribe({
+                    next: (response) => {
+                        console.log('Member added successfully:', response);
+                        
+                        // Add member to local project participants
+                        if (this.selectedProject && !this.selectedProject.participants.some(p => p.name === member.name)) {
+                            this.selectedProject.participants.push(member);
+                        }
+                        
+                        completed++;
+                        if (completed === total) {
+                            this.assignMembersToProjectDialogVisible = false;
+                        }
+                    },
+                    error: (err) => {
+                        console.error('Error adding member:', err);
+                        completed++;
+                        if (completed === total) {
+                            this.assignMembersToProjectDialogVisible = false;
+                        }
+                    }
+                });
+        });
     }
     
     openAssignMembersToObjectiveDialog(objective: Objective, event: Event) {
@@ -2104,7 +2173,42 @@ export class Projects {
 
     // Remove Member Methods
     removeMemberFromProject(member: Member) {
-        return;
+        if (!this.selectedProject || !member.userId) {
+            console.error('Cannot remove member: missing project or userId');
+            return;
+        }
+        
+        this.confirmationService.confirm({
+            message: `Are you sure you want to remove "${member.name}" from this project? This will also remove them from all objectives in this project.`,
+            header: 'Remove Team Member',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => {
+                if (!this.selectedProject || !member.userId) return;
+                
+                const projectId = this.selectedProject.id;
+                const userId = member.userId;
+                
+                this.projectsService.removeTeamMember(projectId, userId).subscribe({
+                    next: (response) => {
+                        console.log('Team member removed successfully:', response);
+                        if (this.selectedProject?.participants) {
+                            this.selectedProject.participants = this.selectedProject.participants.filter(p => p.userId !== userId);
+                            
+                            // Also remove member from all objectives in this project
+                            this.selectedProject.objectives.forEach(objective => {
+                                if (objective.members) {
+                                    objective.members = objective.members.filter(m => m.userId !== userId);
+                                }
+                            });
+                        }
+                    },
+                    error: (err) => {
+                        console.error('Error removing team member:', err);
+                    }
+                });
+            }
+        });
     }
     
     removeMemberFromObjectiveDetail(member: Member) {
@@ -2134,18 +2238,38 @@ export class Projects {
             return;
         }
         
-        const projectId = this.selectedProject.id;
-        const userId = member.userId;
-        
-        this.projectsService.removeTeamMember(projectId, userId).subscribe({
-            next: (response) => {
-                console.log('Team member removed successfully:', response);
-                if (this.selectedProject?.participants) {
-                    this.selectedProject.participants = this.selectedProject.participants.filter(p => p.userId !== userId);
-                }
-            },
-            error: (err) => {
-                console.error('Error removing team member:', err);
+        this.confirmationService.confirm({
+            message: `Are you sure you want to remove "${member.name}" from this project? This will also remove them from all objectives in this project.`,
+            header: 'Remove Team Member',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => {
+                if (!this.selectedProject || !member.userId) return;
+                
+                const projectId = this.selectedProject.id;
+                const userId = member.userId;
+                
+                this.projectsService.removeTeamMember(projectId, userId).subscribe({
+                    next: (response) => {
+                        console.log('Team member removed successfully:', response);
+                        if (this.selectedProject?.participants) {
+                            this.selectedProject.participants = this.selectedProject.participants.filter(p => p.userId !== userId);
+                            
+                            // Also remove member from all objectives in this project
+                            this.selectedProject.objectives.forEach(objective => {
+                                if (objective.members) {
+                                    objective.members = objective.members.filter(m => m.userId !== userId);
+                                }
+                            });
+                            
+                            // Update temp selection
+                            this.tempSelectedProjectMembers = this.tempSelectedProjectMembers.filter(name => name !== member.name);
+                        }
+                    },
+                    error: (err) => {
+                        console.error('Error removing team member:', err);
+                    }
+                });
             }
         });
     }
@@ -2344,7 +2468,8 @@ export class Projects {
                 resources: o.resources || []
             })),
             resources: p.resources || [],
-            githubRepo: p.githubRepo
+            githubRepo: p.githubRepo,
+            createdByUserId: p.createdByUserId
         };
     }
 
