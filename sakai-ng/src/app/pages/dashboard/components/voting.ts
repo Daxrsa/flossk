@@ -361,6 +361,7 @@ interface Election {
                                                 label="Submit Vote" 
                                                 icon="pi pi-check" 
                                                 severity="success"
+                                                [disabled]="!selectedLeader || selectedBoardMembers.length !== 2"
                                                 (onClick)="submitVote()"
                                             />
                                         </div>
@@ -533,7 +534,7 @@ interface Election {
             <div class="flex flex-col gap-4">
                 <div>
                     <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Title</label>
-                    <input pInputText [(ngModel)]="newElection.title" placeholder="e.g., 2026 Board Elections" class="w-full" />
+                    <input pInputText [(ngModel)]="newElection.title" [placeholder]="'e.g., ' + currentYear + ' Board Elections'" class="w-full" />
                 </div>
                 <div>
                     <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Description</label>
@@ -654,6 +655,7 @@ export class Voting implements OnInit {
     hasVoted = false;
     showResults = false;
     today = new Date();
+    currentYear = new Date().getFullYear();
     
     createElectionDialog = false;
     manageCandidatesDialog = false;
