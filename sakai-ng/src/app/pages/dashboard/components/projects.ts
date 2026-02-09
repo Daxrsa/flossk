@@ -350,7 +350,7 @@ interface GitHubRepo {
         </p-dialog>
         
         <!-- Assign Members to Project Dialog -->
-        <p-dialog [(visible)]="assignMembersToProjectDialogVisible" header="Assign Members to Project" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
+        <p-dialog [(visible)]="assignMembersToProjectDialogVisible" [header]="'Assign Members to: ' + (selectedProject?.title || 'Project')" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Select Team Members</label>
@@ -2091,7 +2091,17 @@ export class Projects {
     
     openAssignMembersToProjectDialog() {
         if (!this.selectedProject) return;
-        this.tempSelectedProjectMembers = this.selectedProject.participants.map(p => p.userId || '');
+        
+        // Ensure all current participants are in availableMembers
+        this.selectedProject.participants.forEach(participant => {
+            if (participant.userId && !this.availableMembers.some(m => m.userId === participant.userId)) {
+                this.availableMembers.push(participant);
+            }
+        });
+        
+        this.tempSelectedProjectMembers = this.selectedProject.participants
+            .map(p => p.userId)
+            .filter((id): id is string => !!id);
         this.assignMembersToProjectDialogVisible = true;
     }
     
