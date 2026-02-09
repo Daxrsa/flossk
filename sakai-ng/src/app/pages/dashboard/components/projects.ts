@@ -190,7 +190,7 @@ interface GitHubRepo {
         </p-dialog> 
         
         <!-- Resource Dialog -->
-        <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource' : 'Edit Resource'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
+        <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource to Project' : 'Edit Project Resource'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="resourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
@@ -209,7 +209,7 @@ interface GitHubRepo {
                 
                 <div>
                     <label for="resourceType" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Type</label>
-                    <p-select id="resourceType" [(ngModel)]="currentResource.type" [options]="resourceTypeOptions" placeholder="Select Type" class="w-full" />
+                    <p-select id="resourceType" [(ngModel)]="currentResource.type" [options]="resourceTypeOptions" optionLabel="label" optionValue="value" placeholder="Select Type" class="w-full" />
                 </div>
             </div>
             
@@ -320,7 +320,7 @@ interface GitHubRepo {
         </p-dialog>
         
         <!-- Objective Resource Dialog -->
-        <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Objective' : 'Edit Resource'" [modal]="true" [style]="{width: '35rem'}" appendTo="body">
+        <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Objective' : 'Edit Objective Resource'" [modal]="true" [style]="{width: '35rem'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="objResourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
@@ -339,7 +339,7 @@ interface GitHubRepo {
                 
                 <div>
                     <label for="objResourceType" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Type</label>
-                    <p-select id="objResourceType" [(ngModel)]="currentObjectiveResource.type" [options]="resourceTypeOptions" placeholder="Select Type" class="w-full" />
+                    <p-select id="objResourceType" [(ngModel)]="currentObjectiveResource.type" [options]="resourceTypeOptions" optionLabel="label" optionValue="value" placeholder="Select Type" class="w-full" />
                 </div>
             </div>
             
@@ -1930,7 +1930,57 @@ export class Projects {
     }
     
     saveResource() {
-       return;
+        if (!this.selectedProject) return;
+        
+        const payload = {
+            projectId: this.selectedProject.id,
+            title: this.currentResource.title,
+            url: this.currentResource.url,
+            description: this.currentResource.description,
+            type: this.currentResource.type
+        };
+
+        if (this.resourceDialogMode === 'add') {
+            this.projectsService.createResource(payload).subscribe({
+                next: (createdResource) => {
+                    if (this.selectedProject) {
+                        if (!this.selectedProject.resources) {
+                            this.selectedProject.resources = [];
+                        }
+                        // Transform resource type to lowercase
+                        const normalizedResource = {
+                            ...createdResource,
+                            type: createdResource.type?.toLowerCase() || 'documentation'
+                        };
+                        this.selectedProject.resources.push(normalizedResource);
+                    }
+                    this.resourceDialogVisible = false;
+                },
+                error: (error) => {
+                    console.error('Error creating resource:', error);
+                }
+            });
+        } else {
+            this.projectsService.updateResource(this.currentResource.id, payload).subscribe({
+                next: (updatedResource) => {
+                    if (this.selectedProject && this.selectedProject.resources) {
+                        const index = this.selectedProject.resources.findIndex(r => r.id === this.currentResource.id);
+                        if (index !== -1) {
+                            // Transform resource type to lowercase
+                            const normalizedResource = {
+                                ...updatedResource,
+                                type: updatedResource.type?.toLowerCase() || 'documentation'
+                            };
+                            this.selectedProject.resources[index] = normalizedResource;
+                        }
+                    }
+                    this.resourceDialogVisible = false;
+                },
+                error: (error) => {
+                    console.error('Error updating resource:', error);
+                }
+            });
+        }
     }
     
     confirmDeleteResource(resource: Resource) {
@@ -1946,7 +1996,16 @@ export class Projects {
     }
     
     deleteResource(resource: Resource) {
-       return;
+        this.projectsService.deleteResource(resource.id).subscribe({
+            next: () => {
+                if (this.selectedProject && this.selectedProject.resources) {
+                    this.selectedProject.resources = this.selectedProject.resources.filter(r => r.id !== resource.id);
+                }
+            },
+            error: (error) => {
+                console.error('Error deleting resource:', error);
+            }
+        });
     }
     
     isUserInObjective(objective: Objective): boolean {
@@ -2487,9 +2546,15 @@ export class Projects {
                 status: this.mapObjectiveStatusFromApi(o.status),
                 progress: o.progressPercentage || 0,
                 members: this.mapTeamMembersFromApi(o.teamMembers || []),
-                resources: o.resources || []
+                resources: (o.resources || []).map((r: any) => ({
+                    ...r,
+                    type: r.type?.toLowerCase() || 'documentation'
+                }))
             })),
-            resources: p.resources || [],
+            resources: (p.resources || []).map((r: any) => ({
+                ...r,
+                type: r.type?.toLowerCase() || 'documentation'
+            })),
             githubRepo: p.githubRepo,
             createdByUserId: p.createdByUserId
         };

@@ -91,4 +91,16 @@ export class ProjectsService {
     getAllUsers(page: number = 1, pageSize: number = 100): Observable<UsersResponse> {
         return this.http.get<UsersResponse>(`${this.AUTH_API_URL}/users?page=${page}&pageSize=${pageSize}`);
     }
+
+    createResource(payload: { projectId: number; title: string; url: string; description: string; type: string }): Observable<any> {
+        return this.http.post<any>(`${this.API_URL}/resources`, payload);
+    }
+
+    updateResource(id: number, payload: { projectId: number; title: string; url: string; description: string; type: string }): Observable<any> {
+        return this.http.put<any>(`${this.API_URL}/resources/${id}`, payload);
+    }
+
+    deleteResource(id: number): Observable<any> {
+        return this.http.delete<any>(`${this.API_URL}/resources/${id}`);
+    }
 }
