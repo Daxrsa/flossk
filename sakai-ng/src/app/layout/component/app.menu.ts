@@ -31,6 +31,7 @@ export class AppMenu {
                     { label: 'Announcements', icon: 'pi pi-fw pi-megaphone', routerLink: ['/announcements'] },
                     { label: 'Inventory', icon: 'pi pi-fw pi-box', routerLink: ['/inventory'] },
                     { label: 'Events', icon: 'pi pi-fw pi-calendar', routerLink: ['/events'] },
+                    { label: 'Voting', icon: 'pi pi-fw pi-vote', routerLink: ['/voting'] },
                     { label: 'Payments', icon: 'pi pi-fw pi-wallet', routerLink: ['/payments'] },
                     { label: 'RFID Configurer', icon: 'pi pi-fw pi-id-card', routerLink: ['/rfid-configurer'] },
                     { label: 'Hackerspace Presence', icon: 'pi pi-fw pi-wave-pulse', routerLink: ['/hackerspace-presence'] },

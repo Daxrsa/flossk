@@ -23,6 +23,7 @@ import { Onboarding } from '@/pages/dashboard/components/onboarding';
 import { Donate } from '@/pages/dashboard/components/donate';
 import { RfidConfigurer } from '@/pages/dashboard/components/rfid-configurer';
 import { Projects } from '@/pages/dashboard/components/projects';
+import { Voting } from '@/pages/dashboard/components/voting';
 
 export const appRoutes: Routes = [
     {
@@ -36,6 +37,7 @@ export const appRoutes: Routes = [
             { path: 'notifications', component: Notifications },
             { path: 'announcements', component: Announcements },
             { path: 'users', component: Users },
+            { path: 'voting', component: Voting },
             { path: 'inventory', component: Inventory },
             { path: 'hackerspace-presence', component: HackerspacePresence },
             { path: 'rfid-configurer', component: RfidConfigurer },
