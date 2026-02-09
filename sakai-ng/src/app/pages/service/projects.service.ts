@@ -84,6 +84,10 @@ export class ProjectsService {
         return this.http.post<any>(`${this.API_URL}/objectives`, payload);
     }
 
+    updateObjective(objectiveId: number | string, payload: { projectId: string; title: string; description: string; status: string }): Observable<any> {
+        return this.http.put<any>(`${this.API_URL}/objectives/${objectiveId}`, payload);
+    }
+
     deleteObjective(objectiveId: number | string): Observable<any> {
         return this.http.delete<any>(`${this.API_URL}/objectives/${objectiveId}`);
     }

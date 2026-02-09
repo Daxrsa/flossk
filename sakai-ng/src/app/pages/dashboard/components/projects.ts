@@ -169,18 +169,6 @@ interface GitHubRepo {
                     <label for="objectiveStatus" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Status</label>
                     <p-select id="objectiveStatus" [(ngModel)]="currentObjective.status" [options]="objectiveStatusOptions" placeholder="Select Status" class="w-full" />
                 </div>
-                
-                <div *ngIf="currentObjective.status !== 'completed'">
-                    <label for="objectiveMembers" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Team Members</label>
-                    <p-multiSelect id="objectiveMembers" [(ngModel)]="selectedObjectiveMemberNames" [options]="availableMembers" optionLabel="name" optionValue="name" placeholder="Select Team Members" display="chip" class="w-full" />
-                </div>
-                
-                <div *ngIf="currentObjective.status === 'completed'" class="bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg p-3">
-                    <p class="text-sm text-surface-600 dark:text-surface-400 m-0">
-                        <i class="pi pi-info-circle mr-2"></i>
-                        Team members cannot be modified for completed objectives.
-                    </p>
-                </div>
             </div>
             
             <div class="flex justify-end gap-2 mt-6">
@@ -1803,17 +1791,21 @@ export class Projects {
     }
     
     saveObjective() {
+        if (!this.selectedProject) {
+            return;
+        }
+
+        const payload = {
+            projectId: this.selectedProject.id.toString(),
+            title: this.currentObjective.title.trim(),
+            description: this.currentObjective.description?.trim() || '',
+            status: this.mapObjectiveStatusToApi(this.currentObjective.status)
+        };
+
         if (this.objectiveDialogMode === 'add') {
-            if (!this.isObjectiveFormValid() || !this.selectedProject) {
+            if (!this.isObjectiveFormValid()) {
                 return;
             }
-
-            const payload = {
-                projectId: this.selectedProject.id.toString(),
-                title: this.currentObjective.title.trim(),
-                description: this.currentObjective.description?.trim() || '',
-                status: this.mapObjectiveStatusToApi(this.currentObjective.status)
-            };
 
             this.projectsService.createObjective(payload).subscribe({
                 next: (createdObjective) => {
@@ -1840,6 +1832,34 @@ export class Projects {
                 },
                 error: (err) => {
                     console.error('Error creating objective:', err);
+                }
+            });
+        } else {
+            // Edit mode
+            this.projectsService.updateObjective(this.currentObjective.id, payload).subscribe({
+                next: (updatedObjective) => {
+                    console.log('Objective updated successfully:', updatedObjective);
+                    
+                    // Update the objective in the selected project
+                    if (this.selectedProject) {
+                        const index = this.selectedProject.objectives.findIndex(obj => obj.id === this.currentObjective.id);
+                        if (index !== -1) {
+                            this.selectedProject.objectives[index] = {
+                                ...this.selectedProject.objectives[index],
+                                title: updatedObjective.title,
+                                description: updatedObjective.description,
+                                status: this.mapObjectiveStatusFromApi(updatedObjective.status)
+                            };
+                        }
+                        this.updateProjectProgress();
+                    }
+                    
+                    this.objectiveDialogVisible = false;
+                    this.currentObjective = this.getEmptyObjective();
+                    this.selectedObjectiveMemberNames = [];
+                },
+                error: (err) => {
+                    console.error('Error updating objective:', err);
                 }
             });
         }
