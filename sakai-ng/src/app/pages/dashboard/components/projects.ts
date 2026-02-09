@@ -355,10 +355,10 @@ interface GitHubRepo {
                 <div>
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Select Team Members</label>
                     <p-multiselect 
-                        [(ngModel)]="tempSelectedProjectMembers" 
+                        [(ngModel)]="tempSelectedProjectMembers"
                         [options]="availableMembers" 
                         optionLabel="name" 
-                        optionValue="name"
+                        optionValue="userId"
                         placeholder="Select members to assign" 
                         class="w-full"
                         [showClear]="true"
@@ -390,7 +390,7 @@ interface GitHubRepo {
             
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="assignMembersToProjectDialogVisible = false" />
-                <p-button label="Save" (onClick)="saveProjectMembers()" />
+                <p-button label="Save" (onClick)="assignProjectMembers()" />
             </div>
         </p-dialog> 
         
@@ -1261,7 +1261,7 @@ export class Projects {
     assignMembersToProjectDialogVisible = false;
     assignMembersToObjectiveDialogVisible = false;
     assigningObjective: Objective | null = null;
-    tempSelectedProjectMembers: string[] = [];
+    tempSelectedProjectMembers: string[] = []; // Array of user IDs
     tempSelectedObjectiveMembers: string[] = [];
     
     resourceDialogVisible = false;
@@ -1274,12 +1274,21 @@ export class Projects {
         this.projectsService.getAllUsers().subscribe({
             next: (response) => {
                 console.log('Users loaded:', response.users);
-                this.availableMembers = response.users.map(user => ({
-                    userId: user.id,
-                    name: `${user.firstName} ${user.lastName}`.trim() || user.email,
-                    avatar: user.profilePictureUrl || DEFAULT_AVATAR,
-                    role: user.roles?.length > 0 ? user.roles[0] : 'Member'
-                }));
+                this.availableMembers = response.users.map(user => {
+                    let avatarUrl = DEFAULT_AVATAR;
+                    if (user.profilePictureUrl) {
+                        avatarUrl = user.profilePictureUrl.startsWith('http')
+                            ? user.profilePictureUrl
+                            : `${environment.baseUrl}${user.profilePictureUrl}`;
+                    }
+                    
+                    return {
+                        userId: user.id,
+                        name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+                        avatar: avatarUrl,
+                        role: user.roles?.length > 0 ? user.roles[0] : 'Member'
+                    };
+                });
             },
             error: (err) => {
                 console.error('Error loading users:', err);
@@ -1947,11 +1956,11 @@ export class Projects {
     isProjectCreator(project: Project | null): boolean {
         if (!project) return false;
         const isCreator = project.createdByUserId === this.currentUser.userId;
-        console.log('isProjectCreator check:', {
-            projectCreatorId: project.createdByUserId,
-            currentUserId: this.currentUser.userId,
-            isCreator: isCreator
-        });
+        // console.log('isProjectCreator check:', {
+        //     projectCreatorId: project.createdByUserId,
+        //     currentUserId: this.currentUser.userId,
+        //     isCreator: isCreator
+        // });
         return isCreator;
     }
     
@@ -2082,30 +2091,32 @@ export class Projects {
     
     openAssignMembersToProjectDialog() {
         if (!this.selectedProject) return;
-        this.tempSelectedProjectMembers = this.selectedProject.participants.map(p => p.name);
+        this.tempSelectedProjectMembers = this.selectedProject.participants.map(p => p.userId || '');
         this.assignMembersToProjectDialogVisible = true;
     }
     
-    saveProjectMembers() {
+    assignProjectMembers() {
         if (!this.selectedProject) return;
         
         const projectId = this.selectedProject.id;
-        const currentMemberNames = this.selectedProject.participants.map(p => p.name);
-        const newMemberNames = this.tempSelectedProjectMembers.filter(name => !currentMemberNames.includes(name));
+        const currentMemberIds = this.selectedProject.participants
+            .map(p => p.userId)
+            .filter((id): id is string => !!id);
+        const newMemberIds = this.tempSelectedProjectMembers.filter(id => !currentMemberIds.includes(id));
         
-        if (newMemberNames.length === 0) {
+        if (newMemberIds.length === 0) {
             this.assignMembersToProjectDialogVisible = false;
             return;
         }
         
         // Send POST request for each new member
         let completed = 0;
-        const total = newMemberNames.length;
+        const total = newMemberIds.length;
         
-        newMemberNames.forEach(memberName => {
-            const member = this.availableMembers.find(m => m.name === memberName);
+        newMemberIds.forEach(memberId => {
+            const member = this.availableMembers.find(m => m.userId === memberId);
             if (!member || !member.userId) {
-                console.error('Member or userId not found for:', memberName);
+                console.error('Member or userId not found for:', memberId);
                 completed++;
                 return;
             }
@@ -2115,13 +2126,14 @@ export class Projects {
                 role: member.role || 'Member'
             };
             
+            // POST /Projects/{projectId}/team-members
             this.http.post(`${environment.apiUrl}/Projects/${projectId}/team-members`, payload)
                 .subscribe({
                     next: (response) => {
                         console.log('Member added successfully:', response);
                         
                         // Add member to local project participants
-                        if (this.selectedProject && !this.selectedProject.participants.some(p => p.name === member.name)) {
+                        if (this.selectedProject && !this.selectedProject.participants.some(p => p.userId === member.userId)) {
                             this.selectedProject.participants.push(member);
                         }
                         
@@ -2263,7 +2275,7 @@ export class Projects {
                             });
                             
                             // Update temp selection
-                            this.tempSelectedProjectMembers = this.tempSelectedProjectMembers.filter(name => name !== member.name);
+                            this.tempSelectedProjectMembers = this.tempSelectedProjectMembers.filter(id => id !== member.userId);
                         }
                     },
                     error: (err) => {

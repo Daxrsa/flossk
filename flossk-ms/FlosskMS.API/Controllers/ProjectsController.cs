@@ -95,9 +95,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     }
 
     /// <summary>
-    /// Add a team member to a project (Admin only)
+    /// Add a team member to a project 
     /// </summary>
-    [Authorize(Roles = "Admin")]
     [HttpPost("{projectId:guid}/team-members")]
     public async Task<IActionResult> AddTeamMemberToProject(Guid projectId, [FromBody] AddTeamMemberDto request)
     {
