@@ -111,7 +111,7 @@ interface User {
                     
                     <div>
                         <label for="biography" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Biography</label>
-                        <textarea pInputTextarea id="biography" [(ngModel)]="editProfile.biography" [rows]="5" class="w-full"></textarea>
+                        <textarea pInputTextarea id="biography" [(ngModel)]="editProfile.biography" [rows]="10" class="w-full"></textarea>
                     </div>
                     
                     <div>
@@ -317,7 +317,7 @@ interface User {
                         <div class="card">
                             <div class="flex items-center gap-3 mb-6">
                                 <i style="font-size: 1.5rem;" class="pi pi-hammer text-primary text-xl"></i>
-                                <h3 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Projects</h3>
+                                <h3 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0"> {{ userProfile.firstName }}'s Projects</h3>
                             </div>
                             
                             <div class="flex flex-col gap-4">
