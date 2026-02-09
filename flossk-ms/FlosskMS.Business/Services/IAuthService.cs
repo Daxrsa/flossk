@@ -18,5 +18,6 @@ public interface IAuthService
     Task<IActionResult> GetAllUsersAsync(string? currentUserId, int page = 1, int pageSize = 10);
     Task<IActionResult> GetUserByIdAsync(string userId);
     Task<IActionResult> ToggleRFIDAsync(string userId);
+    Task<IActionResult> UpdateThemePreferenceAsync(string? userId, UpdateThemePreferenceDto request);
     Task<IActionResult> DeleteUserByIdAsync(string userId);
 }

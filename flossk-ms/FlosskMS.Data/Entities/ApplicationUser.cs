@@ -12,6 +12,7 @@ public class ApplicationUser : IdentityUser
     public List<string>? SocialLinks { get; set; } = [];
     public List<string>? Skills { get; set; } = [];
     public bool RFID { get; set; } = false;
+    public bool DarkTheme { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public ICollection<UploadedFile> UploadedFiles { get; set; } = [];

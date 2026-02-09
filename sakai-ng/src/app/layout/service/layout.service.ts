@@ -1,5 +1,6 @@
-import { Injectable, effect, signal, computed } from '@angular/core';
+import { Injectable, effect, signal, computed, inject } from '@angular/core';
 import { Subject } from 'rxjs';
+import { AuthService } from '../../pages/service/auth.service';
 
 export interface layoutConfig {
     preset?: string;
@@ -77,6 +78,8 @@ export class LayoutService {
     transitionComplete = signal<boolean>(false);
 
     private initialized = false;
+    private themeInitialized = false;
+    private authService = inject(AuthService);
 
     constructor() {
         effect(() => {
@@ -95,6 +98,21 @@ export class LayoutService {
             }
 
             this.handleDarkModeTransition(config);
+        });
+
+        // Sync dark mode with user's preference from backend
+        effect(() => {
+            const user = this.authService.currentUser();
+            if (user && !this.themeInitialized) {
+                this.themeInitialized = true;
+                const darkTheme = user.darkTheme ?? false;
+                if (darkTheme !== this.layoutConfig().darkTheme) {
+                    this.layoutConfig.update((config) => ({ ...config, darkTheme }));
+                }
+            } else if (!user) {
+                // Reset when user logs out
+                this.themeInitialized = false;
+            }
         });
     }
 
@@ -125,6 +143,18 @@ export class LayoutService {
             document.documentElement.classList.add('app-dark');
         } else {
             document.documentElement.classList.remove('app-dark');
+        }
+    }
+
+    toggleAndPersistDarkMode(): void {
+        const newDarkTheme = !this.layoutConfig().darkTheme;
+        this.layoutConfig.update((config) => ({ ...config, darkTheme: newDarkTheme }));
+        
+        // Persist to backend if user is authenticated
+        if (this.authService.isAuthenticated()) {
+            this.authService.updateThemePreference(newDarkTheme).subscribe({
+                error: (err) => console.error('Failed to save theme preference:', err)
+            });
         }
     }
 

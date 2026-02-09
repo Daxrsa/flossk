@@ -544,6 +544,35 @@ public class AuthService(
         });
     }
 
+    public async Task<IActionResult> UpdateThemePreferenceAsync(string? userId, UpdateThemePreferenceDto request)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return new UnauthorizedResult();
+        }
+
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return new NotFoundObjectResult(new { Error = "User not found." });
+        }
+
+        user.DarkTheme = request.DarkTheme;
+        user.UpdatedAt = DateTime.UtcNow;
+        
+        _dbContext.Users.Update(user);
+        await _dbContext.SaveChangesAsync();
+
+        return new OkObjectResult(new
+        {
+            Success = true,
+            DarkTheme = user.DarkTheme
+        });
+    }
+
     public async Task<IActionResult> DeleteUserByIdAsync(string userId)
     {
         if (string.IsNullOrEmpty(userId))
@@ -647,6 +676,7 @@ public class AuthService(
             PhoneNumber = user.PhoneNumber,
             Location = user.Location,
             RFID = user.RFID,
+            DarkTheme = user.DarkTheme,
             WebsiteUrl = user.WebsiteUrl,
             SocialLinks = user.SocialLinks,
             Skills = user.Skills,

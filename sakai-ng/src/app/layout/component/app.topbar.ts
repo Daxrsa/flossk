@@ -88,6 +88,6 @@ export class AppTopbar implements OnInit {
     }
 
     toggleDarkMode() {
-        this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
+        this.layoutService.toggleAndPersistDarkMode();
     }
 }

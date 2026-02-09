@@ -24,6 +24,7 @@ export interface User {
     fullName?: string;
     role?: string;
     roles?: string[];
+    darkTheme?: boolean;
 }
 
 export interface AuthResponse {
@@ -138,5 +139,13 @@ export class AuthService {
         if (current) {
             this.currentUser.set({ ...current, ...userData });
         }
+    }
+
+    updateThemePreference(darkTheme: boolean): Observable<any> {
+        return this.http.patch<any>(`${this.API_URL}/me/theme`, { darkTheme }).pipe(
+            tap(() => {
+                this.updateCurrentUser({ darkTheme });
+            })
+        );
     }
 }

@@ -232,16 +232,16 @@ interface User {
                                     <h2 class="text-3xl font-bold text-surface-900 dark:text-surface-0">
                                         {{ userProfile.firstName }} {{ userProfile.lastName }}
                                     </h2>
-                                    <p class="text-muted-color flex items-center gap-1">
+                                    <p class="text-muted-color flex items-center gap-2">
                                         <i class="pi pi-envelope text-sm"></i>
                                          {{ userProfile.email }}
                                     </p>
                                  
-                                    <p *ngIf="userProfile.phone" class="text-muted-color flex items-center gap-1">
+                                    <p *ngIf="userProfile.phone" class="text-muted-color flex items-center gap-2">
                                         <i class="pi pi-phone text-sm"></i>
                                         {{ userProfile.phone }}
                                     </p>
-                                    <p *ngIf="userProfile.location" class="text-muted-color flex items-center gap-1">
+                                    <p *ngIf="userProfile.location" class="text-muted-color flex items-center gap-2">
                                         <i class="pi pi-map-marker text-sm"></i>
                                         {{ userProfile.location }}
                                     </p>

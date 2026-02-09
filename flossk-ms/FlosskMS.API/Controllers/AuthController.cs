@@ -94,6 +94,14 @@ public class AuthController(IAuthService authService) : ControllerBase
         => await _authService.ToggleRFIDAsync(id);
 
     /// <summary>
+    /// Update theme preference for current user
+    /// </summary>
+    [Authorize]
+    [HttpPatch("me/theme")]
+    public async Task<IActionResult> UpdateThemePreference([FromBody] UpdateThemePreferenceDto request)
+        => await _authService.UpdateThemePreferenceAsync(User.FindFirstValue(ClaimTypes.NameIdentifier), request);
+
+    /// <summary>
     /// Delete a user by ID (Admin only)
     /// </summary>
     [Authorize(Roles = "Admin")]

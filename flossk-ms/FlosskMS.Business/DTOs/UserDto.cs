@@ -10,6 +10,7 @@ public class UserDto
     public string? PhoneNumber { get; set; }
     public string? Location { get; set; }
     public bool RFID { get; set; } 
+    public bool DarkTheme { get; set; }
     public string? WebsiteUrl { get; set; }
     public List<string>? SocialLinks { get; set; } = [];
     public List<string>? Skills { get; set; } = [];
