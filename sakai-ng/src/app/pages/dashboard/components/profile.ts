@@ -17,7 +17,6 @@ import { TextareaModule } from 'primeng/textarea';
 import { FileUploadModule } from 'primeng/fileupload';
 import { SelectModule } from 'primeng/select';
 import { SkeletonModule } from 'primeng/skeleton';
-import { AccordionModule } from 'primeng/accordion';
 import { AuthService, DEFAULT_AVATAR } from '@/pages/service/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment.prod';
@@ -40,7 +39,7 @@ interface User {
 
 @Component({
     selector: 'app-profile',
-    imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule, AccordionModule],
+    imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule],
     template: `
         <!-- Loading Skeleton -->
         <div *ngIf="isLoading" class="grid grid-cols-12 gap-8">
@@ -301,148 +300,129 @@ interface User {
 
             <!-- Information Cards Section -->
             <div class="col-span-12">
-                <div class="grid grid-cols-12 gap-8 items-start">
-                    <!-- Biography, Skills & Statistics Accordion -->
-                    <div class="col-span-12 md:col-span-6">
+                <div class="grid grid-cols-12 gap-6">
+                    <!-- Biography Card -->
+                    <div class="col-span-12 lg:col-span-8">
+                        <div class="card mb-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <i style="font-size: 1.5rem;" class="pi pi-user text-primary text-xl"></i>
+                                <h3 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">About</h3>
+                            </div>
+                            <p class="text-surface-700 dark:text-surface-300 leading-relaxed m-0 text-lg">
+                                {{ userProfile.biography || 'No biography provided yet.' }}
+                            </p>
+                        </div>
+                        
+                        <!-- Projects Card -->
                         <div class="card">
-                            <p-accordion [multiple]="true" [value]="[]">
-                                <p-accordion-panel value="0">
-                                    <p-accordion-header>
-                                        <span class="flex items-center gap-2">
-                                            <i class="pi pi-user text-primary"></i>
-                                            <span>Biography</span>
-                                        </span>
-                                    </p-accordion-header>
-                                    <p-accordion-content>
-                                        <p class="text-surface-700 dark:text-surface-300 leading-relaxed m-0">
-                                            {{ userProfile.biography || 'Not provided' }}
-                                        </p>
-                                    </p-accordion-content>
-                                </p-accordion-panel>
-                                
-                                <p-accordion-panel value="1">
-                                    <p-accordion-header>
-                                        <span class="flex items-center gap-2">
-                                            <i class="pi pi-star text-primary"></i>
-                                            <span>Skills & Expertise</span>
-                                        </span>
-                                    </p-accordion-header>
-                                    <p-accordion-content>
-                                        <div class="flex flex-wrap gap-2">
-                                            <p-chip 
-                                                *ngFor="let skill of userProfile.skills" 
-                                                [label]="skill"
-                                                styleClass="bg-primary-100 dark:bg-primary-400/10 text-primary-700 dark:text-primary-400"
-                                            ></p-chip>
-                                            <span *ngIf="!userProfile.skills || userProfile.skills.length === 0" class="text-surface-700 dark:text-surface-300">Not provided</span>
-                                        </div>
-                                    </p-accordion-content>
-                                </p-accordion-panel>
-                                
-                                <p-accordion-panel value="2">
-                                    <p-accordion-header>
-                                        <span class="flex items-center gap-2">
-                                            <i class="pi pi-chart-bar text-primary"></i>
-                                            <span>Statistics</span>
-                                        </span>
-                                    </p-accordion-header>
-                                    <p-accordion-content>
-                                        <div class="flex flex-col gap-6">
-                                            <div class="flex justify-between items-center">
-                                                <div>
-                                                    <div class="text-muted-color text-sm mb-1">Projects</div>
-                                                    <div class="text-2xl font-bold text-surface-900 dark:text-surface-0">24</div>
-                                                </div>
-                                                <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-border" style="width: 3rem; height: 3rem">
-                                                    <i class="pi pi-folder text-blue-500 text-xl"></i>
-                                                </div>
-                                            </div>
-
-                                            <p-divider></p-divider>
-
-                                            <div class="flex justify-between items-center">
-                                                <div>
-                                                    <div class="text-muted-color text-sm mb-1">Contributions</div>
-                                                    <div class="text-2xl font-bold text-surface-900 dark:text-surface-0">156</div>
-                                                </div>
-                                                <div class="flex items-center justify-center bg-green-100 dark:bg-green-400/10 rounded-border" style="width: 3rem; height: 3rem">
-                                                    <i class="pi pi-code text-green-500 text-xl"></i>
-                                                </div>
+                            <div class="flex items-center gap-3 mb-6">
+                                <i style="font-size: 1.5rem;" class="pi pi-hammer text-primary text-xl"></i>
+                                <h3 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Projects</h3>
+                            </div>
+                            
+                            <div class="flex flex-col gap-4">
+                                <div *ngFor="let project of userProjects" class="border border-surface-200 dark:border-surface-700 rounded-border p-4 hover:shadow-md transition-shadow">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <h4 class="text-xl font-bold text-surface-900 dark:text-surface-0 mb-2">{{ project.name }}</h4>
+                                            <div class="flex items-center gap-2 text-sm text-muted-color mb-2">
+                                                <i class="pi pi-user"></i>
+                                                <span>{{ project.role }}</span>
                                             </div>
                                         </div>
-                                    </p-accordion-content>
-                                </p-accordion-panel>
-                            </p-accordion>
+                                        <p-tag 
+                                            [value]="project.status" 
+                                            [severity]="getStatusSeverity(project.status)"
+                                        ></p-tag>
+                                    </div>
+                                    
+                                    <p class="text-surface-700 dark:text-surface-300 mb-4">
+                                        {{ project.description }}
+                                    </p>
+                                    
+                                    <div class="mb-4" *ngIf="project.status === 'in-progress'">
+                                        <div class="flex justify-between text-sm mb-2">
+                                            <span class="text-muted-color">Progress</span>
+                                            <span class="font-semibold">{{ project.progress }}%</span>
+                                        </div>
+                                        <p-progressbar [value]="project.progress" [showValue]="false"></p-progressbar>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between pt-3 border-t border-surface-200 dark:border-surface-700">
+                                        <div>
+                                            <p class="text-xs text-muted-color mb-2">Team Members</p>
+                                            <p-avatargroup>
+                                                <p-avatar 
+                                                    *ngFor="let member of project.team.slice(0, 3)" 
+                                                    [image]="member.avatar" 
+                                                    shape="circle"
+                                                    size="normal"
+                                                ></p-avatar>
+                                                <p-avatar 
+                                                    *ngIf="project.team.length > 3"
+                                                    [label]="'+' + (project.team.length - 3)" 
+                                                    shape="circle"
+                                                    size="normal"
+                                                    [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                                                ></p-avatar>
+                                            </p-avatargroup>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div *ngIf="!userProjects || userProjects.length === 0" class="text-center py-8 text-muted-color">
+                                    <i class="pi pi-inbox text-6xl mb-4"></i>
+                                    <p class="text-lg">No projects yet</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Projects Accordion -->
-                    <div class="col-span-12 md:col-span-6">
-                        <div class="card h-full">
-                            <p-accordion [multiple]="true" [value]="[]">
-                                <p-accordion-panel value="projects">
-                                    <p-accordion-header>
-                                        <span class="flex items-center gap-2">
-                                            <i class="pi pi-hammer text-primary"></i>
-                                            <span>{{ userProfile.firstName }}'s Projects</span>
-                                        </span>
-                                    </p-accordion-header>
-                                    <p-accordion-content>
-                                        <p-accordion [multiple]="true" [value]="[]">
-                                            <p-accordion-panel *ngFor="let project of userProjects; let i = index" [value]="'project-' + i">
-                                                <p-accordion-header>
-                                                    <div class="flex justify-between items-center w-full pr-4">
-                                                        <span class="font-semibold">{{ project.name }}</span>
-                                                        <p-tag 
-                                                            [value]="project.status" 
-                                                            [severity]="getStatusSeverity(project.status)"
-                                                        ></p-tag>
-                                                    </div>
-                                                </p-accordion-header>
-                                                <p-accordion-content>
-                                                    <p class="text-surface-700 dark:text-surface-300 text-sm mb-3">
-                                                        {{ project.description }}
-                                                    </p>
-                                                    
-                                                    <div class="flex items-center gap-2 text-xs text-muted-color mb-3">
-                                                        <i class="pi pi-user"></i>
-                                                        <span>{{ project.role }}</span>
-                                                    </div>
-                                                    
-                                                    <div class="mb-3" *ngIf="project.status === 'in-progress'">
-                                                        <div class="flex justify-between text-xs mb-2">
-                                                            <span class="text-muted-color">Progress</span>
-                                                            <span class="font-semibold">{{ project.progress }}%</span>
-                                                        </div>
-                                                        <p-progressbar [value]="project.progress" [showValue]="false"></p-progressbar>
-                                                    </div>
-                                                    
-                                                    <p-divider></p-divider>
-                                                    
-                                                    <div class="mt-3">
-                                                        <p class="text-xs text-muted-color mb-2">Team</p>
-                                                        <p-avatargroup>
-                                                            <p-avatar 
-                                                                *ngFor="let member of project.team.slice(0, 3)" 
-                                                                [image]="member.avatar" 
-                                                                shape="circle"
-                                                                size="normal"
-                                                            ></p-avatar>
-                                                            <p-avatar 
-                                                                *ngIf="project.team.length > 3"
-                                                                [label]="'+' + (project.team.length - 3)" 
-                                                                shape="circle"
-                                                                size="normal"
-                                                                [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
-                                                            ></p-avatar>
-                                                        </p-avatargroup>
-                                                    </div>
-                                                </p-accordion-content>
-                                            </p-accordion-panel>
-                                        </p-accordion>
-                                    </p-accordion-content>
-                                </p-accordion-panel>
-                            </p-accordion>
+                    <!-- Right Sidebar -->
+                    <div class="col-span-12 lg:col-span-4">
+                        <!-- Skills Card -->
+                        <div class="card mb-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <i style="font-size: 1.5rem;" class="pi pi-star text-primary text-xl"></i>
+                                <h3 class="text-xl font-bold text-surface-900 dark:text-surface-0 m-0">Skills & Expertise</h3>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <p-chip 
+                                    *ngFor="let skill of userProfile.skills" 
+                                    [label]="skill"
+                                    styleClass="bg-primary-100 dark:bg-primary-400/10 text-primary-700 dark:text-primary-400"
+                                ></p-chip>
+                                <span *ngIf="!userProfile.skills || userProfile.skills.length === 0" class="text-surface-700 dark:text-surface-300">No skills added yet</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Statistics Card -->
+                        <div class="card">
+                            <div class="flex items-center gap-3 mb-4">
+                                <i style="font-size: 1.5rem;" class="pi pi-chart-bar text-primary text-xl"></i>
+                                <h3 class="text-xl font-bold text-surface-900 dark:text-surface-0 m-0">Statistics</h3>
+                            </div>
+                            <div class="flex flex-col gap-6">
+                                <div class="flex justify-between items-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-border">
+                                    <div>
+                                        <div class="text-muted-color text-sm mb-1">Projects</div>
+                                        <div class="text-3xl font-bold text-surface-900 dark:text-surface-0">24</div>
+                                    </div>
+                                    <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-border" style="width: 3.5rem; height: 3.5rem">
+                                        <i style="font-size: 1.5rem;" class="pi pi-folder text-blue-500 text-2xl"></i>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-between items-center p-4 bg-green-50 dark:bg-green-900/20 rounded-border">
+                                    <div>
+                                        <div class="text-muted-color text-sm mb-1">Contributions</div>
+                                        <div class="text-3xl font-bold text-surface-900 dark:text-surface-0">156</div>
+                                    </div>
+                                    <div class="flex items-center justify-center bg-green-100 dark:bg-green-400/10 rounded-border" style="width: 3.5rem; height: 3.5rem">
+                                        <i style="font-size: 1.5rem;" class="pi pi-code text-green-500 text-2xl"></i>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
