@@ -18,6 +18,7 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { SelectModule } from 'primeng/select';
 import { SkeletonModule } from 'primeng/skeleton';
 import { AuthService, DEFAULT_AVATAR } from '@/pages/service/auth.service';
+import { ProjectsService } from '@/pages/service/projects.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment.prod';
 
@@ -435,6 +436,7 @@ export class Profile implements OnInit {
     isLoading = true;
     isOwnProfile = true;
     private route = inject(ActivatedRoute);
+    private projectsService = inject(ProjectsService);
 
     constructor(private authService: AuthService, private http: HttpClient) {
         // Use effect to reactively update when currentUser signal changes (only for own profile)
@@ -523,6 +525,7 @@ export class Profile implements OnInit {
             next: (user) => {
                 console.log('Fetched user data:', user);
                 this.mapUserToProfile(user);
+                this.loadUserProjects(userId);
                 this.isLoading = false;
             },
             error: (err) => {
@@ -584,50 +587,51 @@ export class Profile implements OnInit {
                 skills: user.skills || [],
                 socialLinks: this.parseSocialLinks(user.socialLinks)
             };
+
+            // Load user's projects
+            if (user.id) {
+                this.loadUserProjects(user.id);
+            }
         }
     }
 
-    userProjects = [
-        {
-            id: 1,
-            name: 'Smart Home Automation System',
-            description: 'Develop an IoT-based home automation system using Arduino and Raspberry Pi to control lights, temperature, and security.',
-            status: 'in-progress',
-            role: 'Project Lead',
-            progress: 65,
-            team: [
-                { name: 'Amy Elsner', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png' },
-                { name: 'Bernardo Dominic', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png' },
-                { name: 'Anna Fali', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/annafali.png' },
-                { name: 'Asiya Javayant', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png' }
-            ]
-        },
-        {
-            id: 2,
-            name: '3D Printer Upgrade Project',
-            description: 'Upgrade existing 3D printers with auto-leveling sensors and improved cooling systems.',
-            status: 'in-progress',
-            role: 'Contributor',
-            progress: 40,
-            team: [
-                { name: 'Elwin Sharvill', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png' },
-                { name: 'Ioni Bowcher', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png' }
-            ]
-        },
-        {
-            id: 3,
-            name: 'Robotics Competition Team',
-            description: 'Build and program a robot for the regional robotics competition in March 2026.',
-            status: 'completed',
-            role: 'Programmer',
-            progress: 100,
-            team: [
-                { name: 'Bernardo Dominic', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png' },
-                { name: 'Amy Elsner', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png' },
-                { name: 'Elwin Sharvill', avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png' }
-            ]
-        }
-    ];
+    userProjects: any[] = [];
+
+    loadUserProjects(userId: string) {
+        this.projectsService.getProjectsByUserId(userId).subscribe({
+            next: (projects) => {
+                this.userProjects = projects.map(project => {
+                    // Find the user's role in this project
+                    const userMember = project.teamMembers?.find((tm: any) => tm.userId === userId);
+                    const role = userMember?.role || 'Team Member';
+
+                    // Map team members with proper avatar URLs
+                    const team = (project.teamMembers || []).map((tm: any) => ({
+                        name: `${tm.firstName} ${tm.lastName}`,
+                        avatar: tm.profilePictureUrl 
+                            ? (tm.profilePictureUrl.startsWith('http') 
+                                ? tm.profilePictureUrl 
+                                : `${environment.baseUrl}${tm.profilePictureUrl}`)
+                            : DEFAULT_AVATAR
+                    }));
+
+                    return {
+                        id: project.id,
+                        name: project.title,
+                        description: project.description,
+                        status: project.status?.toLowerCase().replace(' ', '-') || 'in-progress',
+                        progress: project.progressPercentage || 0,
+                        role: role,
+                        team: team
+                    };
+                });
+            },
+            error: (err) => {
+                console.error('Error loading user projects:', err);
+                this.userProjects = [];
+            }
+        });
+    }
 
     getStatusSeverity(status: string): 'success' | 'info' | 'warn' {
         switch (status) {

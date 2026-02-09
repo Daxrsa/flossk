@@ -41,6 +41,16 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     }
 
     /// <summary>
+    /// Get projects by user ID (projects the user is a team member of)
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    [HttpGet("user/{userId}")]
+    public async Task<IActionResult> GetProjectsByUserId(string userId)
+    {
+        return await _projectService.GetProjectsByUserIdAsync(userId);
+    }
+
+    /// <summary>
     /// Get a project by ID
     /// </summary>
     [HttpGet("{id:guid}")]

@@ -48,6 +48,10 @@ export class ProjectsService {
         return this.http.get<any>(`${this.API_URL}/${id}`);
     }
 
+    getProjectsByUserId(userId: string): Observable<any[]> {
+        return this.http.get<any[]>(`${this.API_URL}/user/${userId}`);
+    }
+
     createProject(payload: { title: string; description: string; startDate: string; endDate: string; status: string }): Observable<any> {
         return this.http.post<any>(this.API_URL, payload);
     }

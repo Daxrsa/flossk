@@ -8,6 +8,7 @@ public interface IProjectService
     // Project operations
     Task<IActionResult> CreateProjectAsync(CreateProjectDto request, string userId);
     Task<IActionResult> GetProjectsAsync(string? status = null);
+    Task<IActionResult> GetProjectsByUserIdAsync(string userId);
     Task<IActionResult> GetProjectByIdAsync(Guid id);
     Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request);
     Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status);

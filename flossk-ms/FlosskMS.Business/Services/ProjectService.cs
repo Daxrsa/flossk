@@ -92,6 +92,28 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<List<ProjectListDto>>(projects));
     }
 
+    public async Task<IActionResult> GetProjectsByUserIdAsync(string userId)
+    {
+        var user = await _dbContext.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return new NotFoundObjectResult(new { Error = "User not found." });
+        }
+
+        var projects = await _dbContext.Projects
+            .Include(p => p.CreatedByUser)
+            .Include(p => p.TeamMembers)
+                .ThenInclude(tm => tm.User)
+                    .ThenInclude(u => u.UploadedFiles)
+            .Include(p => p.Objectives)
+            .Include(p => p.Resources)
+            .Where(p => p.TeamMembers.Any(tm => tm.UserId == userId))
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+
+        return new OkObjectResult(_mapper.Map<List<ProjectListDto>>(projects));
+    }
+
     public async Task<IActionResult> GetProjectByIdAsync(Guid id)
     {
         var project = await _dbContext.Projects
