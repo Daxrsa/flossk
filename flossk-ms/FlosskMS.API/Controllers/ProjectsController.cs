@@ -120,6 +120,21 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     }
 
     /// <summary>
+    /// Remove multiple team members from a project (Project creator only)
+    /// </summary>
+    [Authorize]
+    [HttpPost("{projectId:guid}/team-members/remove")]
+    public async Task<IActionResult> RemoveTeamMembersFromProject(Guid projectId, [FromBody] RemoveTeamMembersDto request)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            return Unauthorized();
+        }
+        return await _projectService.RemoveTeamMembersFromProjectAsync(projectId, request, currentUserId);
+    }
+
+    /// <summary>
     /// Join a project (current user)
     /// </summary>
     [HttpPost("{projectId:guid}/join")]

@@ -308,6 +308,61 @@ public class ProjectService : IProjectService
         return new OkObjectResult(new { Message = "Team member removed from project successfully." });
     }
 
+    public async Task<IActionResult> RemoveTeamMembersFromProjectAsync(Guid projectId, RemoveTeamMembersDto request, string currentUserId)
+    {
+        // Validate input
+        if (request.UserIds == null || request.UserIds.Count == 0)
+        {
+            return new BadRequestObjectResult(new { Error = "At least one user ID must be provided." });
+        }
+
+        // Check if the current user is the project creator
+        var project = await _dbContext.Projects.FindAsync(projectId);
+        if (project == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Project not found." });
+        }
+
+        if (project.CreatedByUserId != currentUserId)
+        {
+            return new ForbidResult();
+        }
+
+        // Get all team members to remove
+        var teamMembers = await _dbContext.ProjectTeamMembers
+            .Where(tm => tm.ProjectId == projectId && request.UserIds.Contains(tm.UserId))
+            .ToListAsync();
+
+        if (teamMembers.Count == 0)
+        {
+            return new NotFoundObjectResult(new { Error = "No matching team members found in this project." });
+        }
+
+        var userIdsFound = teamMembers.Select(tm => tm.UserId).ToList();
+        var userIdsNotFound = request.UserIds.Except(userIdsFound).ToList();
+
+        // Also remove users from all objectives in this project
+        var objectiveTeamMembers = await _dbContext.ObjectiveTeamMembers
+            .Include(otm => otm.Objective)
+            .Where(otm => otm.Objective.ProjectId == projectId && request.UserIds.Contains(otm.UserId))
+            .ToListAsync();
+
+        _dbContext.ObjectiveTeamMembers.RemoveRange(objectiveTeamMembers);
+        _dbContext.ProjectTeamMembers.RemoveRange(teamMembers);
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Removed {Count} team members from project {ProjectId}", teamMembers.Count, projectId);
+
+        var response = new
+        {
+            Message = $"{teamMembers.Count} team member(s) removed from project successfully.",
+            RemovedUserIds = userIdsFound,
+            NotFoundUserIds = userIdsNotFound
+        };
+
+        return new OkObjectResult(response);
+    }
+
     public async Task<IActionResult> GetProjectTeamMembersAsync(Guid projectId)
     {
         var project = await _dbContext.Projects.FindAsync(projectId);
