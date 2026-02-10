@@ -29,28 +29,46 @@ import { AuthService } from '@/pages/service/auth.service';
             <div class="layout-config-menu">
                 <button type="button" class="layout-topbar-action" (click)="profilePopover.toggle($event)"><i class="pi pi-user"></i><span>Profile</span></button>
                 <p-popover #profilePopover>
-                    <div class="flex flex-col gap-1 w-64">
+                    <div class="flex flex-col w-72">
                         @if (authService.currentUser()) {
-                            <div class="flex flex-col gap-2">
-                                <div class="flex items-center gap-3">
-                                    <div>
-                                        <div class="font-semibold text-surface-900 dark:text-surface-0">{{ authService.currentUser()?.email }}</div>
-                                        <div class="text-sm text-muted-color">{{ authService.currentUser()?.role || 'Unknown' }}</div>
-                                    </div>
+                            <div class="flex items-center gap-4 p-4 border-b border-surface-200 dark:border-surface-700">
+                                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-contrast font-bold text-lg">
+                                    {{ (authService.currentUser()?.email ?? '?').charAt(0).toUpperCase() }}
+                                </div>
+                                <div class="flex flex-col">
+                                    <div class="font-semibold text-surface-900 dark:text-surface-0">{{ authService.currentUser()?.email }}</div>
+                                    <div class="text-sm text-muted-color">{{ authService.currentUser()?.role || authService.currentUser()?.roles?.[0] || 'Member' }}</div>
                                 </div>
                             </div>
-                            <p-button label="Logout" icon="pi pi-sign-out" severity="danger" [outlined]="true" class="ml-auto" (onClick)="authService.logout(); profilePopover.hide()"></p-button>
+                            <div class="p-2">
+                                <a routerLink="/dashboard/profile" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors cursor-pointer text-surface-700 dark:text-surface-200 no-underline" (click)="profilePopover.hide()">
+                                    <i class="pi pi-user text-lg"></i>
+                                    <span>View Profile</span>
+                                </a>
+                                <a routerLink="/dashboard/settings" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors cursor-pointer text-surface-700 dark:text-surface-200 no-underline" (click)="profilePopover.hide()">
+                                    <i class="pi pi-cog text-lg"></i>
+                                    <span>Settings</span>
+                                </a>
+                                <button (click)="toggleDarkMode()" class="flex items-center gap-3 px-3 py-2 w-full rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors cursor-pointer text-surface-700 dark:text-surface-200 border-none bg-transparent">
+                                    <i [class]="layoutService.isDarkTheme() ? 'pi pi-sun text-lg' : 'pi pi-moon text-lg'"></i>
+                                    <span>{{ layoutService.isDarkTheme() ? 'Light Mode' : 'Dark Mode' }}</span>
+                                </button>
+                            </div>
+                            <div class="p-2 border-t border-surface-200 dark:border-surface-700">
+                                <button (click)="authService.logout(); profilePopover.hide()" class="flex items-center gap-3 px-3 py-2 w-full rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer text-red-600 dark:text-red-400 border-none bg-transparent">
+                                    <i class="pi pi-sign-out text-lg"></i>
+                                    <span>Logout</span>
+                                </button>
+                            </div>
                         } @else {
-                            <div class="text-center">
-                                <p class="text-muted-color mb-3">You are not logged in</p>
-                                <p-button label="Login" icon="pi pi-sign-in" routerLink="/auth/login" class="w-full" (onClick)="profilePopover.hide()"></p-button>
+                            <div class="p-6 text-center">
+                                <i class="pi pi-user text-4xl text-muted-color mb-3"></i>
+                                <p class="text-muted-color mb-4">You are not logged in</p>
+                                <p-button label="Login" icon="pi pi-sign-in" routerLink="/auth/login" styleClass="w-full" (onClick)="profilePopover.hide()"></p-button>
                             </div>
                         }
                     </div>
                 </p-popover>
-                <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()">
-                    <i [ngClass]="{ 'pi ': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>
-                </button>
             </div>
         </div>
     </div>

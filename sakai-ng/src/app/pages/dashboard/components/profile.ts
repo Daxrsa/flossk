@@ -438,7 +438,7 @@ interface User {
                                 <h3 class="text-xl font-bold text-surface-900 dark:text-surface-0 m-0">CV / Resume</h3>
                             </div>
                             <div class="flex flex-col gap-3">
-                                <div *ngIf="userProfile.cvUrl" class="flex gap-2">
+                                <div *ngIf="userProfile.cvUrl" class="flex flex-col gap-2">
                                     <a [href]="userProfile.cvUrl" target="_blank" class="flex-1">
                                         <p-button label="View CV" icon="pi pi-external-link" styleClass="w-full" [outlined]="true"></p-button>
                                     </a>
@@ -448,7 +448,7 @@ interface User {
                                     <i class="pi pi-file-pdf text-4xl mb-2"></i>
                                     <p>No CV uploaded yet</p>
                                 </div>
-                                <div *ngIf="isOwnProfile" class="mt-2">
+                                <div *ngIf="isOwnProfile" class="flex items-center justify-between">
                                     <p-fileupload 
                                         mode="basic" 
                                         [chooseLabel]="userProfile.cvUrl ? 'Replace CV' : 'Upload CV'"
@@ -464,7 +464,7 @@ interface User {
                                         icon="pi pi-trash" 
                                         severity="danger" 
                                         [outlined]="true"
-                                        styleClass="w-full mt-2"
+                                        styleClass="w-full"
                                         (onClick)="deleteCV()"
                                     ></p-button>
                                 </div>
