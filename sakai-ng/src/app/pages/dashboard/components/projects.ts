@@ -2051,11 +2051,19 @@ export class Projects {
             return;
         }
         
-        if (!objective.members) {
-            objective.members = [];
-        }
         if (!this.isUserInObjective(objective)) {
-            objective.members.push({ ...this.currentUser });
+            this.projectsService.joinObjective(objective.id).subscribe({
+                next: (response) => {
+                    console.log('Successfully joined objective:', response);
+                    if (!objective.members) {
+                        objective.members = [];
+                    }
+                    objective.members.push({ ...this.currentUser });
+                },
+                error: (err) => {
+                    console.error('Error joining objective:', err);
+                }
+            });
         }
     }
     
@@ -2067,9 +2075,17 @@ export class Projects {
             return;
         }
         
-        if (objective.members) {
-            objective.members = objective.members.filter(m => m.userId !== this.currentUser.userId);
-        }
+        this.projectsService.leaveObjective(objective.id).subscribe({
+            next: (response) => {
+                console.log('Successfully left objective:', response);
+                if (objective.members) {
+                    objective.members = objective.members.filter(m => m.userId !== this.currentUser.userId);
+                }
+            },
+            error: (err) => {
+                console.error('Error leaving objective:', err);
+            }
+        });
     }
     
     // Objective Detail Dialog Methods
@@ -2129,12 +2145,20 @@ export class Projects {
             return;
         }
         
-        if (!this.viewingObjective.members) {
-            this.viewingObjective.members = [];
-        }
         if (!this.isUserInObjective(this.viewingObjective)) {
-            this.viewingObjective.members.push({ ...this.currentUser });
-            this.updateObjectiveInProject();
+            this.projectsService.joinObjective(this.viewingObjective.id).subscribe({
+                next: (response) => {
+                    console.log('Successfully joined objective:', response);
+                    if (!this.viewingObjective!.members) {
+                        this.viewingObjective!.members = [];
+                    }
+                    this.viewingObjective!.members.push({ ...this.currentUser });
+                    this.updateObjectiveInProject();
+                },
+                error: (err) => {
+                    console.error('Error joining objective:', err);
+                }
+            });
         }
     }
     
@@ -2146,8 +2170,16 @@ export class Projects {
             return;
         }
         
-        this.viewingObjective.members = this.viewingObjective.members.filter(m => m.userId !== this.currentUser.userId);
-        this.updateObjectiveInProject();
+        this.projectsService.leaveObjective(this.viewingObjective.id).subscribe({
+            next: (response) => {
+                console.log('Successfully left objective:', response);
+                this.viewingObjective!.members = this.viewingObjective!.members!.filter(m => m.userId !== this.currentUser.userId);
+                this.updateObjectiveInProject();
+            },
+            error: (err) => {
+                console.error('Error leaving objective:', err);
+            }
+        });
     }
     
     editObjectiveFromDetail() {
