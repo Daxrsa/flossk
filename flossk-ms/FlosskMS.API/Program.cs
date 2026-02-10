@@ -122,6 +122,7 @@ builder.Services.AddScoped<IMembershipRequestService, MembershipRequestService>(
 builder.Services.AddScoped<ICollaborationPadService, CollaborationPadService>();
 builder.Services.AddScoped<IRfidCardService, RfidCardService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));

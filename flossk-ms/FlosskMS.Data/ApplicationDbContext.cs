@@ -24,6 +24,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ResourceFile> ResourceFiles { get; set; }
     public DbSet<ProjectTeamMember> ProjectTeamMembers { get; set; }
     public DbSet<ObjectiveTeamMember> ObjectiveTeamMembers { get; set; }
+    public DbSet<CalendarEvent> CalendarEvents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -326,6 +327,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             // Ensure a user can only be added once per objective
             entity.HasIndex(e => new { e.ObjectiveId, e.UserId }).IsUnique();
+        });
+
+        builder.Entity<CalendarEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CalendarUrl).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
