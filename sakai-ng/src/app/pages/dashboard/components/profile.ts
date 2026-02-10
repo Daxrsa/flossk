@@ -17,6 +17,8 @@ import { TextareaModule } from 'primeng/textarea';
 import { FileUploadModule } from 'primeng/fileupload';
 import { SelectModule } from 'primeng/select';
 import { SkeletonModule } from 'primeng/skeleton';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ConfirmationService } from 'primeng/api';
 import { AuthService, DEFAULT_AVATAR } from '@/pages/service/auth.service';
 import { ProjectsService } from '@/pages/service/projects.service';
 import { HttpClient } from '@angular/common/http';
@@ -36,12 +38,15 @@ interface User {
     createdAt: string;
     roles: string[];
     profilePictureUrl: string;
+    cvUrl?: string;
 }
 
 @Component({
     selector: 'app-profile',
-    imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule],
+    imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule, ConfirmDialogModule],
+    providers: [ConfirmationService],
     template: `
+        <p-confirmdialog></p-confirmdialog>
         <!-- Loading Skeleton -->
         <div *ngIf="isLoading" class="grid grid-cols-12 gap-8">
             <div class="col-span-12">
@@ -425,6 +430,46 @@ interface User {
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- CV Card -->
+                        <div class="card mt-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <i style="font-size: 1.5rem;" class="pi pi-file-pdf text-primary text-xl"></i>
+                                <h3 class="text-xl font-bold text-surface-900 dark:text-surface-0 m-0">CV / Resume</h3>
+                            </div>
+                            <div class="flex flex-col gap-3">
+                                <div *ngIf="userProfile.cvUrl" class="flex gap-2">
+                                    <a [href]="userProfile.cvUrl" target="_blank" class="flex-1">
+                                        <p-button label="View CV" icon="pi pi-external-link" styleClass="w-full" [outlined]="true"></p-button>
+                                    </a>
+                                    <p-button label="Download" icon="pi pi-download" styleClass="w-full flex-1" (onClick)="downloadCV()"></p-button>
+                                </div>
+                                <div *ngIf="!userProfile.cvUrl" class="text-center py-4 text-surface-500">
+                                    <i class="pi pi-file-pdf text-4xl mb-2"></i>
+                                    <p>No CV uploaded yet</p>
+                                </div>
+                                <div *ngIf="isOwnProfile" class="mt-2">
+                                    <p-fileupload 
+                                        mode="basic" 
+                                        [chooseLabel]="userProfile.cvUrl ? 'Replace CV' : 'Upload CV'"
+                                        accept=".pdf"
+                                        [maxFileSize]="5000000"
+                                        (onSelect)="onCVSelect($event)"
+                                        [auto]="true"
+                                        styleClass="w-full"
+                                    ></p-fileupload>
+                                    <p-button 
+                                        *ngIf="userProfile.cvUrl"
+                                        label="Delete CV" 
+                                        icon="pi pi-trash" 
+                                        severity="danger" 
+                                        [outlined]="true"
+                                        styleClass="w-full mt-2"
+                                        (onClick)="deleteCV()"
+                                    ></p-button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -435,10 +480,11 @@ interface User {
 export class Profile implements OnInit {
     isLoading = true;
     isOwnProfile = true;
+    profileUserId = '';
     private route = inject(ActivatedRoute);
     private projectsService = inject(ProjectsService);
 
-    constructor(private authService: AuthService, private http: HttpClient) {
+    constructor(private authService: AuthService, private http: HttpClient, private confirmationService: ConfirmationService) {
         // Use effect to reactively update when currentUser signal changes (only for own profile)
         effect(() => {
             const user = this.authService.currentUser();
@@ -492,6 +538,7 @@ export class Profile implements OnInit {
         phone: '',
         location: '',
         website: '',
+        cvUrl: '' as string,
         socialLinks: {
             github: '',
             linkedin: '',
@@ -521,6 +568,7 @@ export class Profile implements OnInit {
 
     loadUserById(userId: string) {
         this.isLoading = true;
+        this.profileUserId = userId;
         this.http.get<User>(`${environment.apiUrl}/Auth/users/${userId}`).subscribe({
             next: (user) => {
                 console.log('Fetched user data:', user);
@@ -543,6 +591,13 @@ export class Profile implements OnInit {
                 : `${environment.baseUrl}${user.profilePictureUrl}`;
         }
 
+        let cvUrl = '';
+        if (user.cvUrl) {
+            cvUrl = user.cvUrl.startsWith('http')
+                ? user.cvUrl
+                : `${environment.baseUrl}${user.cvUrl}`;
+        }
+
         this.userProfile = {
             ...this.userProfile,
             firstName: user.firstName || '',
@@ -556,6 +611,7 @@ export class Profile implements OnInit {
             location: user.location || '',
             website: user.websiteUrl || '',
             skills: user.skills || [],
+            cvUrl: cvUrl,
             socialLinks: this.parseSocialLinks(user.socialLinks)
         };
     }
@@ -564,12 +620,20 @@ export class Profile implements OnInit {
         const user = this.authService.currentUser() as User | null;
         console.log('Logged in user data:', user);
         if (user) {
+            this.profileUserId = user.id;
             // Construct full picture URL if it's a relative path
             let pictureUrl = DEFAULT_AVATAR;
             if (user.profilePictureUrl) {
                 pictureUrl = user.profilePictureUrl.startsWith('http')
                     ? user.profilePictureUrl
                     : `${environment.baseUrl}${user.profilePictureUrl}`;
+            }
+
+            let cvUrl = '';
+            if (user.cvUrl) {
+                cvUrl = user.cvUrl.startsWith('http')
+                    ? user.cvUrl
+                    : `${environment.baseUrl}${user.cvUrl}`;
             }
 
             this.userProfile = {
@@ -585,6 +649,7 @@ export class Profile implements OnInit {
                 location: user.location || '',
                 website: user.websiteUrl || '',
                 skills: user.skills || [],
+                cvUrl: cvUrl,
                 socialLinks: this.parseSocialLinks(user.socialLinks)
             };
 
@@ -792,6 +857,73 @@ export class Profile implements OnInit {
             },
             error: (error) => {
                 console.error('Error updating profile:', error);
+            }
+        });
+    }
+
+    onCVSelect(event: any) {
+        const file = event.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('cvFile', file);
+
+            this.http.post(`${environment.apiUrl}/Auth/me/cv`, formData).subscribe({
+                next: (response: any) => {
+                    console.log('CV uploaded successfully:', response);
+                    if (response.cvUrl) {
+                        this.userProfile.cvUrl = response.cvUrl.startsWith('http')
+                            ? response.cvUrl
+                            : `${environment.baseUrl}${response.cvUrl}`;
+                    }
+                    // Reload user data to refresh the CV URL
+                    this.authService.loadCurrentUser();
+                },
+                error: (error) => {
+                    console.error('Error uploading CV:', error);
+                    alert(error.error?.Errors?.[0] || 'Failed to upload CV. Only PDF files are allowed.');
+                }
+            });
+        }
+    }
+
+    deleteCV() {
+        this.confirmationService.confirm({
+            message: 'Are you sure you want to delete your CV?',
+            header: 'Confirm Delete',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonProps: {
+                severity: 'danger'
+            },
+            accept: () => {
+                this.http.delete(`${environment.apiUrl}/Auth/me/cv`).subscribe({
+                    next: (response: any) => {
+                        console.log('CV deleted successfully:', response);
+                        this.userProfile.cvUrl = '';
+                        // Reload user data
+                        this.authService.loadCurrentUser();
+                    },
+                    error: (error) => {
+                        console.error('Error deleting CV:', error);
+                    }
+                });
+            }
+        });
+    }
+
+    downloadCV() {
+        if (!this.profileUserId) return;
+        
+        this.http.get(`${environment.apiUrl}/Auth/users/${this.profileUserId}/cv/download`, { responseType: 'blob' }).subscribe({
+            next: (blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${this.userProfile.firstName}_${this.userProfile.lastName}_CV.pdf`;
+                link.click();
+                window.URL.revokeObjectURL(url);
+            },
+            error: (error) => {
+                console.error('Error downloading CV:', error);
             }
         });
     }

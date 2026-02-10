@@ -620,6 +620,164 @@ public class AuthService(
         });
     }
 
+    public async Task<IActionResult> UploadCVAsync(string? userId, IFormFile cvFile)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return new UnauthorizedResult();
+        }
+
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return new NotFoundResult();
+        }
+
+        // Validate file type (PDF only)
+        var allowedExtensions = new[] { ".pdf" };
+        var fileExtension = Path.GetExtension(cvFile.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(fileExtension))
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = ["Only PDF files are allowed for CV upload."]
+            });
+        }
+
+        // Remove existing CV if any
+        var existingCV = user.UploadedFiles.FirstOrDefault(f => f.FileType == FileType.CV);
+        if (existingCV != null)
+        {
+            await _fileService.DeleteFileAsync(existingCV.Id, userId, isAdmin: true);
+        }
+
+        // Upload new CV
+        var uploadResult = await _fileService.UploadFileAsync(cvFile, userId);
+        if (!uploadResult.Success)
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = [uploadResult.Error ?? "Failed to upload CV."]
+            });
+        }
+
+        // Update the uploaded file to be a CV
+        var uploadedFile = await _dbContext.UploadedFiles.FindAsync(uploadResult.FileId);
+        if (uploadedFile != null)
+        {
+            uploadedFile.FileType = FileType.CV;
+            uploadedFile.UserId = userId;
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        // Reload user with updated files
+        user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        return new OkObjectResult(await MapToUserDtoAsync(user!));
+    }
+
+    public async Task<IActionResult> DeleteCVAsync(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return new UnauthorizedResult();
+        }
+
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return new NotFoundResult();
+        }
+
+        var cvFile = user.UploadedFiles.FirstOrDefault(f => f.FileType == FileType.CV);
+        if (cvFile == null)
+        {
+            return new NotFoundObjectResult(new AuthResponseDto
+            {
+                Errors = ["No CV found."]
+            });
+        }
+
+        await _fileService.DeleteFileAsync(cvFile.Id, userId, isAdmin: true);
+
+        // Reload user with updated files
+        user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        return new OkObjectResult(await MapToUserDtoAsync(user!));
+    }
+
+    public async Task<IActionResult> GetUserCVAsync(string userId)
+    {
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return new NotFoundResult();
+        }
+
+        var cvFile = user.UploadedFiles.FirstOrDefault(f => f.FileType == FileType.CV);
+        if (cvFile == null)
+        {
+            return new NotFoundObjectResult(new { Error = "No CV found for this user." });
+        }
+
+        return new OkObjectResult(new
+        {
+            CVUrl = $"/uploads/{cvFile.FileName}",
+            OriginalFileName = cvFile.OriginalFileName
+        });
+    }
+
+    public async Task<IActionResult> DownloadUserCVAsync(string userId)
+    {
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return new NotFoundResult();
+        }
+
+        var cvFile = user.UploadedFiles.FirstOrDefault(f => f.FileType == FileType.CV);
+        if (cvFile == null)
+        {
+            return new NotFoundObjectResult(new { Error = "No CV found for this user." });
+        }
+
+        var (fileStream, contentType, _) = await _fileService.DownloadFileAsync(cvFile.Id);
+        if (fileStream == null)
+        {
+            return new NotFoundObjectResult(new { Error = "CV file not found on server." });
+        }
+
+        var fileName = !string.IsNullOrEmpty(cvFile.OriginalFileName) 
+            ? cvFile.OriginalFileName 
+            : $"{user.FirstName}_{user.LastName}_CV.pdf";
+
+        using var memoryStream = new MemoryStream();
+        await fileStream.CopyToAsync(memoryStream);
+        var fileBytes = memoryStream.ToArray();
+
+        return new FileContentResult(fileBytes, contentType ?? "application/pdf")
+        {
+            FileDownloadName = fileName
+        };
+    }
+
     private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
@@ -658,12 +816,19 @@ public class AuthService(
     {
         var roles = await _userManager.GetRolesAsync(user);
         var profilePicture = user.UploadedFiles?.FirstOrDefault(f => f.FileType == FileType.ProfilePicture);
+        var cvFile = user.UploadedFiles?.FirstOrDefault(f => f.FileType == FileType.CV);
         
         // Convert file path to URL path (e.g., /uploads/filename.jpg)
         string? profilePictureUrl = null;
         if (profilePicture != null)
         {
             profilePictureUrl = $"/uploads/{profilePicture.FileName}";
+        }
+
+        string? cvUrl = null;
+        if (cvFile != null)
+        {
+            cvUrl = $"/uploads/{cvFile.FileName}";
         }
         
         return new UserDto
@@ -682,7 +847,8 @@ public class AuthService(
             Skills = user.Skills,
             CreatedAt = user.CreatedAt,
             Roles = [.. roles],
-            ProfilePictureUrl = profilePictureUrl
+            ProfilePictureUrl = profilePictureUrl,
+            CVUrl = cvUrl
         };
     }
 }

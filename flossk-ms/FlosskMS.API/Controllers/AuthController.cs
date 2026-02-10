@@ -46,6 +46,38 @@ public class AuthController(IAuthService authService) : ControllerBase
     public async Task<IActionResult> DeleteProfilePicture()
         => await _authService.DeleteProfilePictureAsync(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
+    /// <summary>
+    /// Upload or replace CV (PDF only)
+    /// </summary>
+    [Authorize]
+    [HttpPost("me/cv")]
+    public async Task<IActionResult> UploadCV(IFormFile cvFile)
+        => await _authService.UploadCVAsync(User.FindFirstValue(ClaimTypes.NameIdentifier), cvFile);
+
+    /// <summary>
+    /// Delete CV
+    /// </summary>
+    [Authorize]
+    [HttpDelete("me/cv")]
+    public async Task<IActionResult> DeleteCV()
+        => await _authService.DeleteCVAsync(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+    /// <summary>
+    /// Get user's CV by user ID
+    /// </summary>
+    [Authorize]
+    [HttpGet("users/{userId}/cv")]
+    public async Task<IActionResult> GetUserCV(string userId)
+        => await _authService.GetUserCVAsync(userId);
+
+    /// <summary>
+    /// Download user's CV by user ID
+    /// </summary>
+    [Authorize]
+    [HttpGet("users/{userId}/cv/download")]
+    public async Task<IActionResult> DownloadUserCV(string userId)
+        => await _authService.DownloadUserCVAsync(userId);
+
     [Authorize(Roles = "Admin")]
     [HttpPost("seed-admin")]
     public async Task<IActionResult> SeedAdmin([FromBody] RegisterRequestDto request)

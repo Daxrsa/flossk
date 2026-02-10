@@ -4,5 +4,6 @@ public enum FileType
 {
     Unknown,
     ProfilePicture,
-    Signature
+    Signature,
+    CV
 }

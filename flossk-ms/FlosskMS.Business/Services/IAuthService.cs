@@ -11,6 +11,10 @@ public interface IAuthService
     Task<IActionResult> GetLoggedInUserAsync(string? userId);
     Task<IActionResult> UpdateUserAsync(string? userId, UpdateUserDto request, IFormFile? profilePicture = null);
     Task<IActionResult> DeleteProfilePictureAsync(string? userId);
+    Task<IActionResult> UploadCVAsync(string? userId, IFormFile cvFile);
+    Task<IActionResult> DeleteCVAsync(string? userId);
+    Task<IActionResult> GetUserCVAsync(string userId);
+    Task<IActionResult> DownloadUserCVAsync(string userId);
     Task<IActionResult> ApproveEmail(ApproveEmailRequestDto? request);
     Task<IActionResult> SeedAdminAsync(RegisterRequestDto request);
     Task<IActionResult> SeedUsersAsync();
