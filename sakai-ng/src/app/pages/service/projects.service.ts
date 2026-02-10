@@ -116,11 +116,11 @@ export class ProjectsService {
         return this.http.get<UsersResponse>(`${this.AUTH_API_URL}/users?page=${page}&pageSize=${pageSize}`);
     }
 
-    createResource(payload: { projectId: number; title: string; url: string; description: string; type: string }): Observable<any> {
+    createResource(payload: { projectId?: number; objectiveId?: number; title: string; url: string; description: string; type: string }): Observable<any> {
         return this.http.post<any>(`${this.API_URL}/resources`, payload);
     }
 
-    updateResource(id: number, payload: { projectId: number; title: string; url: string; description: string; type: string }): Observable<any> {
+    updateResource(id: number, payload: { projectId?: number; objectiveId?: number; title: string; url: string; description: string; type: string }): Observable<any> {
         return this.http.put<any>(`${this.API_URL}/resources/${id}`, payload);
     }
 

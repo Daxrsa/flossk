@@ -327,7 +327,7 @@ interface GitHubRepo {
                 
                 <div>
                     <label for="objResourceType" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Type</label>
-                    <p-select id="objResourceType" [(ngModel)]="currentObjectiveResource.type" [options]="resourceTypeOptions" optionLabel="label" optionValue="value" placeholder="Select Type" class="w-full" />
+                    <p-select id="objResourceType" [(ngModel)]="currentObjectiveResource.type" [options]="resourceTypeOptions" optionLabel="label" optionValue="value" placeholder="Select Type" class="w-full" appendTo="body" />
                 </div>
             </div>
             
@@ -2118,7 +2118,47 @@ export class Projects {
     }
     
     saveObjectiveResource() {
-       return;
+        if (!this.viewingObjective) return;
+        
+        const payload = {
+            objectiveId: this.viewingObjective.id,
+            title: this.currentObjectiveResource.title,
+            url: this.currentObjectiveResource.url,
+            description: this.currentObjectiveResource.description,
+            type: this.currentObjectiveResource.type
+        };
+        
+        if (this.objectiveResourceDialogMode === 'add') {
+            this.projectsService.createResource(payload).subscribe({
+                next: (response) => {
+                    console.log('Resource created successfully:', response);
+                    if (!this.viewingObjective!.resources) {
+                        this.viewingObjective!.resources = [];
+                    }
+                    this.viewingObjective!.resources.push(response);
+                    this.objectiveResourceDialogVisible = false;
+                },
+                error: (err) => {
+                    console.error('Error creating resource:', err);
+                }
+            });
+        } else {
+            this.projectsService.updateResource(this.currentObjectiveResource.id, payload).subscribe({
+                next: (response) => {
+                    console.log('Resource updated successfully:', response);
+                    if (this.viewingObjective?.resources) {
+                        const index = this.viewingObjective.resources.findIndex(r => r.id === this.currentObjectiveResource.id);
+                        if (index !== -1) {
+                            this.viewingObjective.resources[index] = response;
+                        }
+                    }
+                    this.objectiveResourceDialogVisible = false;
+                },
+                error: (err) => {
+                    console.error('Error updating resource:', err);
+                }
+            });
+        }
     }
     
     confirmDeleteObjectiveResource(resource: Resource) {
@@ -2134,7 +2174,17 @@ export class Projects {
     }
     
     deleteObjectiveResource(resource: Resource) {
-        return;
+        this.projectsService.deleteResource(resource.id).subscribe({
+            next: (response) => {
+                console.log('Resource deleted successfully:', response);
+                if (this.viewingObjective?.resources) {
+                    this.viewingObjective.resources = this.viewingObjective.resources.filter(r => r.id !== resource.id);
+                }
+            },
+            error: (err) => {
+                console.error('Error deleting resource:', err);
+            }
+        });
     }
     
     joinObjectiveFromDetail() {
