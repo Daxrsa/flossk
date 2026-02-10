@@ -636,12 +636,20 @@ public class ProjectService : IProjectService
 
     #region Objective Team Member Operations
 
-    public async Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request)
+    public async Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request, string currentUserId)
     {
-        var objective = await _dbContext.Objectives.FindAsync(objectiveId);
+        var objective = await _dbContext.Objectives
+            .Include(o => o.Project)
+            .FirstOrDefaultAsync(o => o.Id == objectiveId);
         if (objective == null)
         {
             return new NotFoundObjectResult(new { Error = "Objective not found." });
+        }
+
+        // Check if current user is the project creator
+        if (objective.Project.CreatedByUserId != currentUserId)
+        {
+            return new UnauthorizedObjectResult(new { Error = "Only the project creator can assign members to objectives." });
         }
 
         // Prevent assigning members to completed objectives
@@ -700,12 +708,20 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
 
-    public async Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId)
+    public async Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId, string currentUserId)
     {
-        var objective = await _dbContext.Objectives.FindAsync(objectiveId);
+        var objective = await _dbContext.Objectives
+            .Include(o => o.Project)
+            .FirstOrDefaultAsync(o => o.Id == objectiveId);
         if (objective == null)
         {
             return new NotFoundObjectResult(new { Error = "Objective not found." });
+        }
+
+        // Check if current user is the project creator
+        if (objective.Project.CreatedByUserId != currentUserId)
+        {
+            return new UnauthorizedObjectResult(new { Error = "Only the project creator can remove members from objectives." });
         }
 
         // Prevent removing members from completed objectives

@@ -31,8 +31,8 @@ public interface IProjectService
     Task<IActionResult> DeleteObjectiveAsync(Guid id);
 
     // Objective team member operations
-    Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request);
-    Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId);
+    Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request, string currentUserId);
+    Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId, string currentUserId);
     Task<IActionResult> GetObjectiveTeamMembersAsync(Guid objectiveId);
     Task<IActionResult> JoinObjectiveAsync(Guid objectiveId, string userId);
     Task<IActionResult> LeaveObjectiveAsync(Guid objectiveId, string userId);

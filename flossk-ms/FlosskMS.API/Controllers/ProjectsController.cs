@@ -254,24 +254,30 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     }
 
     /// <summary>
-    /// Assign a team member to an objective (Admin only)
+    /// Assign a team member to an objective (Project creator only)
     /// User must already be a team member of the project
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("objectives/{objectiveId:guid}/team-members")]
     public async Task<IActionResult> AssignTeamMemberToObjective(Guid objectiveId, [FromBody] AssignObjectiveTeamMemberDto request)
     {
-        return await _projectService.AssignTeamMemberToObjectiveAsync(objectiveId, request);
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(currentUserId))
+            return Unauthorized();
+        return await _projectService.AssignTeamMemberToObjectiveAsync(objectiveId, request, currentUserId);
     }
 
     /// <summary>
-    /// Remove a team member from an objective (Admin only)
+    /// Remove a team member from an objective (Project creator only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("objectives/{objectiveId:guid}/team-members/{userId}")]
     public async Task<IActionResult> RemoveTeamMemberFromObjective(Guid objectiveId, string userId)
     {
-        return await _projectService.RemoveTeamMemberFromObjectiveAsync(objectiveId, userId);
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(currentUserId))
+            return Unauthorized();
+        return await _projectService.RemoveTeamMemberFromObjectiveAsync(objectiveId, userId, currentUserId);
     }
 
     /// <summary>

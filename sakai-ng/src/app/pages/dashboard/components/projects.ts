@@ -240,7 +240,7 @@ interface GitHubRepo {
                 <div>
                     <div class="flex justify-between items-center mb-3">
                         <h6 class="text-sm font-semibold text-muted-color m-0 tracking-wide">Team Members</h6>
-                        <p-button *ngIf="viewingObjective.status !== 'completed'" icon="pi pi-user-plus" label="Assign Members" size="small" [text]="true" (onClick)="openAssignMembersToObjectiveFromDetail()" />
+                        <p-button *ngIf="viewingObjective.status !== 'completed' && isProjectCreator(selectedProject)" icon="pi pi-user-plus" label="Assign Members" size="small" [text]="true" (onClick)="openAssignMembersToObjectiveFromDetail()" />
                     </div>
                     <div *ngIf="viewingObjective.members && viewingObjective.members.length > 0" class="flex flex-col gap-3">
                         <div *ngFor="let member of viewingObjective.members" class="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -249,7 +249,7 @@ interface GitHubRepo {
                                 <p class="font-semibold text-surface-900 dark:text-surface-0 m-0">{{ member.name }}</p>
                                 <p class="text-sm text-muted-color m-0">{{ member.role }}</p>
                             </div>
-                            <p-button *ngIf="viewingObjective.status !== 'completed'" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromObjectiveDetail(member)" />
+                            <p-button *ngIf="viewingObjective.status !== 'completed' && isProjectCreator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromObjectiveDetail(member)" />
                         </div>
                     </div>
                     <div *ngIf="!viewingObjective.members || viewingObjective.members.length === 0" class="text-center text-muted-color py-4 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -727,7 +727,7 @@ interface GitHubRepo {
                                                         }
                                                     </div>
                                                     <div class="flex items-center gap-1">
-                                                        <p-button *ngIf="objective.status !== 'completed'" class="" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
+                                                        <p-button *ngIf="objective.status !== 'completed' && isProjectCreator(selectedProject)" class="" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
                                                         @if (objective.status !== 'completed' && !isUserInObjective(objective)) {
                                                             <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" severity="secondary" pTooltip="Join" (onClick)="joinObjective(objective, $event)" />
                                                         } @else if (objective.status !== 'completed' && isUserInObjective(objective)) {
@@ -776,7 +776,7 @@ interface GitHubRepo {
                                                         }
                                                     </div>
                                                     <div class="flex items-center gap-1">
-                                                        <p-button *ngIf="objective.status !== 'completed'" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
+                                                        <p-button *ngIf="objective.status !== 'completed' && isProjectCreator(selectedProject)" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
                                                         @if (objective.status !== 'completed' && !isUserInObjective(objective)) {
                                                             <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" severity="secondary" pTooltip="Join" (onClick)="joinObjective(objective, $event)" />
                                                         } @else if (objective.status !== 'completed' && isUserInObjective(objective)) {
