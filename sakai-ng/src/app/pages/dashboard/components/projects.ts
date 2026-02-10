@@ -17,6 +17,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { TooltipModule } from 'primeng/tooltip';
+import { FileUploadModule } from 'primeng/fileupload';
 import { ConfirmationService } from 'primeng/api';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
@@ -32,12 +33,22 @@ interface Member {
     role: string;
 }
 
+interface ResourceFile {
+    id: string;
+    fileName: string;
+    originalFileName: string;
+    contentType: string;
+    fileSize: number;
+    uploadedAt: string;
+}
+
 interface Resource {
     id: number;
     title: string;
-    url: string;
+    url: string | null;
     description: string;
     type: 'documentation' | 'tutorial' | 'tool' | 'reference' | 'other';
+    files?: ResourceFile[];
 }
 
 interface Objective {
@@ -91,7 +102,7 @@ interface GitHubRepo {
 
 @Component({
     selector: 'app-projects',
-    imports: [CommonModule, FormsModule, ButtonModule, TagModule, AvatarModule, AvatarGroupModule, DividerModule, ProgressBarModule, TabsModule, DragDropModule, DialogModule, InputTextModule, TextareaModule, SelectModule, DatePickerModule, ConfirmDialogModule, MultiSelectModule, TooltipModule],
+    imports: [CommonModule, FormsModule, ButtonModule, TagModule, AvatarModule, AvatarGroupModule, DividerModule, ProgressBarModule, TabsModule, DragDropModule, DialogModule, InputTextModule, TextareaModule, SelectModule, DatePickerModule, ConfirmDialogModule, MultiSelectModule, TooltipModule, FileUploadModule],
     providers: [ConfirmationService],
     template: `
         <p-confirmdialog></p-confirmdialog>
@@ -178,16 +189,61 @@ interface GitHubRepo {
         </p-dialog> 
         
         <!-- Resource Dialog -->
-        <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource to Project' : 'Edit Project Resource'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
+        <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource to Project' : 'Edit Project Resource'" [modal]="true" [style]="{width: '40rem'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
-                    <label for="resourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
+                    <label for="resourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title *</label>
                     <input pInputText id="resourceTitle" [(ngModel)]="currentResource.title" class="w-full" />
                 </div>
                 
                 <div>
                     <label for="resourceUrl" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">URL</label>
                     <input pInputText id="resourceUrl" [(ngModel)]="currentResource.url" placeholder="https://example.com" class="w-full" />
+                    <small class="text-surface-500">Optional if files are attached</small>
+                </div>
+                
+                <div>
+                    <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Files</label>
+                    <p-fileupload 
+                        mode="basic" 
+                        [multiple]="true"
+                        chooseLabel="Choose Files" 
+                        (onSelect)="onResourceFilesSelect($event)"
+                        [auto]="false"
+                        chooseIcon="pi pi-upload"
+                    ></p-fileupload>
+                    
+                    <!-- Display selected files -->
+                    @if (selectedResourceFiles.length > 0) {
+                        <div class="mt-2 flex flex-col gap-1">
+                            @for (file of selectedResourceFiles; track file.name) {
+                                <div class="flex items-center gap-2 p-2 bg-surface-100 dark:bg-surface-800 rounded">
+                                    <i class="pi pi-file"></i>
+                                    <span class="flex-1 truncate">{{ file.name }}</span>
+                                    <span class="text-surface-500 text-sm">{{ formatFileSize(file.size) }}</span>
+                                    <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeSelectedResourceFile(file)" />
+                                </div>
+                            }
+                        </div>
+                    }
+                    
+                    <!-- Display existing files (edit mode) -->
+                    @if (resourceDialogMode === 'edit' && currentResource.files && currentResource.files.length > 0) {
+                        <div class="mt-2">
+                            <span class="text-sm text-surface-500">Existing files:</span>
+                            <div class="flex flex-col gap-1 mt-1">
+                                @for (file of currentResource.files; track file.id) {
+                                    <div class="flex items-center gap-2 p-2 bg-surface-100 dark:bg-surface-800 rounded">
+                                        <i class="pi pi-file"></i>
+                                        <span class="flex-1 truncate">{{ file.originalFileName }}</span>
+                                        <span class="text-surface-500 text-sm">{{ formatFileSize(file.fileSize) }}</span>
+                                        <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeExistingResourceFile(file)" />
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    <small class="text-surface-500">You can attach multiple files</small>
                 </div>
                 
                 <div>
@@ -196,14 +252,14 @@ interface GitHubRepo {
                 </div>
                 
                 <div>
-                    <label for="resourceType" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Type</label>
-                    <p-select id="resourceType" [(ngModel)]="currentResource.type" [options]="resourceTypeOptions" optionLabel="label" optionValue="value" placeholder="Select Type" class="w-full" />
+                    <label for="resourceType" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Type *</label>
+                    <p-select id="resourceType" [(ngModel)]="currentResource.type" [options]="resourceTypeOptions" optionLabel="label" optionValue="value" placeholder="Select Type" class="w-full" appendTo="body" />
                 </div>
             </div>
             
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="resourceDialogVisible = false" />
-                <p-button [label]="resourceDialogMode === 'add' ? 'Add' : 'Save'" (onClick)="saveResource()" />
+                <p-button [label]="resourceDialogMode === 'add' ? 'Add' : 'Save'" (onClick)="saveResource()" [loading]="savingResource" />
             </div>
         </p-dialog>
         
@@ -308,16 +364,61 @@ interface GitHubRepo {
         </p-dialog>
         
         <!-- Objective Resource Dialog -->
-        <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Objective' : 'Edit Objective Resource'" [modal]="true" [style]="{width: '35rem'}" appendTo="body">
+        <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Objective' : 'Edit Objective Resource'" [modal]="true" [style]="{width: '40rem'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
-                    <label for="objResourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
+                    <label for="objResourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title *</label>
                     <input pInputText id="objResourceTitle" [(ngModel)]="currentObjectiveResource.title" class="w-full" />
                 </div>
                 
                 <div>
                     <label for="objResourceUrl" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">URL</label>
                     <input pInputText id="objResourceUrl" [(ngModel)]="currentObjectiveResource.url" placeholder="https://example.com" class="w-full" />
+                    <small class="text-surface-500">Optional if files are attached</small>
+                </div>
+                
+                <div>
+                    <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Files</label>
+                    <p-fileupload 
+                        mode="basic" 
+                        [multiple]="true"
+                        chooseLabel="Choose Files" 
+                        (onSelect)="onObjectiveResourceFilesSelect($event)"
+                        [auto]="false"
+                        chooseIcon="pi pi-upload"
+                    ></p-fileupload>
+                    
+                    <!-- Display selected files -->
+                    @if (selectedObjectiveResourceFiles.length > 0) {
+                        <div class="mt-2 flex flex-col gap-1">
+                            @for (file of selectedObjectiveResourceFiles; track file.name) {
+                                <div class="flex items-center gap-2 p-2 bg-surface-100 dark:bg-surface-800 rounded">
+                                    <i class="pi pi-file"></i>
+                                    <span class="flex-1 truncate">{{ file.name }}</span>
+                                    <span class="text-surface-500 text-sm">{{ formatFileSize(file.size) }}</span>
+                                    <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeSelectedObjectiveFile(file)" />
+                                </div>
+                            }
+                        </div>
+                    }
+                    
+                    <!-- Display existing files (edit mode) -->
+                    @if (objectiveResourceDialogMode === 'edit' && currentObjectiveResource.files && currentObjectiveResource.files.length > 0) {
+                        <div class="mt-2">
+                            <span class="text-sm text-surface-500">Existing files:</span>
+                            <div class="flex flex-col gap-1 mt-1">
+                                @for (file of currentObjectiveResource.files; track file.id) {
+                                    <div class="flex items-center gap-2 p-2 bg-surface-100 dark:bg-surface-800 rounded">
+                                        <i class="pi pi-file"></i>
+                                        <span class="flex-1 truncate">{{ file.originalFileName }}</span>
+                                        <span class="text-surface-500 text-sm">{{ formatFileSize(file.fileSize) }}</span>
+                                        <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeExistingObjectiveFile(file)" />
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    <small class="text-surface-500">You can attach multiple files</small>
                 </div>
                 
                 <div>
@@ -326,14 +427,14 @@ interface GitHubRepo {
                 </div>
                 
                 <div>
-                    <label for="objResourceType" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Type</label>
+                    <label for="objResourceType" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Type *</label>
                     <p-select id="objResourceType" [(ngModel)]="currentObjectiveResource.type" [options]="resourceTypeOptions" optionLabel="label" optionValue="value" placeholder="Select Type" class="w-full" appendTo="body" />
                 </div>
             </div>
             
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="objectiveResourceDialogVisible = false" />
-                <p-button [label]="objectiveResourceDialogMode === 'add' ? 'Add' : 'Save'" (onClick)="saveObjectiveResource()" />
+                <p-button [label]="objectiveResourceDialogMode === 'add' ? 'Add' : 'Save'" (onClick)="saveObjectiveResource()" [loading]="savingObjectiveResource" />
             </div>
         </p-dialog>
         
@@ -1244,6 +1345,9 @@ export class Projects {
     objectiveResourceDialogVisible = false;
     objectiveResourceDialogMode: 'add' | 'edit' = 'add';
     currentObjectiveResource: Resource = this.getEmptyResource();
+    selectedObjectiveResourceFiles: File[] = [];
+    filesToRemoveFromObjectiveResource: string[] = [];
+    savingObjectiveResource = false;
     
     // Member assignment dialogs
     assignMembersToProjectDialogVisible = false;
@@ -1255,6 +1359,9 @@ export class Projects {
     resourceDialogVisible = false;
     resourceDialogMode: 'add' | 'edit' = 'add';
     currentResource: Resource = this.getEmptyResource();
+    selectedResourceFiles: File[] = [];
+    filesToRemoveFromResource: string[] = [];
+    savingResource = false;
     
     availableMembers: Member[] = [];
     
@@ -1930,9 +2037,10 @@ export class Projects {
         return {
             id: 0,
             title: '',
-            url: '',
+            url: null,
             description: '',
-            type: 'documentation'
+            type: '' as any,
+            files: []
         };
     }
     
@@ -1940,27 +2048,73 @@ export class Projects {
         if (!this.selectedProject) return;
         this.resourceDialogMode = 'add';
         this.currentResource = this.getEmptyResource();
+        this.selectedResourceFiles = [];
+        this.filesToRemoveFromResource = [];
         this.resourceDialogVisible = true;
     }
     
     openEditResourceDialog(resource: Resource) {
         this.resourceDialogMode = 'edit';
-        this.currentResource = { ...resource };
+        this.currentResource = { ...resource, files: [...(resource.files || [])] };
+        this.selectedResourceFiles = [];
+        this.filesToRemoveFromResource = [];
         this.resourceDialogVisible = true;
+    }
+    
+    onResourceFilesSelect(event: any) {
+        const files = event.files as File[];
+        this.selectedResourceFiles = [...this.selectedResourceFiles, ...files];
+    }
+    
+    removeSelectedResourceFile(file: File) {
+        this.selectedResourceFiles = this.selectedResourceFiles.filter(f => f !== file);
+    }
+    
+    removeExistingResourceFile(file: ResourceFile) {
+        this.filesToRemoveFromResource.push(file.id);
+        if (this.currentResource.files) {
+            this.currentResource.files = this.currentResource.files.filter(f => f.id !== file.id);
+        }
     }
     
     saveResource() {
         if (!this.selectedProject) return;
         
-        const payload = {
-            projectId: this.selectedProject.id,
-            title: this.currentResource.title,
-            url: this.currentResource.url,
-            description: this.currentResource.description,
-            type: this.currentResource.type
-        };
+        this.savingResource = true;
+        
+        // If there are files to upload, upload them first
+        if (this.selectedResourceFiles.length > 0) {
+            this.projectsService.uploadFiles(this.selectedResourceFiles).subscribe({
+                next: (uploadResponse) => {
+                    console.log('Files uploaded:', uploadResponse);
+                    const uploadedFileIds = uploadResponse.results
+                        ?.filter((r: any) => r.success)
+                        .map((r: any) => r.fileId) || [];
+                    this.saveResourceWithFiles(uploadedFileIds);
+                },
+                error: (err) => {
+                    console.error('Error uploading files:', err);
+                    this.savingResource = false;
+                }
+            });
+        } else {
+            this.saveResourceWithFiles([]);
+        }
+    }
+    
+    private saveResourceWithFiles(newFileIds: string[]) {
+        if (!this.selectedProject) return;
 
         if (this.resourceDialogMode === 'add') {
+            const payload = {
+                projectId: this.selectedProject.id,
+                title: this.currentResource.title,
+                url: this.currentResource.url || null,
+                description: this.currentResource.description,
+                type: this.currentResource.type,
+                fileIds: newFileIds
+            };
+            
             this.projectsService.createResource(payload).subscribe({
                 next: (createdResource) => {
                     if (this.selectedProject) {
@@ -1970,17 +2124,28 @@ export class Projects {
                         // Transform resource type to lowercase
                         const normalizedResource = {
                             ...createdResource,
-                            type: createdResource.type?.toLowerCase() || 'documentation'
+                            type: createdResource.type?.toLowerCase() || 'other'
                         };
                         this.selectedProject.resources.push(normalizedResource);
                     }
                     this.resourceDialogVisible = false;
+                    this.savingResource = false;
                 },
                 error: (error) => {
                     console.error('Error creating resource:', error);
+                    this.savingResource = false;
                 }
             });
         } else {
+            const payload = {
+                title: this.currentResource.title,
+                url: this.currentResource.url || null,
+                description: this.currentResource.description,
+                type: this.currentResource.type,
+                fileIdsToAdd: newFileIds.length > 0 ? newFileIds : undefined,
+                fileIdsToRemove: this.filesToRemoveFromResource.length > 0 ? this.filesToRemoveFromResource : undefined
+            };
+            
             this.projectsService.updateResource(this.currentResource.id, payload).subscribe({
                 next: (updatedResource) => {
                     if (this.selectedProject && this.selectedProject.resources) {
@@ -1989,15 +2154,17 @@ export class Projects {
                             // Transform resource type to lowercase
                             const normalizedResource = {
                                 ...updatedResource,
-                                type: updatedResource.type?.toLowerCase() || 'documentation'
+                                type: updatedResource.type?.toLowerCase() || 'other'
                             };
                             this.selectedProject.resources[index] = normalizedResource;
                         }
                     }
                     this.resourceDialogVisible = false;
+                    this.savingResource = false;
                 },
                 error: (error) => {
                     console.error('Error updating resource:', error);
+                    this.savingResource = false;
                 }
             });
         }
@@ -2108,27 +2275,81 @@ export class Projects {
         if (!this.viewingObjective) return;
         this.objectiveResourceDialogMode = 'add';
         this.currentObjectiveResource = this.getEmptyResource();
+        this.selectedObjectiveResourceFiles = [];
+        this.filesToRemoveFromObjectiveResource = [];
         this.objectiveResourceDialogVisible = true;
     }
     
     openEditObjectiveResourceDialog(resource: Resource) {
         this.objectiveResourceDialogMode = 'edit';
-        this.currentObjectiveResource = { ...resource };
+        this.currentObjectiveResource = { ...resource, files: [...(resource.files || [])] };
+        this.selectedObjectiveResourceFiles = [];
+        this.filesToRemoveFromObjectiveResource = [];
         this.objectiveResourceDialogVisible = true;
+    }
+    
+    onObjectiveResourceFilesSelect(event: any) {
+        const files = event.files as File[];
+        this.selectedObjectiveResourceFiles = [...this.selectedObjectiveResourceFiles, ...files];
+    }
+    
+    removeSelectedObjectiveFile(file: File) {
+        this.selectedObjectiveResourceFiles = this.selectedObjectiveResourceFiles.filter(f => f !== file);
+    }
+    
+    removeExistingObjectiveFile(file: ResourceFile) {
+        this.filesToRemoveFromObjectiveResource.push(file.id);
+        if (this.currentObjectiveResource.files) {
+            this.currentObjectiveResource.files = this.currentObjectiveResource.files.filter(f => f.id !== file.id);
+        }
+    }
+    
+    formatFileSize(bytes: number): string {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
     
     saveObjectiveResource() {
         if (!this.viewingObjective) return;
         
-        const payload = {
-            objectiveId: this.viewingObjective.id,
-            title: this.currentObjectiveResource.title,
-            url: this.currentObjectiveResource.url,
-            description: this.currentObjectiveResource.description,
-            type: this.currentObjectiveResource.type
-        };
+        this.savingObjectiveResource = true;
+        
+        // If there are files to upload, upload them first
+        if (this.selectedObjectiveResourceFiles.length > 0) {
+            this.projectsService.uploadFiles(this.selectedObjectiveResourceFiles).subscribe({
+                next: (uploadResponse) => {
+                    console.log('Files uploaded:', uploadResponse);
+                    const uploadedFileIds = uploadResponse.results
+                        ?.filter((r: any) => r.success)
+                        .map((r: any) => r.fileId) || [];
+                    this.saveObjectiveResourceWithFiles(uploadedFileIds);
+                },
+                error: (err) => {
+                    console.error('Error uploading files:', err);
+                    this.savingObjectiveResource = false;
+                }
+            });
+        } else {
+            this.saveObjectiveResourceWithFiles([]);
+        }
+    }
+    
+    private saveObjectiveResourceWithFiles(newFileIds: string[]) {
+        if (!this.viewingObjective) return;
         
         if (this.objectiveResourceDialogMode === 'add') {
+            const payload = {
+                objectiveId: this.viewingObjective.id,
+                title: this.currentObjectiveResource.title,
+                url: this.currentObjectiveResource.url || null,
+                description: this.currentObjectiveResource.description,
+                type: this.currentObjectiveResource.type,
+                fileIds: newFileIds
+            };
+            
             this.projectsService.createResource(payload).subscribe({
                 next: (response) => {
                     console.log('Resource created successfully:', response);
@@ -2137,12 +2358,23 @@ export class Projects {
                     }
                     this.viewingObjective!.resources.push(response);
                     this.objectiveResourceDialogVisible = false;
+                    this.savingObjectiveResource = false;
                 },
                 error: (err) => {
                     console.error('Error creating resource:', err);
+                    this.savingObjectiveResource = false;
                 }
             });
         } else {
+            const payload = {
+                title: this.currentObjectiveResource.title,
+                url: this.currentObjectiveResource.url || null,
+                description: this.currentObjectiveResource.description,
+                type: this.currentObjectiveResource.type,
+                fileIdsToAdd: newFileIds.length > 0 ? newFileIds : undefined,
+                fileIdsToRemove: this.filesToRemoveFromObjectiveResource.length > 0 ? this.filesToRemoveFromObjectiveResource : undefined
+            };
+            
             this.projectsService.updateResource(this.currentObjectiveResource.id, payload).subscribe({
                 next: (response) => {
                     console.log('Resource updated successfully:', response);
@@ -2153,9 +2385,11 @@ export class Projects {
                         }
                     }
                     this.objectiveResourceDialogVisible = false;
+                    this.savingObjectiveResource = false;
                 },
                 error: (err) => {
                     console.error('Error updating resource:', err);
+                    this.savingObjectiveResource = false;
                 }
             });
         }

@@ -84,7 +84,18 @@ public class ProjectProfile : Profile
 
         // Resource mappings
         CreateMap<Resource, ResourceDto>()
-            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString().ToLowerInvariant()));
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString().ToLowerInvariant()))
+            .ForMember(dest => dest.Files, opt => opt.MapFrom(src => src.Files.Select(rf => new FileDto
+            {
+                Id = rf.File.Id,
+                FileName = rf.File.FileName,
+                OriginalFileName = rf.File.OriginalFileName,
+                ContentType = rf.File.ContentType,
+                FileSize = rf.File.FileSize,
+                UploadedAt = rf.File.UploadedAt,
+                CreatedByUserId = rf.File.CreatedByUserId ?? string.Empty,
+                IsSafe = rf.File.IsSafe
+            })));
 
         CreateMap<CreateResourceDto, Resource>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -92,6 +103,7 @@ public class ProjectProfile : Profile
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.Project, opt => opt.Ignore())
             .ForMember(dest => dest.Objective, opt => opt.Ignore())
+            .ForMember(dest => dest.Files, opt => opt.Ignore())
             .ForMember(dest => dest.Type, opt => opt.MapFrom(src => Enum.Parse<ResourceType>(src.Type, true)));
 
         CreateMap<UpdateResourceDto, Resource>()
@@ -102,6 +114,7 @@ public class ProjectProfile : Profile
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.Project, opt => opt.Ignore())
             .ForMember(dest => dest.Objective, opt => opt.Ignore())
+            .ForMember(dest => dest.Files, opt => opt.Ignore())
             .ForMember(dest => dest.Type, opt => opt.MapFrom(src => Enum.Parse<ResourceType>(src.Type, true)));
 
         // Team member mappings (ProjectTeamMember)

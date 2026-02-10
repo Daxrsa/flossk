@@ -129,7 +129,11 @@ public class ProjectService : IProjectService
                         .ThenInclude(u => u.UploadedFiles)
             .Include(p => p.Objectives)
                 .ThenInclude(o => o.Resources)
+                    .ThenInclude(r => r.Files)
+                        .ThenInclude(rf => rf.File)
             .Include(p => p.Resources)
+                .ThenInclude(r => r.Files)
+                    .ThenInclude(rf => rf.File)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (project == null)
@@ -868,9 +872,13 @@ public class ProjectService : IProjectService
             return new BadRequestObjectResult(new { Error = "Title is required." });
         }
 
-        if (string.IsNullOrWhiteSpace(request.Url))
+        // Resource must have at least a URL or files
+        var hasUrl = !string.IsNullOrWhiteSpace(request.Url);
+        var hasFiles = request.FileIds != null && request.FileIds.Count > 0;
+        
+        if (!hasUrl && !hasFiles)
         {
-            return new BadRequestObjectResult(new { Error = "URL is required." });
+            return new BadRequestObjectResult(new { Error = "Resource must have at least a URL or attached files." });
         }
 
         if (!Enum.TryParse<ResourceType>(request.Type, true, out _))
@@ -906,21 +914,56 @@ public class ProjectService : IProjectService
             }
         }
 
+        // Validate file IDs if provided
+        if (hasFiles)
+        {
+            var existingFileIds = await _dbContext.UploadedFiles
+                .Where(f => request.FileIds!.Contains(f.Id))
+                .Select(f => f.Id)
+                .ToListAsync();
+            
+            var missingFileIds = request.FileIds!.Except(existingFileIds).ToList();
+            if (missingFileIds.Count > 0)
+            {
+                return new NotFoundObjectResult(new { Error = $"Files not found: {string.Join(", ", missingFileIds)}" });
+            }
+        }
+
         var resource = _mapper.Map<Resource>(request);
         resource.Id = Guid.NewGuid();
         resource.CreatedAt = DateTime.UtcNow;
 
         _dbContext.Resources.Add(resource);
+
+        // Add file associations
+        if (hasFiles)
+        {
+            foreach (var fileId in request.FileIds!)
+            {
+                _dbContext.ResourceFiles.Add(new ResourceFile
+                {
+                    Id = Guid.NewGuid(),
+                    ResourceId = resource.Id,
+                    FileId = fileId,
+                    AddedAt = DateTime.UtcNow
+                });
+            }
+        }
+
         await _dbContext.SaveChangesAsync();
 
-        _logger.LogInformation("Resource {ResourceId} created", resource.Id);
+        _logger.LogInformation("Resource {ResourceId} created with {FileCount} files", resource.Id, request.FileIds?.Count ?? 0);
 
-        return new OkObjectResult(_mapper.Map<ResourceDto>(resource));
+        // Reload with files for response
+        return await GetResourceByIdAsync(resource.Id);
     }
 
     public async Task<IActionResult> GetResourceByIdAsync(Guid id)
     {
-        var resource = await _dbContext.Resources.FindAsync(id);
+        var resource = await _dbContext.Resources
+            .Include(r => r.Files)
+                .ThenInclude(rf => rf.File)
+            .FirstOrDefaultAsync(r => r.Id == id);
         if (resource == null)
         {
             return new NotFoundObjectResult(new { Error = "Resource not found." });
@@ -938,6 +981,8 @@ public class ProjectService : IProjectService
         }
 
         var resources = await _dbContext.Resources
+            .Include(r => r.Files)
+                .ThenInclude(rf => rf.File)
             .Where(r => r.ProjectId == projectId)
             .OrderBy(r => r.CreatedAt)
             .ToListAsync();
@@ -954,6 +999,8 @@ public class ProjectService : IProjectService
         }
 
         var resources = await _dbContext.Resources
+            .Include(r => r.Files)
+                .ThenInclude(rf => rf.File)
             .Where(r => r.ObjectiveId == objectiveId)
             .OrderBy(r => r.CreatedAt)
             .ToListAsync();
@@ -963,7 +1010,9 @@ public class ProjectService : IProjectService
 
     public async Task<IActionResult> UpdateResourceAsync(Guid id, UpdateResourceDto request)
     {
-        var resource = await _dbContext.Resources.FindAsync(id);
+        var resource = await _dbContext.Resources
+            .Include(r => r.Files)
+            .FirstOrDefaultAsync(r => r.Id == id);
         if (resource == null)
         {
             return new NotFoundObjectResult(new { Error = "Resource not found." });
@@ -974,14 +1023,69 @@ public class ProjectService : IProjectService
             return new BadRequestObjectResult(new { Error = "Title is required." });
         }
 
-        if (string.IsNullOrWhiteSpace(request.Url))
+        // Check if after update the resource will have at least URL or files
+        var willHaveUrl = !string.IsNullOrWhiteSpace(request.Url);
+        var currentFileCount = resource.Files.Count;
+        var filesToAdd = request.FileIdsToAdd?.Count ?? 0;
+        var filesToRemove = request.FileIdsToRemove?.Count ?? 0;
+        var willHaveFiles = (currentFileCount + filesToAdd - filesToRemove) > 0;
+        
+        if (!willHaveUrl && !willHaveFiles)
         {
-            return new BadRequestObjectResult(new { Error = "URL is required." });
+            return new BadRequestObjectResult(new { Error = "Resource must have at least a URL or attached files." });
         }
 
         if (!Enum.TryParse<ResourceType>(request.Type, true, out _))
         {
             return new BadRequestObjectResult(new { Error = "Invalid resource type. Valid values are: Documentation, Tutorial, Tool, Reference, Other." });
+        }
+
+        // Validate file IDs to add
+        if (request.FileIdsToAdd != null && request.FileIdsToAdd.Count > 0)
+        {
+            var existingFileIds = await _dbContext.UploadedFiles
+                .Where(f => request.FileIdsToAdd.Contains(f.Id))
+                .Select(f => f.Id)
+                .ToListAsync();
+            
+            var missingFileIds = request.FileIdsToAdd.Except(existingFileIds).ToList();
+            if (missingFileIds.Count > 0)
+            {
+                return new NotFoundObjectResult(new { Error = $"Files not found: {string.Join(", ", missingFileIds)}" });
+            }
+            
+            // Check for duplicates
+            var existingResourceFileIds = resource.Files.Select(rf => rf.FileId).ToList();
+            var duplicates = request.FileIdsToAdd.Intersect(existingResourceFileIds).ToList();
+            if (duplicates.Count > 0)
+            {
+                return new BadRequestObjectResult(new { Error = $"Files already attached: {string.Join(", ", duplicates)}" });
+            }
+        }
+
+        // Handle file removals
+        if (request.FileIdsToRemove != null && request.FileIdsToRemove.Count > 0)
+        {
+            var filesToRemoveEntities = resource.Files
+                .Where(rf => request.FileIdsToRemove.Contains(rf.FileId))
+                .ToList();
+            
+            _dbContext.ResourceFiles.RemoveRange(filesToRemoveEntities);
+        }
+
+        // Handle file additions
+        if (request.FileIdsToAdd != null && request.FileIdsToAdd.Count > 0)
+        {
+            foreach (var fileId in request.FileIdsToAdd)
+            {
+                _dbContext.ResourceFiles.Add(new ResourceFile
+                {
+                    Id = Guid.NewGuid(),
+                    ResourceId = resource.Id,
+                    FileId = fileId,
+                    AddedAt = DateTime.UtcNow
+                });
+            }
         }
 
         _mapper.Map(request, resource);
@@ -991,7 +1095,7 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("Resource {ResourceId} updated", resource.Id);
 
-        return new OkObjectResult(_mapper.Map<ResourceDto>(resource));
+        return await GetResourceByIdAsync(resource.Id);
     }
 
     public async Task<IActionResult> DeleteResourceAsync(Guid id)

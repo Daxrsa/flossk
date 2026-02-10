@@ -116,15 +116,23 @@ export class ProjectsService {
         return this.http.get<UsersResponse>(`${this.AUTH_API_URL}/users?page=${page}&pageSize=${pageSize}`);
     }
 
-    createResource(payload: { projectId?: number; objectiveId?: number; title: string; url: string; description: string; type: string }): Observable<any> {
+    createResource(payload: { projectId?: number; objectiveId?: number; title: string; url: string | null; description: string; type: string; fileIds?: string[] }): Observable<any> {
         return this.http.post<any>(`${this.API_URL}/resources`, payload);
     }
 
-    updateResource(id: number, payload: { projectId?: number; objectiveId?: number; title: string; url: string; description: string; type: string }): Observable<any> {
+    updateResource(id: number, payload: { title: string; url: string | null; description: string; type: string; fileIdsToAdd?: string[]; fileIdsToRemove?: string[] }): Observable<any> {
         return this.http.put<any>(`${this.API_URL}/resources/${id}`, payload);
     }
 
     deleteResource(id: number): Observable<any> {
         return this.http.delete<any>(`${this.API_URL}/resources/${id}`);
+    }
+
+    uploadFiles(files: File[]): Observable<any> {
+        const formData = new FormData();
+        files.forEach(file => {
+            formData.append('files', file);
+        });
+        return this.http.post<any>(`${environment.apiUrl}/Files/multiple`, formData);
     }
 }

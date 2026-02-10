@@ -20,6 +20,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Project> Projects { get; set; }
     public DbSet<Objective> Objectives { get; set; }
     public DbSet<Resource> Resources { get; set; }
+    public DbSet<ResourceFile> ResourceFiles { get; set; }
     public DbSet<ProjectTeamMember> ProjectTeamMembers { get; set; }
     public DbSet<ObjectiveTeamMember> ObjectiveTeamMembers { get; set; }
 
@@ -225,7 +226,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
-            entity.Property(e => e.Url).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Url).HasMaxLength(2000).IsRequired(false);
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Type)
                 .HasConversion<string>()
@@ -246,6 +247,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.Type);
             entity.HasIndex(e => e.ProjectId);
             entity.HasIndex(e => e.ObjectiveId);
+        });
+
+        // ResourceFile configuration (many-to-many join between Resource and UploadedFile)
+        builder.Entity<ResourceFile>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.HasOne(e => e.Resource)
+                .WithMany(r => r.Files)
+                .HasForeignKey(e => e.ResourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.File)
+                .WithMany()
+                .HasForeignKey(e => e.FileId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.ResourceId);
+            entity.HasIndex(e => e.FileId);
+            entity.HasIndex(e => new { e.ResourceId, e.FileId }).IsUnique();
         });
 
         // ProjectTeamMember (many-to-many join table)

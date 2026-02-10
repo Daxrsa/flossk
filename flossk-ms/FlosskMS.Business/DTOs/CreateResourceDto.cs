@@ -8,10 +8,9 @@ public class CreateResourceDto
     [StringLength(200, MinimumLength = 1)]
     public string Title { get; set; } = string.Empty;
 
-    [Required]
     [StringLength(2000)]
     [Url]
-    public string Url { get; set; } = string.Empty;
+    public string? Url { get; set; }
 
     [StringLength(1000)]
     public string? Description { get; set; }
@@ -28,4 +27,9 @@ public class CreateResourceDto
     /// Provide either ProjectId or ObjectiveId, but not both
     /// </summary>
     public Guid? ObjectiveId { get; set; }
+    
+    /// <summary>
+    /// Optional list of file IDs to attach to this resource
+    /// </summary>
+    public List<Guid>? FileIds { get; set; }
 }

@@ -4,7 +4,12 @@ public class Resource
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public string Url { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Optional external URL for the resource
+    /// </summary>
+    public string? Url { get; set; }
+    
     public string? Description { get; set; }
     public ResourceType Type { get; set; } = ResourceType.Other;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -17,4 +22,9 @@ public class Resource
     // Optional relationship to Objective (a resource can belong to an objective)
     public Guid? ObjectiveId { get; set; }
     public Objective? Objective { get; set; }
+    
+    /// <summary>
+    /// Files attached to this resource (can have multiple)
+    /// </summary>
+    public ICollection<ResourceFile> Files { get; set; } = new List<ResourceFile>();
 }
