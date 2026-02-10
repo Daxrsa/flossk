@@ -119,7 +119,7 @@ export class Login {
         this.authService.login({ email: this.email, password: this.password }).subscribe({
             next: () => {
                 this.authService.loadCurrentUser();
-                this.router.navigate(['/']);
+                this.router.navigate(['/dashboard']);
             },
             error: (err) => {
                 console.error('Login failed:', err);
@@ -140,7 +140,7 @@ export class Login {
         }).subscribe({
             next: () => {
                 this.authService.loadCurrentUser();
-                this.router.navigate(['/']);
+                this.router.navigate(['/dashboard']);
             },
             error: (err) => {
                 console.error('Registration failed:', err);

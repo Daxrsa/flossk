@@ -26,8 +26,9 @@ import { Projects } from '@/pages/dashboard/components/projects';
 import { Voting } from '@/pages/dashboard/components/voting';
 
 export const appRoutes: Routes = [
+    { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
     {
-        path: '',
+        path: 'dashboard',
         component: AppLayout,
         canActivate: [authGuard],
         children: [

@@ -114,7 +114,7 @@ export class Users implements OnInit {
     constructor(private confirmationService: ConfirmationService) {}
 
     viewUserProfile(user: User) {
-        this.router.navigate(['/profile', user.id]);
+        this.router.navigate(['/dashboard/profile', user.id]);
     }
 
     ngOnInit() {
