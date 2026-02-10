@@ -14,6 +14,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ApprovedEmail> ApprovedEmails { get; set; }
     public DbSet<UploadedFile> UploadedFiles { get; set; }
     public DbSet<Announcement> Announcements { get; set; }
+    public DbSet<AnnouncementReaction> AnnouncementReactions { get; set; }
     public DbSet<MembershipRequest> MembershipRequests { get; set; }
     public DbSet<CollaborationPad> CollaborationPads { get; set; }
     public DbSet<UserRfidCard> UserRfidCards { get; set; }
@@ -76,6 +77,25 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Category);
             entity.HasIndex(e => e.Importance);
+        });
+
+        builder.Entity<AnnouncementReaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Emoji).HasMaxLength(10).IsRequired();
+            
+            entity.HasOne(e => e.Announcement)
+                .WithMany(a => a.Reactions)
+                .HasForeignKey(e => e.AnnouncementId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            // Ensure a user can only have one reaction per emoji per announcement
+            entity.HasIndex(e => new { e.AnnouncementId, e.UserId, e.Emoji }).IsUnique();
         });
 
         builder.Entity<MembershipRequest>(entity =>

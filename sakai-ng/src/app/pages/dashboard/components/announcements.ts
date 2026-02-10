@@ -10,8 +10,9 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
+import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService } from 'primeng/api';
-import { AnnouncementsService, Announcement } from '@/pages/service/announcements.service';
+import { AnnouncementsService, Announcement, ReactionSummary } from '@/pages/service/announcements.service';
 
 interface AnnouncementDisplay {
     id: string;
@@ -23,6 +24,7 @@ interface AnnouncementDisplay {
     category: string;
     priority: string;
     views: number;
+    reactions: ReactionSummary[];
 }
 
 @Component({
@@ -38,7 +40,8 @@ interface AnnouncementDisplay {
         DialogModule,
         InputTextModule,
         TextareaModule,
-        SelectModule
+        SelectModule,
+        TooltipModule
     ],
     providers: [ConfirmationService],
     template: `
@@ -102,6 +105,40 @@ interface AnnouncementDisplay {
                 <div class="text-surface-700 dark:text-surface-300 leading-relaxed">
                     {{ selectedAnnouncement.content }}
                 </div>
+                
+                <p-divider></p-divider>
+                
+                <!-- Reactions Section in Dialog -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm text-muted-color mr-2">React:</span>
+                    <div class="flex gap-1">
+                        <button 
+                            *ngFor="let emoji of availableEmojis" 
+                            (click)="toggleReaction(selectedAnnouncement, emoji)"
+                            class="reaction-btn text-xl px-2 py-1 rounded-full hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors cursor-pointer border-none bg-transparent"
+                            [class.reacted]="hasUserReacted(selectedAnnouncement, emoji)"
+                            [pTooltip]="'React with ' + emoji"
+                            tooltipPosition="top"
+                        >
+                            {{ emoji }}
+                        </button>
+                    </div>
+                    
+                    <div class="flex gap-2 ml-4" *ngIf="selectedAnnouncement.reactions?.length">
+                        <div 
+                            *ngFor="let reaction of selectedAnnouncement.reactions" 
+                            class="flex items-center gap-1 px-3 py-1 rounded-full bg-surface-100 dark:bg-surface-700 text-sm cursor-pointer hover:bg-surface-200 dark:hover:bg-surface-600"
+                            [class.bg-primary-100]="reaction.currentUserReacted"
+                            [class.dark:bg-primary-900]="reaction.currentUserReacted"
+                            [pTooltip]="getReactionTooltip(reaction)"
+                            tooltipPosition="top"
+                            (click)="toggleReaction(selectedAnnouncement, reaction.emoji)"
+                        >
+                            <span>{{ reaction.emoji }}</span>
+                            <span class="font-medium">{{ reaction.count }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="flex justify-end gap-2 mt-6">
@@ -150,6 +187,39 @@ interface AnnouncementDisplay {
                         </span>
                     </div>
 
+                    <!-- Reactions Section -->
+                    <div class="flex items-center gap-2 mt-4 flex-wrap" (click)="$event.stopPropagation()">
+                        <!-- Available emoji buttons -->
+                        <div class="flex gap-1">
+                            <button 
+                                *ngFor="let emoji of availableEmojis" 
+                                (click)="toggleReaction(announcement, emoji)"
+                                class="reaction-btn text-lg px-2 py-1 rounded-full hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors cursor-pointer border-none bg-transparent"
+                                [class.reacted]="hasUserReacted(announcement, emoji)"
+                                [pTooltip]="'React with ' + emoji"
+                                tooltipPosition="top"
+                            >
+                                {{ emoji }}
+                            </button>
+                        </div>
+                        
+                        <!-- Reaction counts -->
+                        <div class="flex gap-2 ml-2" *ngIf="announcement.reactions?.length">
+                            <div 
+                                *ngFor="let reaction of announcement.reactions" 
+                                class="flex items-center gap-1 px-2 py-1 rounded-full bg-surface-100 dark:bg-surface-700 text-sm cursor-pointer hover:bg-surface-200 dark:hover:bg-surface-600"
+                                [class.bg-primary-100]="reaction.currentUserReacted"
+                                [class.dark:bg-primary-900]="reaction.currentUserReacted"
+                                [pTooltip]="getReactionTooltip(reaction)"
+                                tooltipPosition="top"
+                                (click)="toggleReaction(announcement, reaction.emoji)"
+                            >
+                                <span>{{ reaction.emoji }}</span>
+                                <span class="font-medium">{{ reaction.count }}</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <p-divider></p-divider>
 
                     <div class="flex justify-end gap-2 mt-3">
@@ -177,6 +247,9 @@ export class Announcements implements OnInit {
     dialogMode: 'add' | 'edit' = 'add';
     currentAnnouncement: AnnouncementDisplay = this.getEmptyAnnouncement();
     selectedAnnouncement: AnnouncementDisplay | null = null;
+    
+    // Available emoji reactions
+    availableEmojis = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
     
     categoryOptions = [
         { label: 'General', value: 'General' },
@@ -225,7 +298,8 @@ export class Announcements implements OnInit {
             date: a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
             category: a.category || 'General',
             priority: a.importance?.toLowerCase() || a.priority?.toLowerCase() || 'normal',
-            views: a.views || 0
+            views: a.views || 0,
+            reactions: a.reactions || []
         };
     }
 
@@ -249,8 +323,51 @@ export class Announcements implements OnInit {
             date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
             category: 'General',
             priority: 'normal',
-            views: 0
+            views: 0,
+            reactions: []
         };
+    }
+
+    // Reaction helper methods
+    hasUserReacted(announcement: AnnouncementDisplay, emoji: string): boolean {
+        const reaction = announcement.reactions?.find(r => r.emoji === emoji);
+        return reaction?.currentUserReacted || false;
+    }
+
+    getReactionTooltip(reaction: ReactionSummary): string {
+        if (!reaction.users || reaction.users.length === 0) {
+            return '';
+        }
+        const names = reaction.users.slice(0, 5).map(u => `${u.firstName} ${u.lastName}`);
+        if (reaction.users.length > 5) {
+            names.push(`and ${reaction.users.length - 5} more`);
+        }
+        return names.join(', ');
+    }
+
+    toggleReaction(announcement: AnnouncementDisplay, emoji: string) {
+        this.announcementsService.addReaction(announcement.id, emoji).subscribe({
+            next: (response: any) => {
+                // Refresh the announcement to get updated reactions
+                this.announcementsService.getById(announcement.id).subscribe({
+                    next: (updated: any) => {
+                        const updatedDisplay = this.mapToDisplay(updated);
+                        // Update in the list
+                        const index = this.announcements.findIndex(a => a.id === announcement.id);
+                        if (index !== -1) {
+                            this.announcements[index] = updatedDisplay;
+                        }
+                        // Update selected if viewing
+                        if (this.selectedAnnouncement?.id === announcement.id) {
+                            this.selectedAnnouncement = updatedDisplay;
+                        }
+                    }
+                });
+            },
+            error: (err) => {
+                console.error('Failed to toggle reaction:', err);
+            }
+        });
     }
     
     openAddDialog() {

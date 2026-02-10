@@ -17,4 +17,7 @@ public class AnnouncementDto
     public string CreatedByFirstName { get; set; } = string.Empty;
     public string CreatedByLastName { get; set; } = string.Empty;
     public string? CreatedByProfilePicture { get; set; }
+    
+    // Reactions
+    public List<ReactionSummaryDto> Reactions { get; set; } = new();
 }

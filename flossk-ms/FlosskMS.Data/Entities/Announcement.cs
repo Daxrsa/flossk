@@ -15,4 +15,7 @@ public class Announcement
     // Creator tracking
     public string CreatedByUserId { get; set; } = string.Empty;
     public ApplicationUser CreatedByUser { get; set; } = null!;
+    
+    // Reactions
+    public ICollection<AnnouncementReaction> Reactions { get; set; } = new List<AnnouncementReaction>();
 }

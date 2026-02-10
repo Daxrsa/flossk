@@ -3,6 +3,20 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@environments/environment.prod';
 
+export interface ReactionUser {
+    userId: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
+}
+
+export interface ReactionSummary {
+    emoji: string;
+    count: number;
+    users: ReactionUser[];
+    currentUserReacted: boolean;
+}
+
 export interface Announcement {
     id?: string;
     title: string;
@@ -14,6 +28,7 @@ export interface Announcement {
     createdByFirstName?: string;
     createdByLastName?: string;
     views?: number;
+    reactions?: ReactionSummary[];
 }
 
 @Injectable({
@@ -42,5 +57,18 @@ export class AnnouncementsService {
 
     delete(id: string): Observable<any> {
         return this.http.delete(`${this.API_URL}/${id}`);
+    }
+
+    // Reaction methods
+    addReaction(announcementId: string, emoji: string): Observable<any> {
+        return this.http.post(`${this.API_URL}/${announcementId}/reactions`, { emoji });
+    }
+
+    removeReaction(announcementId: string, emoji: string): Observable<any> {
+        return this.http.delete(`${this.API_URL}/${announcementId}/reactions/${encodeURIComponent(emoji)}`);
+    }
+
+    getReactions(announcementId: string): Observable<ReactionSummary[]> {
+        return this.http.get<ReactionSummary[]>(`${this.API_URL}/${announcementId}/reactions`);
     }
 }

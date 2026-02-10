@@ -38,7 +38,8 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
         [FromQuery] string? category = null,
         [FromQuery] string? importance = null)
     {
-        return await _announcementService.GetAnnouncementsAsync(page, pageSize, category, importance);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _announcementService.GetAnnouncementsAsync(page, pageSize, category, importance, userId);
     }
 
     /// <summary>
@@ -47,7 +48,8 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetAnnouncementById(Guid id)
     {
-        return await _announcementService.GetAnnouncementByIdAsync(id);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _announcementService.GetAnnouncementByIdAsync(id, userId);
     }
 
     /// <summary>
@@ -87,5 +89,43 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     public async Task<IActionResult> IncrementViewCount(Guid id)
     {
         return await _announcementService.IncrementViewCountAsync(id);
+    }
+
+    /// <summary>
+    /// Add or toggle a reaction to an announcement
+    /// </summary>
+    [HttpPost("{id:guid}/reactions")]
+    public async Task<IActionResult> AddReaction(Guid id, [FromBody] AddReactionDto request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _announcementService.AddReactionAsync(id, request, userId);
+    }
+
+    /// <summary>
+    /// Remove a reaction from an announcement
+    /// </summary>
+    [HttpDelete("{id:guid}/reactions/{emoji}")]
+    public async Task<IActionResult> RemoveReaction(Guid id, string emoji)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _announcementService.RemoveReactionAsync(id, emoji, userId);
+    }
+
+    /// <summary>
+    /// Get all reactions for an announcement
+    /// </summary>
+    [HttpGet("{id:guid}/reactions")]
+    public async Task<IActionResult> GetReactions(Guid id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _announcementService.GetReactionsAsync(id, userId);
     }
 }

@@ -13,7 +13,8 @@ public class AnnouncementProfile : Profile
             .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()))
             .ForMember(dest => dest.CreatedByFirstName, opt => opt.MapFrom(src => src.CreatedByUser.FirstName))
             .ForMember(dest => dest.CreatedByLastName, opt => opt.MapFrom(src => src.CreatedByUser.LastName))
-            .ForMember(dest => dest.CreatedByProfilePicture, opt => opt.Ignore());
+            .ForMember(dest => dest.CreatedByProfilePicture, opt => opt.Ignore())
+            .ForMember(dest => dest.Reactions, opt => opt.Ignore());
 
         CreateMap<CreateAnnouncementDto, Announcement>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -23,6 +24,7 @@ public class AnnouncementProfile : Profile
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByUserId, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByUser, opt => opt.Ignore())
+            .ForMember(dest => dest.Reactions, opt => opt.Ignore())
             .ForMember(dest => dest.Importance, opt => opt.MapFrom(src => Enum.Parse<AnnouncementImportance>(src.Importance, true)))
             .ForMember(dest => dest.Category, opt => opt.MapFrom(src => Enum.Parse<AnnouncementCategory>(src.Category, true)));
 
@@ -34,6 +36,7 @@ public class AnnouncementProfile : Profile
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByUserId, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByUser, opt => opt.Ignore())
+            .ForMember(dest => dest.Reactions, opt => opt.Ignore())
             .ForMember(dest => dest.Importance, opt => opt.MapFrom(src => Enum.Parse<AnnouncementImportance>(src.Importance, true)))
             .ForMember(dest => dest.Category, opt => opt.MapFrom(src => Enum.Parse<AnnouncementCategory>(src.Category, true)));
     }
