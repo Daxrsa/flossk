@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -13,6 +13,7 @@ import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService } from 'primeng/api';
 import { AnnouncementsService, Announcement, ReactionSummary } from '@/pages/service/announcements.service';
+import { AuthService } from '@/pages/service/auth.service';
 
 interface AnnouncementDisplay {
     id: string;
@@ -25,6 +26,7 @@ interface AnnouncementDisplay {
     priority: string;
     views: number;
     reactions: ReactionSummary[];
+    isCurrentUserCreator: boolean;
 }
 
 @Component({
@@ -147,7 +149,7 @@ interface AnnouncementDisplay {
         </p-dialog>
         
         <div class="card">
-            <div class="flex justify-end items-center mb-6">
+            <div class="flex justify-end items-center mb-6" *ngIf="isAdmin()">
                 <p-button label="New Announcement" icon="pi pi-plus" size="small" (onClick)="openAddDialog()"></p-button>
             </div>
 
@@ -222,7 +224,7 @@ interface AnnouncementDisplay {
 
                     <p-divider></p-divider>
 
-                    <div class="flex justify-end gap-2 mt-3">
+                    <div class="flex justify-end gap-2 mt-3" *ngIf="announcement.isCurrentUserCreator">
                         <p-button label="Edit" icon="pi pi-pencil" severity="secondary" [text]="true" size="small" (onClick)="openEditDialog(announcement)"></p-button>
                         <p-button label="Delete" icon="pi pi-trash" severity="danger" [text]="true" size="small" (onClick)="confirmDelete(announcement)"></p-button>
                     </div>
@@ -239,7 +241,8 @@ interface AnnouncementDisplay {
 export class Announcements implements OnInit {
     constructor(
         private confirmationService: ConfirmationService,
-        private announcementsService: AnnouncementsService
+        private announcementsService: AnnouncementsService,
+        private authService: AuthService
     ) {}
 
     dialogVisible = false;
@@ -247,6 +250,12 @@ export class Announcements implements OnInit {
     dialogMode: 'add' | 'edit' = 'add';
     currentAnnouncement: AnnouncementDisplay = this.getEmptyAnnouncement();
     selectedAnnouncement: AnnouncementDisplay | null = null;
+    
+    // Computed admin check - reactive to auth state changes
+    isAdmin = computed(() => {
+        const currentUser = this.authService.currentUser();
+        return currentUser?.role === 'Admin' || currentUser?.roles?.includes('Admin') || false;
+    });
     
     // Available emoji reactions
     availableEmojis = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
@@ -299,7 +308,8 @@ export class Announcements implements OnInit {
             category: a.category || 'General',
             priority: a.importance?.toLowerCase() || a.priority?.toLowerCase() || 'normal',
             views: a.views || 0,
-            reactions: a.reactions || []
+            reactions: a.reactions || [],
+            isCurrentUserCreator: a.isCurrentUserCreator || false
         };
     }
 
@@ -324,7 +334,8 @@ export class Announcements implements OnInit {
             category: 'General',
             priority: 'normal',
             views: 0,
-            reactions: []
+            reactions: [],
+            isCurrentUserCreator: true
         };
     }
 

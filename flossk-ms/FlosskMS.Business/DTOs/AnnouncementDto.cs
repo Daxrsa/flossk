@@ -18,6 +18,9 @@ public class AnnouncementDto
     public string CreatedByLastName { get; set; } = string.Empty;
     public string? CreatedByProfilePicture { get; set; }
     
+    // Permission flags
+    public bool IsCurrentUserCreator { get; set; }
+    
     // Reactions
     public List<ReactionSummaryDto> Reactions { get; set; } = new();
 }

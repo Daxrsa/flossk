@@ -140,6 +140,12 @@ public class AnnouncementService : IAnnouncementService
             return new NotFoundObjectResult(new { Error = "Announcement not found." });
         }
 
+        // Only the creator can delete their own announcement
+        if (announcement.CreatedByUserId != userId)
+        {
+            return new ForbidResult();
+        }
+
         _dbContext.Announcements.Remove(announcement);
         await _dbContext.SaveChangesAsync();
 
@@ -177,6 +183,12 @@ public class AnnouncementService : IAnnouncementService
         if (announcement == null)
         {
             return new NotFoundObjectResult(new { Error = "Announcement not found." });
+        }
+
+        // Only the creator can edit their own announcement
+        if (announcement.CreatedByUserId != userId)
+        {
+            return new ForbidResult();
         }
 
         announcement.Title = request.Title;
@@ -309,6 +321,7 @@ public class AnnouncementService : IAnnouncementService
             CreatedByFirstName = announcement.CreatedByUser?.FirstName ?? "",
             CreatedByLastName = announcement.CreatedByUser?.LastName ?? "",
             CreatedByProfilePicture = null,
+            IsCurrentUserCreator = !string.IsNullOrEmpty(currentUserId) && announcement.CreatedByUserId == currentUserId,
             Reactions = GetReactionSummaries(announcement.Reactions ?? new List<AnnouncementReaction>(), currentUserId)
         };
         return dto;
