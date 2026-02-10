@@ -113,32 +113,22 @@ interface AnnouncementDisplay {
                 <!-- Reactions Section in Dialog -->
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-sm text-muted-color mr-2">React:</span>
-                    <div class="flex gap-1">
+                    <div class="flex gap-2">
                         <button 
                             *ngFor="let emoji of availableEmojis" 
                             (click)="toggleReaction(selectedAnnouncement, emoji)"
-                            class="reaction-btn text-xl px-2 py-1 rounded-full hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors cursor-pointer border-none bg-transparent"
-                            [class.reacted]="hasUserReacted(selectedAnnouncement, emoji)"
-                            [pTooltip]="'React with ' + emoji"
+                            class="flex items-center gap-1 text-xl px-3 py-1 rounded-full transition-colors cursor-pointer border-none"
+                            [class.bg-surface-200]="hasUserReacted(selectedAnnouncement, emoji)"
+                            [class.dark:bg-surface-600]="hasUserReacted(selectedAnnouncement, emoji)"
+                            [class.bg-transparent]="!hasUserReacted(selectedAnnouncement, emoji)"
+                            [class.hover:bg-surface-100]="!hasUserReacted(selectedAnnouncement, emoji)"
+                            [class.dark:hover:bg-surface-700]="!hasUserReacted(selectedAnnouncement, emoji)"
+                            [pTooltip]="getEmojiTooltip(selectedAnnouncement, emoji)"
                             tooltipPosition="top"
                         >
-                            {{ emoji }}
+                            <span>{{ emoji }}</span>
+                            <span *ngIf="getReactionCount(selectedAnnouncement, emoji) > 0" class="text-sm font-medium">{{ getReactionCount(selectedAnnouncement, emoji) }}</span>
                         </button>
-                    </div>
-                    
-                    <div class="flex gap-2 ml-4" *ngIf="selectedAnnouncement.reactions?.length">
-                        <div 
-                            *ngFor="let reaction of selectedAnnouncement.reactions" 
-                            class="flex items-center gap-1 px-3 py-1 rounded-full bg-surface-100 dark:bg-surface-700 text-sm cursor-pointer hover:bg-surface-200 dark:hover:bg-surface-600"
-                            [class.bg-primary-100]="reaction.currentUserReacted"
-                            [class.dark:bg-primary-900]="reaction.currentUserReacted"
-                            [pTooltip]="getReactionTooltip(reaction)"
-                            tooltipPosition="top"
-                            (click)="toggleReaction(selectedAnnouncement, reaction.emoji)"
-                        >
-                            <span>{{ reaction.emoji }}</span>
-                            <span class="font-medium">{{ reaction.count }}</span>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -191,34 +181,22 @@ interface AnnouncementDisplay {
 
                     <!-- Reactions Section -->
                     <div class="flex items-center gap-2 mt-4 flex-wrap" (click)="$event.stopPropagation()">
-                        <!-- Available emoji buttons -->
-                        <div class="flex gap-1">
+                        <div class="flex gap-2">
                             <button 
                                 *ngFor="let emoji of availableEmojis" 
                                 (click)="toggleReaction(announcement, emoji)"
-                                class="reaction-btn text-lg px-2 py-1 rounded-full hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors cursor-pointer border-none bg-transparent"
-                                [class.reacted]="hasUserReacted(announcement, emoji)"
-                                [pTooltip]="'React with ' + emoji"
+                                class="flex items-center gap-1 text-lg px-2 py-1 rounded-full transition-colors cursor-pointer border-none"
+                                [class.bg-surface-200]="hasUserReacted(announcement, emoji)"
+                                [class.dark:bg-surface-600]="hasUserReacted(announcement, emoji)"
+                                [class.bg-transparent]="!hasUserReacted(announcement, emoji)"
+                                [class.hover:bg-surface-100]="!hasUserReacted(announcement, emoji)"
+                                [class.dark:hover:bg-surface-700]="!hasUserReacted(announcement, emoji)"
+                                [pTooltip]="getEmojiTooltip(announcement, emoji)"
                                 tooltipPosition="top"
                             >
-                                {{ emoji }}
+                                <span>{{ emoji }}</span>
+                                <span *ngIf="getReactionCount(announcement, emoji) > 0" class="text-sm font-medium">{{ getReactionCount(announcement, emoji) }}</span>
                             </button>
-                        </div>
-                        
-                        <!-- Reaction counts -->
-                        <div class="flex gap-2 ml-2" *ngIf="announcement.reactions?.length">
-                            <div 
-                                *ngFor="let reaction of announcement.reactions" 
-                                class="flex items-center gap-1 px-2 py-1 rounded-full bg-surface-100 dark:bg-surface-700 text-sm cursor-pointer hover:bg-surface-200 dark:hover:bg-surface-600"
-                                [class.bg-primary-100]="reaction.currentUserReacted"
-                                [class.dark:bg-primary-900]="reaction.currentUserReacted"
-                                [pTooltip]="getReactionTooltip(reaction)"
-                                tooltipPosition="top"
-                                (click)="toggleReaction(announcement, reaction.emoji)"
-                            >
-                                <span>{{ reaction.emoji }}</span>
-                                <span class="font-medium">{{ reaction.count }}</span>
-                            </div>
                         </div>
                     </div>
 
@@ -354,6 +332,19 @@ export class Announcements implements OnInit {
             names.push(`and ${reaction.users.length - 5} more`);
         }
         return names.join(', ');
+    }
+
+    getReactionCount(announcement: AnnouncementDisplay, emoji: string): number {
+        const reaction = announcement.reactions?.find(r => r.emoji === emoji);
+        return reaction?.count || 0;
+    }
+
+    getEmojiTooltip(announcement: AnnouncementDisplay, emoji: string): string {
+        const reaction = announcement.reactions?.find(r => r.emoji === emoji);
+        if (!reaction || !reaction.users || reaction.users.length === 0) {
+            return `React with ${emoji}`;
+        }
+        return this.getReactionTooltip(reaction);
     }
 
     toggleReaction(announcement: AnnouncementDisplay, emoji: string) {
