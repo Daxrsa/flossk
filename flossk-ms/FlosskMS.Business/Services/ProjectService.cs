@@ -649,7 +649,7 @@ public class ProjectService : IProjectService
         // Check if current user is the project creator
         if (objective.Project.CreatedByUserId != currentUserId)
         {
-            return new UnauthorizedObjectResult(new { Error = "Only the project creator can assign members to objectives." });
+            return new ObjectResult(new { Error = "Only the project creator can assign members to objectives." }) { StatusCode = 401 };
         }
 
         // Prevent assigning members to completed objectives
@@ -721,7 +721,7 @@ public class ProjectService : IProjectService
         // Check if current user is the project creator
         if (objective.Project.CreatedByUserId != currentUserId)
         {
-            return new UnauthorizedObjectResult(new { Error = "Only the project creator can remove members from objectives." });
+            return new ObjectResult(new { Error = "Only the project creator can remove members from objectives." }) { StatusCode = 401 };
         }
 
         // Prevent removing members from completed objectives

@@ -84,7 +84,7 @@ public class ProjectProfile : Profile
 
         // Resource mappings
         CreateMap<Resource, ResourceDto>()
-            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()));
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString().ToLowerInvariant()));
 
         CreateMap<CreateResourceDto, Resource>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
