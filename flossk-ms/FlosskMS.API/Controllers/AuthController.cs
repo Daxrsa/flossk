@@ -102,7 +102,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// <summary>
     /// Get all users with pagination (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("users")]
     public async Task<IActionResult> GetAllUsers(
         [FromQuery] int page = 1,
@@ -112,7 +112,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// <summary>
     /// Get a user by ID (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("users/{id}")]
     public async Task<IActionResult> GetUserById(string id)
         => await _authService.GetUserByIdAsync(id);

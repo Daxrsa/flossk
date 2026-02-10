@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -9,8 +9,10 @@ import { AvatarModule } from 'primeng/avatar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
 import { SkeletonModule } from 'primeng/skeleton';
+import { TagModule } from 'primeng/tag';
 import { ConfirmationService } from 'primeng/api';
 import { environment } from '@environments/environment.prod';
+import { AuthService } from '@/pages/service/auth.service';
 
 interface User {
     id: string;
@@ -24,7 +26,7 @@ interface User {
 
 @Component({
     selector: 'app-users',
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, AvatarModule, ConfirmDialogModule, CheckboxModule, SkeletonModule],
+    imports: [CommonModule, FormsModule, TableModule, ButtonModule, AvatarModule, ConfirmDialogModule, CheckboxModule, SkeletonModule, TagModule],
     providers: [ConfirmationService],
     template: `
     <p-confirmdialog></p-confirmdialog>
@@ -52,7 +54,9 @@ interface User {
                         <th>Email</th>
                         <th>Role</th>
                         <th>RFID</th>
-                        <th></th>
+                        @if (isAdmin()) {
+                            <th></th>
+                        }
                     </tr>
                 </ng-template>
                 <ng-template #body let-user>
@@ -67,36 +71,42 @@ interface User {
                         <td>{{ user.email }}</td>
                         <td>{{ user.roles[0] || 'User' }}</td>
                         <td>
-                            <div class="flex align-items-center gap-3">
-                                <div class="flex align-items-center gap-2">
-                                    <p-checkbox 
-                                        [(ngModel)]="user.rfid" 
-                                        [binary]="true" 
-                                        inputId="yes-{{user.id}}"
-                                        [trueValue]="true"
-                                        [falseValue]="false"
-                                        (click)="$event.stopPropagation()"
-                                        (onChange)="onRfidChange(user)"
-                                    />
-                                    <label [for]="'yes-' + user.id">Yes</label>
+                            @if (isAdmin()) {
+                                <div class="flex align-items-center gap-3">
+                                    <div class="flex align-items-center gap-2">
+                                        <p-checkbox 
+                                            [(ngModel)]="user.rfid" 
+                                            [binary]="true" 
+                                            inputId="yes-{{user.id}}"
+                                            [trueValue]="true"
+                                            [falseValue]="false"
+                                            (click)="$event.stopPropagation()"
+                                            (onChange)="onRfidChange(user)"
+                                        />
+                                        <label [for]=\"'yes-' + user.id\">Yes</label>
+                                    </div>
+                                    <div class="flex align-items-center gap-2">
+                                        <p-checkbox 
+                                            [(ngModel)]="user.rfid" 
+                                            [binary]="true" 
+                                            inputId="no-{{user.id}}"
+                                            [trueValue]="false"
+                                            [falseValue]="true"
+                                            (click)="$event.stopPropagation()"
+                                            (onChange)="onRfidChange(user)"
+                                        />
+                                        <label [for]="'no-' + user.id">No</label>
+                                    </div>
                                 </div>
-                                <div class="flex align-items-center gap-2">
-                                    <p-checkbox 
-                                        [(ngModel)]="user.rfid" 
-                                        [binary]="true" 
-                                        inputId="no-{{user.id}}"
-                                        [trueValue]="false"
-                                        [falseValue]="true"
-                                        (click)="$event.stopPropagation()"
-                                        (onChange)="onRfidChange(user)"
-                                    />
-                                    <label [for]="'no-' + user.id">No</label>
-                                </div>
-                            </div>
+                            } @else {
+                                <p-tag [value]="user.rfid ? 'Yes' : 'No'" [severity]="user.rfid ? 'success' : 'danger'"></p-tag>
+                            }
                         </td>
-                        <td (click)="$event.stopPropagation()">
-                            <p-button icon="pi pi-trash" [text]="true" severity="danger" (onClick)="confirmDelete(user)"></p-button>
-                        </td>
+                        @if (isAdmin()) {
+                            <td (click)="$event.stopPropagation()">
+                                <p-button icon="pi pi-trash" [text]="true" severity="danger" (onClick)="confirmDelete(user)"></p-button>
+                            </td>
+                        }
                     </tr>
                 </ng-template>
             </p-table>
@@ -107,9 +117,15 @@ interface User {
 export class Users implements OnInit {
     private http = inject(HttpClient);
     private router = inject(Router);
+    private authService = inject(AuthService);
     
     users: User[] = [];
     loading = true;
+
+    isAdmin = computed(() => {
+        const user = this.authService.currentUser();
+        return user?.roles?.includes('Admin') || user?.role === 'Admin';
+    });
 
     constructor(private confirmationService: ConfirmationService) {}
 
