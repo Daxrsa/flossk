@@ -88,6 +88,14 @@ export class ProjectsService {
         return this.http.post<any>(`${this.API_URL}/objectives/${objectiveId}/leave`, {});
     }
 
+    assignTeamMemberToObjective(objectiveId: number | string, userId: string): Observable<any> {
+        return this.http.post<any>(`${this.API_URL}/objectives/${objectiveId}/team-members`, { userId });
+    }
+
+    removeTeamMemberFromObjective(objectiveId: number | string, userId: string): Observable<any> {
+        return this.http.delete<any>(`${this.API_URL}/objectives/${objectiveId}/team-members/${userId}`);
+    }
+
     removeTeamMember(projectId: number | string, userId: string): Observable<any> {
         return this.http.delete<any>(`${this.API_URL}/${projectId}/team-members/${userId}`);
     }

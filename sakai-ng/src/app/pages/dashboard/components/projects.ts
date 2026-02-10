@@ -103,7 +103,7 @@ interface GitHubRepo {
                     <input pInputText id="projectName" [(ngModel)]="currentProject.title" class="w-full" />
                 </div>
 
-                <div class="flex flex-col md:flex-row align-center justify-between">
+                <div class="flex flex-col lg:flex-row align-center justify-between gap-3">
                     <div class="">
                         <label for="startDate" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Start Date</label>
                         <p-datepicker id="startDate" [(ngModel)]="startDate" dateFormat="M d, yy" [showIcon]="true" class="w-full" />
@@ -2301,7 +2301,49 @@ export class Projects {
     }
     
     saveObjectiveMembers() {
-        return;
+        if (!this.assigningObjective) return;
+        
+        const objectiveId = this.assigningObjective.id;
+        const currentMemberNames = this.assigningObjective.members?.map(m => m.name) || [];
+        
+        // Find newly selected members (in tempSelectedObjectiveMembers but not in current members)
+        const newMemberNames = this.tempSelectedObjectiveMembers.filter(name => !currentMemberNames.includes(name));
+        
+        // Find members to add by matching names to availableMembers to get userIds
+        const membersToAdd = newMemberNames
+            .map(name => this.availableMembers.find(m => m.name === name))
+            .filter((m): m is Member => m !== undefined && m.userId !== undefined);
+        
+        if (membersToAdd.length === 0) {
+            this.assignMembersToObjectiveDialogVisible = false;
+            return;
+        }
+        
+        // Call API for each member to add
+        let completedCount = 0;
+        membersToAdd.forEach(member => {
+            this.projectsService.assignTeamMemberToObjective(objectiveId, member.userId!).subscribe({
+                next: (response) => {
+                    console.log('Successfully assigned member to objective:', response);
+                    if (!this.assigningObjective!.members) {
+                        this.assigningObjective!.members = [];
+                    }
+                    this.assigningObjective!.members.push(member);
+                    
+                    completedCount++;
+                    if (completedCount === membersToAdd.length) {
+                        this.assignMembersToObjectiveDialogVisible = false;
+                    }
+                },
+                error: (err) => {
+                    console.error('Error assigning member to objective:', err);
+                    completedCount++;
+                    if (completedCount === membersToAdd.length) {
+                        this.assignMembersToObjectiveDialogVisible = false;
+                    }
+                }
+            });
+        });
     }
 
     // Remove Member Methods
@@ -2345,12 +2387,15 @@ export class Projects {
     }
     
     removeMemberFromObjectiveDetail(member: Member) {
-        if (!this.viewingObjective || !this.selectedProject) return;
+        if (!this.viewingObjective || !this.selectedProject || !member.userId) return;
         
         // Prevent removing members from completed objectives
         if (this.viewingObjective.status === 'completed') {
             return;
         }
+        
+        const objectiveId = this.viewingObjective.id;
+        const userId = member.userId;
         
         this.confirmationService.confirm({
             message: `Are you sure you want to remove "${member.name}" from this objective?`,
@@ -2358,9 +2403,18 @@ export class Projects {
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
-                if (!this.viewingObjective || !this.viewingObjective.members || !this.selectedProject) return;
-                this.viewingObjective.members = this.viewingObjective.members.filter(m => m.name !== member.name);
-                this.updateObjectiveInProject();
+                this.projectsService.removeTeamMemberFromObjective(objectiveId, userId).subscribe({
+                    next: (response) => {
+                        console.log('Successfully removed member from objective:', response);
+                        if (this.viewingObjective?.members) {
+                            this.viewingObjective.members = this.viewingObjective.members.filter(m => m.userId !== userId);
+                            this.updateObjectiveInProject();
+                        }
+                    },
+                    error: (err) => {
+                        console.error('Error removing member from objective:', err);
+                    }
+                });
             }
         });
     }
@@ -2408,8 +2462,24 @@ export class Projects {
     }
     
     removeObjectiveMemberFromDialog(member: Member) {
-        // Remove from temp selection
-        return;
+        if (!this.assigningObjective || !member.userId) return;
+        
+        const objectiveId = this.assigningObjective.id;
+        
+        this.projectsService.removeTeamMemberFromObjective(objectiveId, member.userId).subscribe({
+            next: (response) => {
+                console.log('Successfully removed member from objective:', response);
+                // Remove from the objective's members list
+                if (this.assigningObjective?.members) {
+                    this.assigningObjective.members = this.assigningObjective.members.filter(m => m.userId !== member.userId);
+                }
+                // Remove from temp selection
+                this.tempSelectedObjectiveMembers = this.tempSelectedObjectiveMembers.filter(name => name !== member.name);
+            },
+            error: (err) => {
+                console.error('Error removing member from objective:', err);
+            }
+        });
     }
 
     // GitHub Integration Properties
