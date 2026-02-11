@@ -82,6 +82,10 @@ export class LayoutService {
     private authService = inject(AuthService);
 
     constructor() {
+        // Initialize theme from localStorage or user preference
+        const initialTheme = this.authService.getThemePreference();
+        this.layoutConfig.update((config) => ({ ...config, darkTheme: initialTheme }));
+
         effect(() => {
             const config = this.layoutConfig();
             if (config) {
@@ -109,9 +113,13 @@ export class LayoutService {
                 if (darkTheme !== this.layoutConfig().darkTheme) {
                     this.layoutConfig.update((config) => ({ ...config, darkTheme }));
                 }
-            } else if (!user) {
-                // Reset when user logs out
+            } else if (!user && this.themeInitialized) {
+                // When user logs out, load theme from localStorage
                 this.themeInitialized = false;
+                const storedTheme = this.authService.getThemePreference();
+                if (storedTheme !== this.layoutConfig().darkTheme) {
+                    this.layoutConfig.update((config) => ({ ...config, darkTheme: storedTheme }));
+                }
             }
         });
     }
@@ -150,11 +158,14 @@ export class LayoutService {
         const newDarkTheme = !this.layoutConfig().darkTheme;
         this.layoutConfig.update((config) => ({ ...config, darkTheme: newDarkTheme }));
         
-        // Persist to backend if user is authenticated
+        // Persist to backend if user is authenticated, otherwise just save locally
         if (this.authService.isAuthenticated()) {
             this.authService.updateThemePreference(newDarkTheme).subscribe({
                 error: (err) => console.error('Failed to save theme preference:', err)
             });
+        } else {
+            // Save to localStorage for non-authenticated users
+            this.authService.saveThemeLocally(newDarkTheme);
         }
     }
 
