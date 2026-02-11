@@ -4,8 +4,38 @@ import { Router } from '@angular/router';
 import { Observable, tap, catchError, of } from 'rxjs';
 import { environment } from '@environments/environment.prod';
 
-// Default avatar URL - use this constant throughout the app
+// Default avatar URL - kept for backwards compatibility but prefer using initials
 export const DEFAULT_AVATAR = 'assets/images/avatar.jpg';
+
+/**
+ * Generate initials from a full name
+ * @param name Full name (e.g., "John Doe")
+ * @returns Initials (e.g., "JD")
+ */
+export function getInitials(name: string): string {
+    if (!name) return '?';
+    
+    const parts = name.trim().split(' ').filter(part => part.length > 0);
+    
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    
+    // Take first letter of first name and first letter of last name
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+/**
+ * Check if avatar is a placeholder/default avatar or empty
+ * @param avatarUrl Avatar URL to check
+ * @returns true if it's a default/placeholder avatar or empty
+ */
+export function isDefaultAvatar(avatarUrl: string | null | undefined): boolean {
+    if (!avatarUrl) return true;
+    if (avatarUrl.trim() === '') return true;
+    if (avatarUrl === DEFAULT_AVATAR) return true;
+    if (avatarUrl.includes('avatar.jpg')) return true;
+    return false;
+}
 
 export interface LoginRequest {
     email: string;

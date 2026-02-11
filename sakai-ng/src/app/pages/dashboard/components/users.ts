@@ -12,7 +12,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { ConfirmationService } from 'primeng/api';
 import { environment } from '@environments/environment.prod';
-import { AuthService } from '@/pages/service/auth.service';
+import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
 
 interface User {
     id: string;
@@ -63,8 +63,15 @@ interface User {
                     <tr class="cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors" (click)="viewUserProfile(user)">
                         <td>
                             <p-avatar 
+                                *ngIf="hasProfilePicture(user.profilePictureUrl)"
                                 [image]="getProfilePictureUrl(user.profilePictureUrl)" 
                                 shape="circle">
+                            </p-avatar>
+                            <p-avatar
+                                *ngIf="!hasProfilePicture(user.profilePictureUrl)"
+                                [label]="getUserInitials(user)"
+                                shape="circle"
+                                [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}">
                             </p-avatar>
                         </td>
                         <td>{{ user.firstName }} {{ user.lastName }}</td>
@@ -192,11 +199,19 @@ export class Users implements OnInit {
 
     getProfilePictureUrl(profilePictureUrl: string | null): string {
         if (!profilePictureUrl) {
-            return 'assets/images/avatar.jpg';
+            return '';
         }
         if (profilePictureUrl.startsWith('http')) {
             return profilePictureUrl;
         }
         return `${environment.baseUrl}${profilePictureUrl}`;
+    }
+
+    getUserInitials(user: User): string {
+        return getInitials(`${user.firstName} ${user.lastName}`);
+    }
+
+    hasProfilePicture(profilePictureUrl: string | null): boolean {
+        return !!profilePictureUrl && !isDefaultAvatar(profilePictureUrl);
     }
 }

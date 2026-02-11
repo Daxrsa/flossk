@@ -22,7 +22,7 @@ import { ConfirmationService } from 'primeng/api';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
 import { ProjectsService } from '../../service/projects.service';
-import { AuthService, DEFAULT_AVATAR } from '../../service/auth.service';
+import { AuthService, getInitials, isDefaultAvatar } from '../../service/auth.service';
 import { environment } from '@environments/environment.prod';
 
 interface Member {
@@ -300,7 +300,8 @@ interface GitHubRepo {
                     </div>
                     <div *ngIf="viewingObjective.members && viewingObjective.members.length > 0" class="flex flex-col gap-3">
                         <div *ngFor="let member of viewingObjective.members" class="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
-                            <p-avatar [image]="member.avatar" shape="circle" size="large"></p-avatar>
+                            <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="large"></p-avatar>
+                            <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="large" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
                             <div class="flex-1">
                                 <p class="font-semibold text-surface-900 dark:text-surface-0 m-0">{{ member.name }}</p>
                                 <p class="text-sm text-muted-color m-0">{{ member.role }}</p>
@@ -450,12 +451,12 @@ interface GitHubRepo {
                         optionValue="userId"
                         placeholder="Select members to assign" 
                         class="w-full"
-                        [showClear]="true"
                         display="chip"
                     >
                         <ng-template let-member pTemplate="item">
                             <div class="flex items-center gap-2">
-                                <p-avatar [image]="member.avatar" shape="circle" size="normal"></p-avatar>
+                                <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="normal"></p-avatar>
+                                <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
                                 <div>
                                     <span class="font-medium">{{ member.name }}</span>
                                     <span class="text-xs text-muted-color ml-2">{{ member.role }}</span>
@@ -469,7 +470,8 @@ interface GitHubRepo {
                     <p class="text-sm text-muted-color mb-2">Current team members:</p>
                     <div class="flex flex-wrap gap-2">
                         <div *ngFor="let member of selectedProject?.participants" class="flex items-center gap-2 bg-surface-100 dark:bg-surface-800 rounded-full pl-3 pr-1 py-1">
-                            <p-avatar [image]="member.avatar" shape="circle" size="normal"></p-avatar>
+                            <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="normal"></p-avatar>
+                            <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
                             <span class="text-sm">{{ member.name }}</span>
                             <p-button *ngIf="isProjectCreator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" (onClick)="removeProjectMemberFromDialog(member)" />
                         </div>
@@ -500,7 +502,8 @@ interface GitHubRepo {
                     >
                         <ng-template let-member pTemplate="item">
                             <div class="flex items-center gap-2">
-                                <p-avatar [image]="member.avatar" shape="circle" size="normal"></p-avatar>
+                                <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="normal"></p-avatar>
+                                <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
                                 <div>
                                     <span class="font-medium">{{ member.name }}</span>
                                     <span class="text-xs text-muted-color ml-2">{{ member.role }}</span>
@@ -514,7 +517,8 @@ interface GitHubRepo {
                     <p class="text-sm text-muted-color mb-2">Currently assigned:</p>
                     <div class="flex flex-wrap gap-2">
                         <div *ngFor="let member of assigningObjective?.members" class="flex items-center gap-2 bg-surface-100 dark:bg-surface-800 rounded-full pl-3 pr-1 py-1">
-                            <p-avatar [image]="member.avatar" shape="circle" size="normal"></p-avatar>
+                            <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="normal"></p-avatar>
+                            <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
                             <span class="text-sm">{{ member.name }}</span>
                             <p-button icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" (onClick)="removeObjectiveMemberFromDialog(member)" />
                         </div>
@@ -819,7 +823,8 @@ interface GitHubRepo {
                                                         @if (objective.members && objective.members.length > 0) {
                                                             <p-avatarGroup>
                                                                 @for (member of objective.members.slice(0, 2); track member.name) {
-                                                                    <p-avatar [image]="member.avatar" shape="circle" size="normal" [pTooltip]="member.name"></p-avatar>
+                                                                    <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="normal" [pTooltip]="member.name"></p-avatar>
+                                                                    <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="normal" [pTooltip]="member.name" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
                                                                 }
                                                                 @if (objective.members.length > 2) {
                                                                     <p-avatar [label]="'+' + (objective.members.length - 2)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)', 'font-size': '0.7rem'}"></p-avatar>
@@ -868,7 +873,14 @@ interface GitHubRepo {
                                                         @if (objective.members && objective.members.length > 0) {
                                                             <p-avatarGroup>
                                                                 @for (member of objective.members.slice(0, 2); track member.name) {
-                                                                    <p-avatar [image]="member.avatar" shape="circle" size="normal" [pTooltip]="member.name"></p-avatar>
+                                                                    <p-avatar 
+                                                                        [image]="hasProfilePicture(member) ? member.avatar : undefined"
+                                                                        [label]="!hasProfilePicture(member) ? getInitials(member.name) : undefined"
+                                                                        shape="circle" 
+                                                                        size="normal" 
+                                                                        [pTooltip]="member.name"
+                                                                        [style]="!hasProfilePicture(member) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
+                                                                    ></p-avatar>
                                                                 }
                                                                 @if (objective.members.length > 2) {
                                                                     <p-avatar [label]="'+' + (objective.members.length - 2)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)', 'font-size': '0.7rem'}"></p-avatar>
@@ -920,7 +932,14 @@ interface GitHubRepo {
                                                         @if (objective.members && objective.members.length > 0) {
                                                             <p-avatarGroup>
                                                                 @for (member of objective.members.slice(0, 2); track member.name) {
-                                                                    <p-avatar [image]="member.avatar" shape="circle" size="normal" [pTooltip]="member.name"></p-avatar>
+                                                                    <p-avatar 
+                                                                        [image]="hasProfilePicture(member) ? member.avatar : undefined"
+                                                                        [label]="!hasProfilePicture(member) ? getInitials(member.name) : undefined"
+                                                                        shape="circle" 
+                                                                        size="normal" 
+                                                                        [pTooltip]="member.name"
+                                                                        [style]="!hasProfilePicture(member) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
+                                                                    ></p-avatar>
                                                                 }
                                                                 @if (objective.members.length > 2) {
                                                                     <p-avatar [label]="'+' + (objective.members.length - 2)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)', 'font-size': '0.7rem'}"></p-avatar>
@@ -991,7 +1010,8 @@ interface GitHubRepo {
                             </div>
                             <div class="flex flex-col gap-3">
                                 <div *ngFor="let member of selectedProject.participants" class="flex items-center gap-3">
-                                    <p-avatar [image]="member.avatar" shape="circle" size="large"></p-avatar>
+                                    <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="large"></p-avatar>
+                                    <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="large" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
                                     <div class="flex-1">
                                         <p class="font-semibold m-0">{{ member.name }}</p>
                                         <p class="text-sm text-muted-color m-0">{{ member.role }}</p>
@@ -1229,7 +1249,7 @@ export class Projects {
                     title: o.title,
                     description: o.description,
                     status: this.mapObjectiveStatusFromApi(o.status),
-                    assignedTo: { name: 'Unassigned', avatar: DEFAULT_AVATAR, role: 'Member' },
+                    assignedTo: { name: 'Unassigned', avatar: '', role: 'Member' },
                     members: this.mapTeamMembersFromApi(o.teamMembers || []),
                     resources: o.resources || []
                 })),
@@ -1245,7 +1265,7 @@ export class Projects {
     // Map team members from API to frontend Member interface
     mapTeamMembersFromApi(teamMembers: any[]): Member[] {
         return teamMembers.map(tm => {
-            let avatarUrl = DEFAULT_AVATAR;
+            let avatarUrl = '';
             if (tm.profilePictureUrl) {
                 avatarUrl = tm.profilePictureUrl.startsWith('http')
                     ? tm.profilePictureUrl
@@ -1279,7 +1299,7 @@ export class Projects {
     currentUser: Member = {
         userId: '',
         name: '',
-        avatar: DEFAULT_AVATAR,
+        avatar: '',
         role: 'Member'
     };
 
@@ -1290,7 +1310,7 @@ export class Projects {
             const lastName = (user as any).lastName || '';
             const fullName = `${firstName} ${lastName}`.trim() || (user as any).fullName || user.email || '';
             
-            let avatarUrl = DEFAULT_AVATAR;
+            let avatarUrl = '';
             if ((user as any).profilePictureUrl) {
                 avatarUrl = (user as any).profilePictureUrl.startsWith('http')
                     ? (user as any).profilePictureUrl
@@ -1373,7 +1393,7 @@ export class Projects {
             next: (response) => {
                 console.log('Users loaded:', response.users);
                 this.availableMembers = response.users.map(user => {
-                    let avatarUrl = DEFAULT_AVATAR;
+                    let avatarUrl = '';
                     if (user.profilePictureUrl) {
                         avatarUrl = user.profilePictureUrl.startsWith('http')
                             ? user.profilePictureUrl
@@ -1881,7 +1901,7 @@ export class Projects {
             title: '',
             description: '',
             status: 'todo',
-            assignedTo: { name: 'Unassigned', avatar: DEFAULT_AVATAR, role: 'Member' },
+            assignedTo: { name: 'Unassigned', avatar: '', role: 'Member' },
             members: []
         };
     }
@@ -1928,7 +1948,7 @@ export class Projects {
                         title: createdObjective.title,
                         description: createdObjective.description,
                         status: this.mapObjectiveStatusFromApi(createdObjective.status),
-                        assignedTo: { name: 'Unassigned', avatar: DEFAULT_AVATAR, role: 'Member' },
+                        assignedTo: { name: 'Unassigned', avatar: '', role: 'Member' },
                         members: []
                     };
                     
@@ -2314,6 +2334,15 @@ export class Projects {
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Avatar helper methods
+    getInitials(name: string): string {
+        return getInitials(name);
+    }
+    
+    hasProfilePicture(member: Member): boolean {
+        return !isDefaultAvatar(member.avatar);
     }
     
     saveObjectiveResource() {

@@ -19,7 +19,7 @@ import { SelectModule } from 'primeng/select';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
-import { AuthService, DEFAULT_AVATAR } from '@/pages/service/auth.service';
+import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
 import { ProjectsService } from '@/pages/service/projects.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment.prod';
@@ -214,10 +214,19 @@ interface User {
                             <!-- Custom Avatar -->
                             <div class="relative inline-block">
                                 <img 
+                                    *ngIf="hasProfilePicture(userProfile.picture)"
                                     [src]="userProfile.picture" 
                                     [alt]="userProfile.firstName + ' ' + userProfile.lastName"
                                     class="w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 lg:w-72 lg:h-72 object-cover rounded-full border-4 border-surface-0 dark:border-surface-900 shadow-lg hover:scale-105 transition-transform duration-300"
                                 >
+                                <p-avatar 
+                                    *ngIf="!hasProfilePicture(userProfile.picture)"
+                                    [label]="getInitials(userProfile.firstName + ' ' + userProfile.lastName)"
+                                    shape="circle"
+                                    size="xlarge"
+                                    [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)', 'width': '18rem', 'height': '18rem', 'font-size': '6rem'}"
+                                    class="border-4 border-surface-0 dark:border-surface-900 shadow-lg"
+                                ></p-avatar>
                                 <!-- Status Badge -->
                                 <!-- <div class="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 md:bottom-4 md:right-4">
                                     <span 
@@ -360,9 +369,11 @@ interface User {
                                             <p-avatargroup>
                                                 <p-avatar 
                                                     *ngFor="let member of project.team.slice(0, 3)" 
-                                                    [image]="member.avatar" 
+                                                    [image]="hasProfilePicture(member.avatar) ? member.avatar : undefined"
+                                                    [label]="!hasProfilePicture(member.avatar) ? getInitials(member.name) : undefined"
                                                     shape="circle"
                                                     size="normal"
+                                                    [style]="!hasProfilePicture(member.avatar) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
                                                 ></p-avatar>
                                                 <p-avatar 
                                                     *ngIf="project.team.length > 3"
@@ -526,7 +537,7 @@ export class Profile implements OnInit {
     ];
 
     userProfile = {
-        picture: DEFAULT_AVATAR,
+        picture: '',
         firstName: '',
         lastName: '',
         email: '',
@@ -584,7 +595,7 @@ export class Profile implements OnInit {
     }
 
     mapUserToProfile(user: User) {
-        let pictureUrl = DEFAULT_AVATAR;
+        let pictureUrl = '';
         if (user.profilePictureUrl) {
             pictureUrl = user.profilePictureUrl.startsWith('http')
                 ? user.profilePictureUrl
@@ -622,7 +633,7 @@ export class Profile implements OnInit {
         if (user) {
             this.profileUserId = user.id;
             // Construct full picture URL if it's a relative path
-            let pictureUrl = DEFAULT_AVATAR;
+            let pictureUrl = '';
             if (user.profilePictureUrl) {
                 pictureUrl = user.profilePictureUrl.startsWith('http')
                     ? user.profilePictureUrl
@@ -677,7 +688,7 @@ export class Profile implements OnInit {
                             ? (tm.profilePictureUrl.startsWith('http') 
                                 ? tm.profilePictureUrl 
                                 : `${environment.baseUrl}${tm.profilePictureUrl}`)
-                            : DEFAULT_AVATAR
+                            : ''
                     }));
 
                     return {
@@ -784,8 +795,8 @@ export class Profile implements OnInit {
             next: () => {
                 console.log('Profile picture deleted successfully');
                 // Reset to default avatar
-                this.editProfile.picture = DEFAULT_AVATAR;
-                this.userProfile.picture = DEFAULT_AVATAR;
+                this.editProfile.picture = '';
+                this.userProfile.picture = '';
                 this.selectedFile = null;
                 
                 // Update auth service
@@ -926,5 +937,14 @@ export class Profile implements OnInit {
                 console.error('Error downloading CV:', error);
             }
         });
+    }
+
+    // Helper methods for avatar display
+    getInitials(name: string): string {
+        return getInitials(name);
+    }
+
+    hasProfilePicture(pictureUrl: string | undefined): boolean {
+        return !!pictureUrl && !isDefaultAvatar(pictureUrl);
     }
 }
