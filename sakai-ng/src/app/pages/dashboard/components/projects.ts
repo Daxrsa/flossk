@@ -452,6 +452,7 @@ interface GitHubRepo {
                         placeholder="Select members to assign" 
                         class="w-full"
                         display="chip"
+                        (onChange)="onProjectMembersChange($event)"
                     >
                         <ng-template let-member pTemplate="item">
                             <div class="flex items-center gap-2">
@@ -497,8 +498,9 @@ interface GitHubRepo {
                         optionValue="userId"
                         placeholder="Select members to assign" 
                         class="w-full"
-                        [showClear]="true"
+                        [showClear]="false"
                         display="chip"
+                        (onChange)="onObjectiveMembersChange($event)"
                     >
                         <ng-template let-member pTemplate="item">
                             <div class="flex items-center gap-2">
@@ -1378,6 +1380,8 @@ export class Projects {
     assigningObjective: Objective | null = null;
     tempSelectedProjectMembers: string[] = []; // Array of user IDs
     tempSelectedObjectiveMembers: string[] = [];
+    initialProjectMembers: string[] = []; // Track initial members to prevent removal
+    initialObjectiveMembers: string[] = []; // Track initial members to prevent removal
     
     resourceDialogVisible = false;
     resourceDialogMode: 'add' | 'edit' = 'add';
@@ -2530,6 +2534,10 @@ export class Projects {
         this.tempSelectedProjectMembers = this.selectedProject.participants
             .map(p => p.userId)
             .filter((id): id is string => !!id);
+        
+        // Store initial members to prevent removal
+        this.initialProjectMembers = [...this.tempSelectedProjectMembers];
+        
         this.assignMembersToProjectDialogVisible = true;
     }
     
@@ -2591,27 +2599,23 @@ export class Projects {
         });
     }
 
+    onProjectMembersChange(event: any) {
+        // Prevent deselection of initial members
+        const removedMembers = this.initialProjectMembers.filter(id => !this.tempSelectedProjectMembers.includes(id));
+        if (removedMembers.length > 0) {
+            // Re-add removed initial members
+            this.tempSelectedProjectMembers = [...new Set([...this.tempSelectedProjectMembers, ...removedMembers])];
+        }
+    }
 
-
-
-
-
-
-    // openAssignMembersToProjectDialog() {
-    //     if (!this.selectedProject) return;
-        
-    //     // Ensure all current participants are in availableMembers
-    //     this.selectedProject.participants.forEach(participant => {
-    //         if (participant.userId && !this.availableMembers.some(m => m.userId === participant.userId)) {
-    //             this.availableMembers.push(participant);
-    //         }
-    //     });
-        
-    //     this.tempSelectedProjectMembers = this.selectedProject.participants
-    //         .map(p => p.userId)
-    //         .filter((id): id is string => !!id);
-    //     this.assignMembersToProjectDialogVisible = true;
-    // }
+    onObjectiveMembersChange(event: any) {
+        // Prevent deselection of initial members
+        const removedMembers = this.initialObjectiveMembers.filter(id => !this.tempSelectedObjectiveMembers.includes(id));
+        if (removedMembers.length > 0) {
+            // Re-add removed initial members
+            this.tempSelectedObjectiveMembers = [...new Set([...this.tempSelectedObjectiveMembers, ...removedMembers])];
+        }
+    }
     
     openAssignMembersToObjectiveDialog(objective: Objective, event: Event) {
         event.stopPropagation();
@@ -2649,17 +2653,13 @@ export class Projects {
                 .filter((id): id is string => !!id) 
             : [];
         
+        // Store initial members to prevent removal
+        this.initialObjectiveMembers = [...this.tempSelectedObjectiveMembers];
+        
         console.log('Selected member IDs for multiselect:', this.tempSelectedObjectiveMembers);
         console.log('Updated available members:', this.availableMembers);
         this.assignMembersToObjectiveDialogVisible = true;
     }
-
-
-
-
-
-
-
     
     openAssignMembersToObjectiveFromDetail() {
         if (!this.viewingObjective) return;
@@ -2692,6 +2692,9 @@ export class Projects {
                 .map(m => m.userId)
                 .filter((id): id is string => !!id) 
             : [];
+        
+        // Store initial members to prevent removal
+        this.initialObjectiveMembers = [...this.tempSelectedObjectiveMembers];
         
         this.assignMembersToObjectiveDialogVisible = true;
     }
