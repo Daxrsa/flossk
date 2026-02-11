@@ -598,9 +598,11 @@ interface GitHubRepo {
                                     <p-avatargroup>
                                         <p-avatar 
                                             *ngFor="let member of project.participants.slice(0, 3)" 
-                                            [image]="member.avatar" 
+                                            [image]="hasProfilePicture(member) ? member.avatar : undefined"
+                                            [label]="!hasProfilePicture(member) ? getInitials(member.name) : undefined"
                                             shape="circle"
                                             size="normal"
+                                            [style]="!hasProfilePicture(member) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
                                         ></p-avatar>
                                         <p-avatar 
                                             *ngIf="project.participants.length > 3"
@@ -681,9 +683,11 @@ interface GitHubRepo {
                                     <p-avatargroup>
                                         <p-avatar 
                                             *ngFor="let member of project.participants.slice(0, 3)" 
-                                            [image]="member.avatar" 
+                                            [image]="hasProfilePicture(member) ? member.avatar : undefined"
+                                            [label]="!hasProfilePicture(member) ? getInitials(member.name) : undefined"
                                             shape="circle"
                                             size="normal"
+                                            [style]="!hasProfilePicture(member) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
                                         ></p-avatar>
                                         <p-avatar 
                                             *ngIf="project.participants.length > 3"
@@ -750,9 +754,11 @@ interface GitHubRepo {
                                     <p-avatargroup>
                                         <p-avatar 
                                             *ngFor="let member of project.participants.slice(0, 3)" 
-                                            [image]="member.avatar" 
+                                            [image]="hasProfilePicture(member) ? member.avatar : undefined"
+                                            [label]="!hasProfilePicture(member) ? getInitials(member.name) : undefined"
                                             shape="circle"
                                             size="normal"
+                                            [style]="!hasProfilePicture(member) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
                                         ></p-avatar>
                                         <p-avatar 
                                             *ngIf="project.participants.length > 3"
@@ -773,7 +779,7 @@ interface GitHubRepo {
             <div *ngIf="selectedProject" class="mt-8 border-t border-surface pt-8">
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-3">
+                        <div class="flex flex-col md:flex-row items-start md:items-center gap-2 mb-2">
                             <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ selectedProject.title }}</h2>
                             <p-tag 
                                 [value]="selectedProject.status === 'in-progress' ? 'In Progress' : selectedProject.status === 'upcoming' ? 'Upcoming' : 'Completed'" 

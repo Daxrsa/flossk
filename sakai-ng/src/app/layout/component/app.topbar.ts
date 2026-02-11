@@ -5,15 +5,17 @@ import { CommonModule } from '@angular/common';
 import { StyleClassModule } from 'primeng/styleclass';
 import { PopoverModule } from 'primeng/popover';
 import { ButtonModule } from 'primeng/button';
+import { AvatarModule } from 'primeng/avatar';
 import { DividerModule } from 'primeng/divider';
 import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '../service/layout.service';
-import { AuthService } from '@/pages/service/auth.service';
+import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
+import { environment } from '@environments/environment.prod';
 
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, StyleClassModule, PopoverModule, ButtonModule, DividerModule, AppConfigurator],
+    imports: [RouterModule, CommonModule, StyleClassModule, PopoverModule, ButtonModule, AvatarModule, DividerModule, AppConfigurator],
     template: ` 
     <div class="layout-topbar">
         <div class="layout-topbar-logo-container">
@@ -32,9 +34,19 @@ import { AuthService } from '@/pages/service/auth.service';
                     <div class="flex flex-col w-72">
                         @if (authService.currentUser()) {
                             <div class="flex items-center gap-4 p-4 border-b border-surface-200 dark:border-surface-700">
-                                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-contrast font-bold text-lg">
-                                    {{ (authService.currentUser()?.email ?? '?').charAt(0).toUpperCase() }}
-                                </div>
+                                <p-avatar
+                                    *ngIf="hasProfilePicture()"
+                                    [image]="getProfilePictureUrl()"
+                                    shape="circle"
+                                    size="large"
+                                ></p-avatar>
+                                <p-avatar
+                                    *ngIf="!hasProfilePicture()"
+                                    [label]="getUserInitials()"
+                                    shape="circle"
+                                    size="large"
+                                    [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                                ></p-avatar>
                                 <div class="flex flex-col">
                                     <div class="font-semibold text-surface-900 dark:text-surface-0">{{ authService.currentUser()?.email }}</div>
                                     <div class="text-sm text-muted-color">{{ authService.currentUser()?.role || authService.currentUser()?.roles?.[0] || 'Member' }}</div>
@@ -89,5 +101,28 @@ export class AppTopbar implements OnInit {
 
     toggleDarkMode() {
         this.layoutService.toggleAndPersistDarkMode();
+    }
+
+    getUserInitials(): string {
+        const user = this.authService.currentUser();
+        if (user?.fullName) {
+            return getInitials(user.fullName);
+        }
+        return (user?.email ?? '?').charAt(0).toUpperCase();
+    }
+
+    hasProfilePicture(): boolean {
+        const user = this.authService.currentUser();
+        return !!user?.profilePictureUrl && !isDefaultAvatar(user.profilePictureUrl);
+    }
+
+    getProfilePictureUrl(): string {
+        const user = this.authService.currentUser();
+        if (!user?.profilePictureUrl) return '';
+        
+        if (user.profilePictureUrl.startsWith('http')) {
+            return user.profilePictureUrl;
+        }
+        return `${environment.baseUrl}${user.profilePictureUrl}`;
     }
 }

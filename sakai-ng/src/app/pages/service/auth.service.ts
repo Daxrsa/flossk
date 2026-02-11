@@ -51,10 +51,13 @@ export interface RegisterRequest {
 export interface User {
     id?: string;
     email: string;
+    firstName?: string;
+    lastName?: string;
     fullName?: string;
     role?: string;
     roles?: string[];
     darkTheme?: boolean;
+    profilePictureUrl?: string;
 }
 
 export interface AuthResponse {
@@ -136,7 +139,10 @@ export class AuthService {
             tap(response => {
                 const user: User = {
                     ...response,
-                    role: response.roles?.length > 0 ? response.roles[0] : undefined
+                    role: response.roles?.length > 0 ? response.roles[0] : undefined,
+                    fullName: response.firstName && response.lastName 
+                        ? `${response.firstName} ${response.lastName}`.trim()
+                        : response.fullName || response.email
                 };
                 this.currentUser.set(user);
             }),

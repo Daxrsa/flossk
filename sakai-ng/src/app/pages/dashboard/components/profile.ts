@@ -87,10 +87,19 @@ interface User {
                     <h4 class="text-lg font-semibold text-surface-900 dark:text-surface-0 m-0">Profile Picture</h4>
                     <div class="flex flex-col gap-4">
                         <img 
+                            *ngIf="hasProfilePicture(editProfile.picture)"
                             [src]="editProfile.picture" 
                             alt="Profile Picture"
                             class="w-70 h-70 object-cover rounded-full border-4 border-surface-200 dark:border-surface-700"
                         >
+                        <p-avatar
+                            *ngIf="!hasProfilePicture(editProfile.picture)"
+                            [label]="getInitials(editProfile.firstName + ' ' + editProfile.lastName)"
+                            shape="circle"
+                            size="xlarge"
+                            [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)', 'width': '17.5rem', 'height': '17.5rem', 'font-size': '5rem'}"
+                            class="border-4 border-surface-200 dark:border-surface-700"
+                        ></p-avatar>
                         <div class="flex gap-2 w-full">
                             <p-fileupload 
                                 mode="basic" 
