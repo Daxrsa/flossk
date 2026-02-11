@@ -85,6 +85,9 @@ export class LayoutService {
         // Initialize theme from localStorage or user preference
         const initialTheme = this.authService.getThemePreference();
         this.layoutConfig.update((config) => ({ ...config, darkTheme: initialTheme }));
+        
+        // Apply theme immediately to DOM to prevent flash
+        this.toggleDarkMode({ ...this.layoutConfig(), darkTheme: initialTheme });
 
         effect(() => {
             const config = this.layoutConfig();
