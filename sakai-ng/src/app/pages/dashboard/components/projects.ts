@@ -492,7 +492,7 @@ interface GitHubRepo {
                         [(ngModel)]="tempSelectedObjectiveMembers" 
                         [options]="availableMembers" 
                         optionLabel="name" 
-                        optionValue="name"
+                        optionValue="userId"
                         placeholder="Select members to assign" 
                         class="w-full"
                         [showClear]="true"
@@ -1252,9 +1252,12 @@ export class Projects {
                     : `${environment.baseUrl}${tm.profilePictureUrl}`;
             }
             
+            // Ensure userId is set and normalized to string - it could be tm.userId or tm.id
+            const userId = String(tm.userId || tm.id || '');
+            
             return {
                 id: tm.id,
-                userId: tm.userId,
+                userId: userId,
                 name: `${tm.firstName || ''} ${tm.lastName || ''}`.trim() || tm.email || 'Unknown',
                 avatar: avatarUrl,
                 role: tm.role || 'Member'
@@ -1378,12 +1381,13 @@ export class Projects {
                     }
                     
                     return {
-                        userId: user.id,
+                        userId: user.id, // Already a GUID string
                         name: `${user.firstName} ${user.lastName}`.trim() || user.email,
                         avatar: avatarUrl,
                         role: user.roles?.length > 0 ? user.roles[0] : 'Member'
                     };
                 });
+                console.log('Available members after mapping:', this.availableMembers);
             },
             error: (err) => {
                 console.error('Error loading users:', err);
@@ -2557,6 +2561,28 @@ export class Projects {
                 });
         });
     }
+
+
+
+
+
+
+
+    // openAssignMembersToProjectDialog() {
+    //     if (!this.selectedProject) return;
+        
+    //     // Ensure all current participants are in availableMembers
+    //     this.selectedProject.participants.forEach(participant => {
+    //         if (participant.userId && !this.availableMembers.some(m => m.userId === participant.userId)) {
+    //             this.availableMembers.push(participant);
+    //         }
+    //     });
+        
+    //     this.tempSelectedProjectMembers = this.selectedProject.participants
+    //         .map(p => p.userId)
+    //         .filter((id): id is string => !!id);
+    //     this.assignMembersToProjectDialogVisible = true;
+    // }
     
     openAssignMembersToObjectiveDialog(objective: Objective, event: Event) {
         event.stopPropagation();
@@ -2567,9 +2593,44 @@ export class Projects {
         }
         
         this.assigningObjective = objective;
-        this.tempSelectedObjectiveMembers = objective.members ? objective.members.map(m => m.name) : [];
+        console.log('Opening dialog for objective:', objective.title);
+        console.log('Objective members:', objective.members);
+        console.log('Available members:', this.availableMembers);
+        
+        // Ensure all objective members exist in availableMembers
+        // This handles cases where a user joined but isn't in the availableMembers list yet
+        if (objective.members) {
+            objective.members.forEach(member => {
+                if (member.userId && !this.availableMembers.find(m => m.userId === member.userId)) {
+                    console.log('Adding missing member to availableMembers:', member);
+                    this.availableMembers.push({
+                        userId: member.userId,
+                        name: member.name,
+                        avatar: member.avatar,
+                        role: member.role
+                    });
+                }
+            });
+        }
+        
+        // Extract userIds from objective members - they're already GUIDs (strings)
+        this.tempSelectedObjectiveMembers = objective.members 
+            ? objective.members
+                .map(m => m.userId)
+                .filter((id): id is string => !!id) 
+            : [];
+        
+        console.log('Selected member IDs for multiselect:', this.tempSelectedObjectiveMembers);
+        console.log('Updated available members:', this.availableMembers);
         this.assignMembersToObjectiveDialogVisible = true;
     }
+
+
+
+
+
+
+
     
     openAssignMembersToObjectiveFromDetail() {
         if (!this.viewingObjective) return;
@@ -2580,7 +2641,29 @@ export class Projects {
         }
         
         this.assigningObjective = this.viewingObjective;
-        this.tempSelectedObjectiveMembers = this.viewingObjective.members ? this.viewingObjective.members.map(m => m.name) : [];
+        
+        // Ensure all objective members exist in availableMembers
+        if (this.viewingObjective.members) {
+            this.viewingObjective.members.forEach(member => {
+                if (member.userId && !this.availableMembers.find(m => m.userId === member.userId)) {
+                    console.log('Adding missing member to availableMembers:', member);
+                    this.availableMembers.push({
+                        userId: member.userId,
+                        name: member.name,
+                        avatar: member.avatar,
+                        role: member.role
+                    });
+                }
+            });
+        }
+        
+        // Extract userIds from objective members - they're already GUIDs (strings)
+        this.tempSelectedObjectiveMembers = this.viewingObjective.members 
+            ? this.viewingObjective.members
+                .map(m => m.userId)
+                .filter((id): id is string => !!id) 
+            : [];
+        
         this.assignMembersToObjectiveDialogVisible = true;
     }
     
@@ -2588,14 +2671,14 @@ export class Projects {
         if (!this.assigningObjective) return;
         
         const objectiveId = this.assigningObjective.id;
-        const currentMemberNames = this.assigningObjective.members?.map(m => m.name) || [];
+        const currentMemberIds = this.assigningObjective.members?.map(m => m.userId).filter((id): id is string => !!id) || [];
         
         // Find newly selected members (in tempSelectedObjectiveMembers but not in current members)
-        const newMemberNames = this.tempSelectedObjectiveMembers.filter(name => !currentMemberNames.includes(name));
+        const newMemberIds = this.tempSelectedObjectiveMembers.filter(userId => !currentMemberIds.includes(userId));
         
-        // Find members to add by matching names to availableMembers to get userIds
-        const membersToAdd = newMemberNames
-            .map(name => this.availableMembers.find(m => m.name === name))
+        // Find members to add by matching userIds to availableMembers
+        const membersToAdd = newMemberIds
+            .map(userId => this.availableMembers.find(m => m.userId === userId))
             .filter((m): m is Member => m !== undefined && m.userId !== undefined);
         
         if (membersToAdd.length === 0) {
@@ -2758,7 +2841,7 @@ export class Projects {
                     this.assigningObjective.members = this.assigningObjective.members.filter(m => m.userId !== member.userId);
                 }
                 // Remove from temp selection
-                this.tempSelectedObjectiveMembers = this.tempSelectedObjectiveMembers.filter(name => name !== member.name);
+                this.tempSelectedObjectiveMembers = this.tempSelectedObjectiveMembers.filter(userId => userId !== member.userId);
             },
             error: (err) => {
                 console.error('Error removing member from objective:', err);
