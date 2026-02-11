@@ -74,12 +74,36 @@ public class MembershipRequestService : IMembershipRequestService
         if (request.SignatureFile == null || request.SignatureFile.Length == 0)
             return new BadRequestObjectResult(new { Error = "Signature file is required." });
 
-        // Check for duplicate email
-        var existingRequest = await _dbContext.MembershipRequests
-            .AnyAsync(r => r.Email.ToLower() == request.Email.ToLower() && r.Status == MembershipRequestStatus.Pending, cancellationToken);
+        // Check if email already exists as a registered user
+        var existingUser = await _dbContext.Users
+            .AnyAsync(u => u.Email.ToLower() == request.Email.ToLower(), cancellationToken);
         
-        if (existingRequest)
-            return new BadRequestObjectResult(new { Error = "A pending membership request with this email already exists." });
+        if (existingUser)
+            return new BadRequestObjectResult(new { Error = "This email is already registered in the system." });
+
+        // Check if email is already approved
+        var isEmailApproved = await _dbContext.ApprovedEmails
+            .AnyAsync(e => e.Email.ToLower() == request.Email.ToLower(), cancellationToken);
+        
+        if (isEmailApproved)
+            return new BadRequestObjectResult(new { Error = "This email has already been approved for membership. Please proceed to register your account." });
+
+        // Check for existing membership request
+        var existingRequest = await _dbContext.MembershipRequests
+            .Where(r => r.Email.ToLower() == request.Email.ToLower())
+            .FirstOrDefaultAsync(cancellationToken);
+        
+        if (existingRequest != null)
+        {
+            if (existingRequest.Status == MembershipRequestStatus.Pending)
+                return new BadRequestObjectResult(new { Error = "A pending membership request with this email already exists." });
+            
+            if (existingRequest.Status == MembershipRequestStatus.Approved)
+                return new BadRequestObjectResult(new { Error = "A membership request with this email has already been approved. Please proceed to register your account." });
+            
+            if (existingRequest.Status == MembershipRequestStatus.Rejected)
+                return new BadRequestObjectResult(new { Error = "A membership request with this email has been rejected. Please contact administration for more information." });
+        }
 
         // Determine if applicant is under 14
         var isUnder14 = CalculateAge(request.DateOfBirth) < 14;
