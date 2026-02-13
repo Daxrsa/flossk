@@ -212,7 +212,7 @@ public class AnnouncementService : IAnnouncementService
         return new OkObjectResult(MapToAnnouncementDto(updatedAnnouncement!, userId));
     }
 
-    public async Task<IActionResult> IncrementViewCountAsync(Guid id)
+    public async Task<IActionResult> IncrementViewCountAsync(Guid id, string userId)
     {
         var announcement = await _dbContext.Announcements.FindAsync(id);
 
@@ -221,8 +221,44 @@ public class AnnouncementService : IAnnouncementService
             return new NotFoundObjectResult(new { Error = "Announcement not found." });
         }
 
+        // Check if this user has already viewed this announcement
+        var existingView = await _dbContext.AnnouncementViews
+            .FirstOrDefaultAsync(v => v.AnnouncementId == id && v.UserId == userId);
+
+        if (existingView != null)
+        {
+            // User has already viewed this announcement, don't increment
+            return new OkObjectResult(new { ViewCount = announcement.ViewCount, AlreadyViewed = true });
+        }
+
+        // Create a new view record
+        var view = new AnnouncementView
+        {
+            Id = Guid.NewGuid(),
+            AnnouncementId = id,
+            UserId = userId,
+            ViewedAt = DateTime.UtcNow
+        };
+
+        _dbContext.AnnouncementViews.Add(view);
+
+        // Increment the view count
         announcement.ViewCount++;
         await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("User {UserId} viewed announcement {AnnouncementId}", userId, id);
+
+        return new OkObjectResult(new { ViewCount = announcement.ViewCount, AlreadyViewed = false });
+    }
+
+    public async Task<IActionResult> GetViewCountAsync(Guid id)
+    {
+        var announcement = await _dbContext.Announcements.FindAsync(id);
+
+        if (announcement == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Announcement not found." });
+        }
 
         return new OkObjectResult(new { ViewCount = announcement.ViewCount });
     }

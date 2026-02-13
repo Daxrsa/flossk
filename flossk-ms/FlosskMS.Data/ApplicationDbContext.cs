@@ -15,6 +15,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<UploadedFile> UploadedFiles { get; set; }
     public DbSet<Announcement> Announcements { get; set; }
     public DbSet<AnnouncementReaction> AnnouncementReactions { get; set; }
+    public DbSet<AnnouncementView> AnnouncementViews { get; set; }
     public DbSet<MembershipRequest> MembershipRequests { get; set; }
     public DbSet<CollaborationPad> CollaborationPads { get; set; }
     public DbSet<UserRfidCard> UserRfidCards { get; set; }
@@ -97,6 +98,25 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             
             // Ensure a user can only have one reaction per emoji per announcement
             entity.HasIndex(e => new { e.AnnouncementId, e.UserId, e.Emoji }).IsUnique();
+        });
+
+        builder.Entity<AnnouncementView>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.HasOne(e => e.Announcement)
+                .WithMany()
+                .HasForeignKey(e => e.AnnouncementId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            // Ensure a user can only view an announcement once (tracked)
+            entity.HasIndex(e => new { e.AnnouncementId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.ViewedAt);
         });
 
         builder.Entity<MembershipRequest>(entity =>

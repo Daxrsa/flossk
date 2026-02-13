@@ -88,7 +88,21 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [HttpPost("{id:guid}/view")]
     public async Task<IActionResult> IncrementViewCount(Guid id)
     {
-        return await _announcementService.IncrementViewCountAsync(id);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _announcementService.IncrementViewCountAsync(id, userId);
+    }
+
+    /// <summary>
+    /// Get the view count of an announcement
+    /// </summary>
+    [HttpGet("{id:guid}/view-count")]
+    public async Task<IActionResult> GetViewCount(Guid id)
+    {
+        return await _announcementService.GetViewCountAsync(id);
     }
 
     /// <summary>

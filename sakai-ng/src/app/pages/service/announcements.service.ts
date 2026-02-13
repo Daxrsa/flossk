@@ -59,6 +59,16 @@ export class AnnouncementsService {
         return this.http.delete(`${this.API_URL}/${id}`);
     }
 
+    // View tracking method
+    incrementViewCount(id: string): Observable<any> {
+        return this.http.post(`${this.API_URL}/${id}/view`, {});
+    }
+
+    // Get view count
+    getViewCount(id: string): Observable<any> {
+        return this.http.get(`${this.API_URL}/${id}/view-count`);
+    }
+
     // Reaction methods
     addReaction(announcementId: string, emoji: string): Observable<any> {
         return this.http.post(`${this.API_URL}/${announcementId}/reactions`, { emoji });

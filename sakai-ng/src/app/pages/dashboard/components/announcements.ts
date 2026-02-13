@@ -285,7 +285,7 @@ export class Announcements implements OnInit {
             date: a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
             category: a.category || 'General',
             priority: a.importance?.toLowerCase() || a.priority?.toLowerCase() || 'normal',
-            views: a.views || 0,
+            views: a.viewCount || a.views || 0,
             reactions: a.reactions || [],
             isCurrentUserCreator: a.isCurrentUserCreator || false
         };
@@ -416,6 +416,33 @@ export class Announcements implements OnInit {
     }
 
     viewAnnouncement(announcement: AnnouncementDisplay) {
+        // Increment view count
+        this.announcementsService.incrementViewCount(announcement.id).subscribe({
+            next: (response) => {
+                console.log('View count incremented', response);
+                // Fetch updated view count
+                this.announcementsService.getViewCount(announcement.id).subscribe({
+                    next: (viewCountResponse: any) => {
+                        // Update the announcement in the list
+                        const index = this.announcements.findIndex(a => a.id === announcement.id);
+                        if (index !== -1) {
+                            this.announcements[index].views = viewCountResponse.viewCount;
+                        }
+                        // Update selected announcement if it's the same one
+                        if (this.selectedAnnouncement?.id === announcement.id) {
+                            this.selectedAnnouncement.views = viewCountResponse.viewCount;
+                        }
+                    },
+                    error: (err) => {
+                        console.error('Failed to fetch view count:', err);
+                    }
+                });
+            },
+            error: (err) => {
+                console.error('Failed to increment view count:', err);
+            }
+        });
+
         // Fetch full details from API
         this.announcementsService.getById(announcement.id).subscribe({
             next: (response: any) => {
