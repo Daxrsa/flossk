@@ -138,7 +138,7 @@ public class ProjectService : IProjectService
                 .ThenInclude(r => r.CreatedByUser)
             .Include(p => p.Resources)
                 .ThenInclude(r => r.Files)
-                    .ThenInclude(rf => rf.File)
+                    .ThenInclude(rf => rf.File).AsSplitQuery()
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (project == null)
