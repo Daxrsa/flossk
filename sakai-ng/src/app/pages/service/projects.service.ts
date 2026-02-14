@@ -133,6 +133,6 @@ export class ProjectsService {
         files.forEach(file => {
             formData.append('files', file);
         });
-        return this.http.post<any>(`${environment.apiUrl}/Files/multiple`, formData);
+        return this.http.post<any>(`${environment.apiUrl}/Files/upload-multiple`, formData);
     }
 }
