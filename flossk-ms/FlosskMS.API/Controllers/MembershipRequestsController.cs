@@ -124,4 +124,24 @@ public class MembershipRequestsController(IMembershipRequestService membershipRe
     {
         return await _membershipRequestService.DownloadContractAsync(id, cancellationToken);
     }
+
+    /// <summary>
+    /// Seed test membership requests (Development only - Admin required)
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("seed")]
+    public async Task<IActionResult> SeedMembershipRequests(CancellationToken cancellationToken)
+    {
+        return await _membershipRequestService.SeedMembershipRequestsAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Delete all membership requests (Development only - Admin required)
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("delete-all")]
+    public async Task<IActionResult> DeleteAllMembershipRequests(CancellationToken cancellationToken)
+    {
+        return await _membershipRequestService.DeleteAllMembershipRequestsAsync(cancellationToken);
+    }
 }

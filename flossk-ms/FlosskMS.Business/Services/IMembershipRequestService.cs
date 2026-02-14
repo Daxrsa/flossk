@@ -56,4 +56,14 @@ public interface IMembershipRequestService
     /// Download the membership contract PDF for an approved member
     /// </summary>
     Task<IActionResult> DownloadContractAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Seed test membership requests (Development only - Admin required)
+    /// </summary>
+    Task<IActionResult> SeedMembershipRequestsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Delete all membership requests (Development only - Admin required)
+    /// </summary>
+    Task<IActionResult> DeleteAllMembershipRequestsAsync(CancellationToken cancellationToken = default);
 }

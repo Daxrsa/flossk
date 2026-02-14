@@ -233,6 +233,20 @@ public class MembershipRequestService : IMembershipRequestService
         membershipRequest.ReviewedByUserId = reviewerUserId;
         membershipRequest.BoardMemberSignatureFileId = signatureUploadResult.FileId;
 
+        // Add email to ApprovedEmails table to allow registration
+        var isEmailAlreadyApproved = await _dbContext.ApprovedEmails
+            .AnyAsync(e => e.Email.ToLower() == membershipRequest.Email.ToLower(), cancellationToken);
+
+        if (!isEmailAlreadyApproved)
+        {
+            _dbContext.ApprovedEmails.Add(new ApprovedEmail
+            {
+                Email = membershipRequest.Email,
+                ApprovedAt = DateTime.UtcNow,
+                ApprovedBy = reviewerUserId
+            });
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Membership request {RequestId} approved by user {UserId}", id, reviewerUserId);
@@ -502,6 +516,121 @@ public class MembershipRequestService : IMembershipRequestService
                 row.RelativeItem().Text($"Generated on {DateTime.UtcNow:MMMM dd, yyyy 'at' HH:mm 'UTC'}").FontSize(8).FontColor(Colors.Grey.Medium);
                 row.RelativeItem().AlignRight().Text("FLOSSK Membership Contract").FontSize(8).FontColor(Colors.Grey.Medium);
             });
+        });
+    }
+
+    public async Task<IActionResult> SeedMembershipRequestsAsync(CancellationToken cancellationToken = default)
+    {
+        var testRequests = new List<MembershipRequest>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                FullName = "John Doe",
+                Address = "123 Main Street",
+                City = "Prishtina",
+                PhoneNumber = "+383 44 123 456",
+                Email = "johndoe@gmail.com",
+                SchoolOrCompany = "University of Prishtina",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(1998, 5, 15), DateTimeKind.Utc),
+                Statement = "I am passionate about open source software and want to contribute to the community.",
+                IdCardNumber = "123456789",
+                Status = MembershipRequestStatus.Pending,
+                CreatedAt = DateTime.UtcNow.AddDays(-5)
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                FullName = "Jane Smith",
+                Address = "456 Oak Avenue",
+                City = "Prizren",
+                PhoneNumber = "+383 45 234 567",
+                Email = "janesmith@gmail.com",
+                SchoolOrCompany = "Tech High School",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(2000, 8, 22), DateTimeKind.Utc),
+                Statement = "I want to learn more about Linux and contribute to FLOSSK projects.",
+                IdCardNumber = "987654321",
+                Status = MembershipRequestStatus.Pending,
+                CreatedAt = DateTime.UtcNow.AddDays(-3)
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                FullName = "Alice Johnson",
+                Address = "789 Pine Road",
+                City = "Gjilan",
+                PhoneNumber = "+383 46 345 678",
+                Email = "alicejohnson@gmail.com",
+                SchoolOrCompany = "Freelance Developer",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(1995, 12, 10), DateTimeKind.Utc),
+                Statement = "Excited to join the FLOSSK community and share knowledge about open source.",
+                IdCardNumber = "456789123",
+                Status = MembershipRequestStatus.Pending,
+                CreatedAt = DateTime.UtcNow.AddDays(-1)
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                FullName = "Bob Wilson",
+                Address = "321 Elm Street",
+                City = "Peja",
+                PhoneNumber = "+383 47 456 789",
+                Email = "bobwilson@gmail.com",
+                SchoolOrCompany = "Innovation Lab",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(1997, 3, 28), DateTimeKind.Utc),
+                Statement = "I believe in the power of open source and community collaboration.",
+                IdCardNumber = "654321987",
+                Status = MembershipRequestStatus.Pending,
+                CreatedAt = DateTime.UtcNow.AddHours(-12)
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                FullName = "Emma Davis",
+                Address = "555 Maple Drive",
+                City = "Ferizaj",
+                PhoneNumber = "+383 48 567 890",
+                Email = "emmadavis@gmail.com",
+                SchoolOrCompany = "Software Engineering Student",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(2001, 7, 5), DateTimeKind.Utc),
+                Statement = "Looking forward to learning from experienced developers in the FLOSSK community.",
+                IdCardNumber = "789123456",
+                Status = MembershipRequestStatus.Pending,
+                CreatedAt = DateTime.UtcNow.AddHours(-6)
+            }
+        };
+
+        await _dbContext.MembershipRequests.AddRangeAsync(testRequests, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Seeded {Count} test membership requests", testRequests.Count);
+
+        return new OkObjectResult(new 
+        { 
+            Message = $"Successfully seeded {testRequests.Count} membership requests",
+            Count = testRequests.Count
+        });
+    }
+
+    public async Task<IActionResult> DeleteAllMembershipRequestsAsync(CancellationToken cancellationToken = default)
+    {
+        var allRequests = await _dbContext.MembershipRequests.ToListAsync(cancellationToken);
+        var count = allRequests.Count;
+
+        if (count == 0)
+        {
+            return new OkObjectResult(new { Message = "No membership requests to delete" });
+        }
+
+        _dbContext.MembershipRequests.RemoveRange(allRequests);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogWarning("Deleted all {Count} membership requests", count);
+
+        return new OkObjectResult(new 
+        { 
+            Message = $"Successfully deleted all membership requests",
+            Count = count
         });
     }
 

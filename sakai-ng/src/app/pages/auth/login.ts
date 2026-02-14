@@ -53,8 +53,16 @@ import { CommonModule } from '@angular/common';
                                     <span class="font-medium cursor-pointer text-primary" (click)="toggleMode()">Sign up</span>
                                 </div>
                             } @else {
-                                <label for="fullName" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Full Name</label>
-                                <input pInputText id="fullName" type="text" placeholder="Full name" class="w-full md:w-120 mb-6" [(ngModel)]="fullName" />
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    <div>
+                                        <label for="firstName" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">First Name</label>
+                                        <input pInputText id="firstName" type="text" placeholder="First name" class="w-full" [(ngModel)]="firstName" />
+                                    </div>
+                                    <div>
+                                        <label for="lastName" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Last Name</label>
+                                        <input pInputText id="lastName" type="text" placeholder="Last name" class="w-full" [(ngModel)]="lastName" />
+                                    </div>
+                                </div>
 
                                 <label for="regEmail" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
                                 <input pInputText id="regEmail" type="text" placeholder="Email address" class="w-full md:w-120 mb-6" [(ngModel)]="email" />
@@ -100,7 +108,9 @@ export class Login {
 
     checked: boolean = false;
 
-    fullName: string = '';
+    firstName: string = '';
+
+    lastName: string = '';
 
     confirmPassword: string = '';
 
@@ -134,9 +144,11 @@ export class Login {
         }
 
         this.authService.register({ 
-            fullName: this.fullName, 
+            firstName: this.firstName, 
+            lastName: this.lastName, 
             email: this.email, 
-            password: this.password 
+            password: this.password,
+            confirmPassword: this.confirmPassword 
         }).subscribe({
             next: () => {
                 this.authService.loadCurrentUser();
