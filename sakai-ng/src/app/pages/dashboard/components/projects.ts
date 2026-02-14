@@ -327,11 +327,15 @@ interface GitHubRepo {
                         <div *ngFor="let resource of viewingObjective.resources" class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
                             <div class="flex justify-between items-start mb-2">
                                 <div class="flex-1">
-                                    <a [href]="resource.url" target="_blank" class="font-semibold text-primary hover:underline flex items-center gap-2">
+                                    <a *ngIf="resource.url" [href]="resource.url" target="_blank" class="font-semibold text-primary hover:underline flex items-center gap-2">
                                         <i [class]="getResourceIcon(resource.type)"></i>
                                         {{ resource.title }}
                                         <i class="pi pi-external-link text-xs"></i>
                                     </a>
+                                    <span *ngIf="!resource.url" class="font-semibold text-surface-900 dark:text-surface-0 flex items-center gap-2">
+                                        <i [class]="getResourceIcon(resource.type)"></i>
+                                        {{ resource.title }}
+                                    </span>
                                     <p class="text-sm text-muted-color m-0 mt-1">{{ resource.description }}</p>
                                 </div>
                                 <div class="flex gap-1">
@@ -339,7 +343,21 @@ interface GitHubRepo {
                                     <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger" (onClick)="confirmDeleteObjectiveResource(resource)" />
                                 </div>
                             </div>
-                            <p-tag [value]="resource.type" severity="secondary" styleClass="text-xs"></p-tag>
+                            <div class="flex items-center gap-2 mb-2">
+                                <p-tag [value]="resource.type" severity="secondary" styleClass="text-xs"></p-tag>
+                            </div>
+                            <div *ngIf="resource.files && resource.files.length > 0" class="mt-2">
+                                <span class="text-xs text-muted-color">Attached files:</span>
+                                <div class="flex flex-col gap-1 mt-1">
+                                    <div *ngFor="let file of resource.files" class="flex items-center gap-2 p-2 bg-white dark:bg-surface-900 rounded">
+                                        <i class="pi pi-file text-sm"></i>
+                                        <a (click)="downloadFile(file.id, file.originalFileName)" class="flex-1 truncate text-sm text-primary cursor-pointer hover:underline">
+                                            {{ file.originalFileName }}
+                                        </a>
+                                        <span class="text-muted-color text-xs">{{ formatFileSize(file.fileSize) }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div *ngIf="!viewingObjective.resources || viewingObjective.resources.length === 0" class="text-center text-muted-color py-4 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -1042,10 +1060,11 @@ interface GitHubRepo {
                                 <div *ngFor="let resource of selectedProject.resources" class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
                                     <div class="flex justify-between items-start mb-2">
                                         <div class="flex-1">
-                                            <a [href]="resource.url" target="_blank" class="font-semibold text-primary hover:underline flex items-center gap-2">
+                                            <a *ngIf="resource.url" [href]="resource.url" target="_blank" class="font-semibold text-primary hover:underline flex items-center gap-2">
                                                 {{ resource.title }}
                                                 <i class="pi pi-external-link text-xs"></i>
                                             </a>
+                                            <span *ngIf="!resource.url" class="font-semibold text-surface-900 dark:text-surface-0">{{ resource.title }}</span>
                                             <p class="text-xs text-muted-color m-0 mt-1">{{ resource.description }}</p>
                                         </div>
                                         <div class="flex gap-1">
@@ -1053,7 +1072,21 @@ interface GitHubRepo {
                                             <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger" (onClick)="confirmDeleteResource(resource)" />
                                         </div>
                                     </div>
-                                    <p-tag [value]="resource.type" severity="secondary" styleClass="text-xs"></p-tag>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <p-tag [value]="resource.type" severity="secondary" styleClass="text-xs"></p-tag>
+                                    </div>
+                                    <div *ngIf="resource.files && resource.files.length > 0" class="mt-2">
+                                        <span class="text-xs text-muted-color">Attached files:</span>
+                                        <div class="flex flex-col gap-1 mt-1">
+                                            <div *ngFor="let file of resource.files" class="flex items-center gap-2 p-2 bg-white dark:bg-surface-900 rounded">
+                                                <i class="pi pi-file text-sm"></i>
+                                                <a (click)="downloadFile(file.id, file.originalFileName)" class="flex-1 truncate text-sm text-primary cursor-pointer hover:underline">
+                                                    {{ file.originalFileName }}
+                                                </a>
+                                                <span class="text-muted-color text-xs">{{ formatFileSize(file.fileSize) }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div *ngIf="!selectedProject.resources || selectedProject.resources.length === 0" class="text-center text-muted-color text-sm py-4">
                                     No resources added yet
@@ -2344,6 +2377,26 @@ export class Projects {
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    downloadFile(fileId: string, fileName: string): void {
+        const downloadUrl = `${environment.apiUrl}/Files/${fileId}/download`;
+        
+        this.http.get(downloadUrl, { responseType: 'blob' }).subscribe({
+            next: (blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            },
+            error: (err) => {
+                console.error('Error downloading file:', err);
+            }
+        });
     }
     
     // Avatar helper methods
