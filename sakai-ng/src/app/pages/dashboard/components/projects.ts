@@ -351,10 +351,14 @@ interface GitHubRepo {
                                 <div class="flex flex-col gap-1 mt-1">
                                     <div *ngFor="let file of resource.files" class="flex items-center gap-2 p-2 bg-white dark:bg-surface-900 rounded">
                                         <i class="pi pi-file text-sm"></i>
-                                        <a (click)="downloadFile(file.id, file.originalFileName)" class="flex-1 truncate text-sm text-primary cursor-pointer hover:underline">
+                                        <span class="flex-1 truncate text-sm text-surface-900 dark:text-surface-0">
                                             {{ file.originalFileName }}
-                                        </a>
+                                        </span>
                                         <span class="text-muted-color text-xs">{{ formatFileSize(file.fileSize) }}</span>
+                                        <div class="flex gap-1">
+                                            <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="viewFile(file.id, file.originalFileName)" />
+                                            <p-button icon="pi pi-download" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Download" (onClick)="downloadFile(file.id, file.originalFileName)" />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1080,10 +1084,14 @@ interface GitHubRepo {
                                         <div class="flex flex-col gap-1 mt-1">
                                             <div *ngFor="let file of resource.files" class="flex items-center gap-2 p-2 bg-white dark:bg-surface-900 rounded">
                                                 <i class="pi pi-file text-sm"></i>
-                                                <a (click)="downloadFile(file.id, file.originalFileName)" class="flex-1 truncate text-sm text-primary cursor-pointer hover:underline">
+                                                <span class="flex-1 truncate text-sm text-surface-900 dark:text-surface-0">
                                                     {{ file.originalFileName }}
-                                                </a>
+                                                </span>
                                                 <span class="text-muted-color text-xs">{{ formatFileSize(file.fileSize) }}</span>
+                                                <div class="flex gap-1">
+                                                    <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="viewFile(file.id, file.originalFileName)" />
+                                                    <p-button icon="pi pi-download" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Download" (onClick)="downloadFile(file.id, file.originalFileName)" />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -2377,6 +2385,22 @@ export class Projects {
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    viewFile(fileId: string, fileName: string): void {
+        const downloadUrl = `${environment.apiUrl}/Files/${fileId}/download`;
+        
+        this.http.get(downloadUrl, { responseType: 'blob' }).subscribe({
+            next: (blob) => {
+                const url = window.URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                // Clean up after a delay to ensure the file opens
+                setTimeout(() => window.URL.revokeObjectURL(url), 100);
+            },
+            error: (err) => {
+                console.error('Error viewing file:', err);
+            }
+        });
     }
 
     downloadFile(fileId: string, fileName: string): void {
