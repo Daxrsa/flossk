@@ -38,7 +38,7 @@ public interface IProjectService
     Task<IActionResult> LeaveObjectiveAsync(Guid objectiveId, string userId);
 
     // Resource operations
-    Task<IActionResult> CreateResourceAsync(CreateResourceDto request);
+    Task<IActionResult> CreateResourceAsync(CreateResourceDto request, string userId);
     Task<IActionResult> GetResourceByIdAsync(Guid id);
     Task<IActionResult> GetResourcesByProjectIdAsync(Guid projectId);
     Task<IActionResult> GetResourcesByObjectiveIdAsync(Guid objectiveId);

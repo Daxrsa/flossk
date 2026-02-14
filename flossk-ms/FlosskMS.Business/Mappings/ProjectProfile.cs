@@ -85,6 +85,10 @@ public class ProjectProfile : Profile
         // Resource mappings
         CreateMap<Resource, ResourceDto>()
             .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString().ToLowerInvariant()))
+            .ForMember(dest => dest.CreatedByUserName, opt => opt.MapFrom(src => 
+                src.CreatedByUser != null 
+                    ? $"{src.CreatedByUser.FirstName} {src.CreatedByUser.LastName}".Trim() 
+                    : null))
             .ForMember(dest => dest.Files, opt => opt.MapFrom(src => src.Files.Select(rf => new FileDto
             {
                 Id = rf.File.Id,

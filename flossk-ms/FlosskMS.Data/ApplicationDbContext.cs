@@ -285,6 +285,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(e => e.Type);
             entity.HasIndex(e => e.ProjectId);
             entity.HasIndex(e => e.ObjectiveId);

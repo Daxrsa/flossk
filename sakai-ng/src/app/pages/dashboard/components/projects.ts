@@ -49,6 +49,8 @@ interface Resource {
     description: string;
     type: 'documentation' | 'tutorial' | 'tool' | 'reference' | 'other';
     files?: ResourceFile[];
+    createdByUserId?: string;
+    createdByUserName?: string;
 }
 
 interface Objective {
@@ -338,13 +340,16 @@ interface GitHubRepo {
                                     </span>
                                     <p class="text-sm text-muted-color m-0 mt-1">{{ resource.description }}</p>
                                 </div>
-                                <div class="flex gap-1">
+                                <div class="flex gap-1" *ngIf="canEditResource(resource)">
                                     <p-button icon="pi pi-pencil" size="small" [text]="true" severity="secondary" (onClick)="openEditObjectiveResourceDialog(resource)" />
                                     <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger" (onClick)="confirmDeleteObjectiveResource(resource)" />
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 mb-2">
                                 <p-tag [value]="resource.type" severity="secondary" styleClass="text-xs"></p-tag>
+                                <span *ngIf="resource.createdByUserName" class="text-xs text-muted-color">
+                                    <i class="pi pi-user text-xs mr-1"></i>{{ resource.createdByUserName }}
+                                </span>
                             </div>
                             <div *ngIf="resource.files && resource.files.length > 0" class="mt-2">
                                 <span class="text-xs text-muted-color">Attached files:</span>
@@ -1071,13 +1076,16 @@ interface GitHubRepo {
                                             <span *ngIf="!resource.url" class="font-semibold text-surface-900 dark:text-surface-0">{{ resource.title }}</span>
                                             <p class="text-xs text-muted-color m-0 mt-1">{{ resource.description }}</p>
                                         </div>
-                                        <div class="flex gap-1">
+                                        <div class="flex gap-1" *ngIf="canEditResource(resource)">
                                             <p-button icon="pi pi-pencil" size="small" [text]="true" severity="secondary" (onClick)="openEditResourceDialog(resource)" />
                                             <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger" (onClick)="confirmDeleteResource(resource)" />
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2 mb-2">
                                         <p-tag [value]="resource.type" severity="secondary" styleClass="text-xs"></p-tag>
+                                        <span *ngIf="resource.createdByUserName" class="text-xs text-muted-color">
+                                            <i class="pi pi-user text-xs mr-1"></i>{{ resource.createdByUserName }}
+                                        </span>
                                     </div>
                                     <div *ngIf="resource.files && resource.files.length > 0" class="mt-2">
                                         <span class="text-xs text-muted-color">Attached files:</span>
@@ -2199,7 +2207,9 @@ export class Projects {
                         // Transform resource type to lowercase
                         const normalizedResource = {
                             ...createdResource,
-                            type: createdResource.type?.toLowerCase() || 'other'
+                            type: createdResource.type?.toLowerCase() || 'other',
+                            createdByUserId: createdResource.createdByUserId || createdResource.CreatedByUserId,
+                            createdByUserName: createdResource.createdByUserName || createdResource.CreatedByUserName
                         };
                         this.selectedProject.resources.push(normalizedResource);
                     }
@@ -2229,7 +2239,9 @@ export class Projects {
                             // Transform resource type to lowercase
                             const normalizedResource = {
                                 ...updatedResource,
-                                type: updatedResource.type?.toLowerCase() || 'other'
+                                type: updatedResource.type?.toLowerCase() || 'other',
+                                createdByUserId: updatedResource.createdByUserId || updatedResource.CreatedByUserId,
+                                createdByUserName: updatedResource.createdByUserName || updatedResource.CreatedByUserName
                             };
                             this.selectedProject.resources[index] = normalizedResource;
                         }
@@ -2476,7 +2488,13 @@ export class Projects {
                     if (!this.viewingObjective!.resources) {
                         this.viewingObjective!.resources = [];
                     }
-                    this.viewingObjective!.resources.push(response);
+                    const normalizedResource = {
+                        ...response,
+                        type: response.type?.toLowerCase() || 'other',
+                        createdByUserId: response.createdByUserId || response.CreatedByUserId,
+                        createdByUserName: response.createdByUserName || response.CreatedByUserName
+                    };
+                    this.viewingObjective!.resources.push(normalizedResource);
                     this.objectiveResourceDialogVisible = false;
                     this.savingObjectiveResource = false;
                 },
@@ -2501,7 +2519,13 @@ export class Projects {
                     if (this.viewingObjective?.resources) {
                         const index = this.viewingObjective.resources.findIndex(r => r.id === this.currentObjectiveResource.id);
                         if (index !== -1) {
-                            this.viewingObjective.resources[index] = response;
+                            const normalizedResource = {
+                                ...response,
+                                type: response.type?.toLowerCase() || 'other',
+                                createdByUserId: response.createdByUserId || response.CreatedByUserId,
+                                createdByUserName: response.createdByUserName || response.CreatedByUserName
+                            };
+                            this.viewingObjective.resources[index] = normalizedResource;
                         }
                     }
                     this.objectiveResourceDialogVisible = false;
@@ -3152,12 +3176,16 @@ export class Projects {
                 members: this.mapTeamMembersFromApi(o.teamMembers || []),
                 resources: (o.resources || []).map((r: any) => ({
                     ...r,
-                    type: r.type?.toLowerCase() || 'documentation'
+                    type: r.type?.toLowerCase() || 'documentation',
+                    createdByUserId: r.createdByUserId || r.CreatedByUserId,
+                    createdByUserName: r.createdByUserName || r.CreatedByUserName
                 }))
             })),
             resources: (p.resources || []).map((r: any) => ({
                 ...r,
-                type: r.type?.toLowerCase() || 'documentation'
+                type: r.type?.toLowerCase() || 'documentation',
+                createdByUserId: r.createdByUserId || r.CreatedByUserId,
+                createdByUserName: r.createdByUserName || r.CreatedByUserName
             })),
             githubRepo: p.githubRepo,
             createdByUserId: p.createdByUserId
@@ -3172,5 +3200,14 @@ export class Projects {
             case 'completed': return 'completed';
             default: return 'todo';
         }
+    }
+
+    // Check if current user can edit/delete a resource
+    canEditResource(resource: Resource): boolean {
+        const currentUser = this.authService.currentUser();
+        if (!currentUser) return false;
+        
+        // Users can edit their own resources
+        return resource.createdByUserId === currentUser.id;
     }
 }

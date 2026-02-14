@@ -129,8 +129,13 @@ public class ProjectService : IProjectService
                         .ThenInclude(u => u.UploadedFiles)
             .Include(p => p.Objectives)
                 .ThenInclude(o => o.Resources)
+                    .ThenInclude(r => r.CreatedByUser)
+            .Include(p => p.Objectives)
+                .ThenInclude(o => o.Resources)
                     .ThenInclude(r => r.Files)
                         .ThenInclude(rf => rf.File)
+            .Include(p => p.Resources)
+                .ThenInclude(r => r.CreatedByUser)
             .Include(p => p.Resources)
                 .ThenInclude(r => r.Files)
                     .ThenInclude(rf => rf.File)
@@ -865,7 +870,7 @@ public class ProjectService : IProjectService
 
     #region Resource Operations
 
-    public async Task<IActionResult> CreateResourceAsync(CreateResourceDto request)
+    public async Task<IActionResult> CreateResourceAsync(CreateResourceDto request, string userId)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
         {
@@ -932,6 +937,7 @@ public class ProjectService : IProjectService
         var resource = _mapper.Map<Resource>(request);
         resource.Id = Guid.NewGuid();
         resource.CreatedAt = DateTime.UtcNow;
+        resource.CreatedByUserId = userId;
 
         _dbContext.Resources.Add(resource);
 
@@ -963,6 +969,7 @@ public class ProjectService : IProjectService
         var resource = await _dbContext.Resources
             .Include(r => r.Files)
                 .ThenInclude(rf => rf.File)
+            .Include(r => r.CreatedByUser)
             .FirstOrDefaultAsync(r => r.Id == id);
         if (resource == null)
         {
@@ -983,6 +990,7 @@ public class ProjectService : IProjectService
         var resources = await _dbContext.Resources
             .Include(r => r.Files)
                 .ThenInclude(rf => rf.File)
+            .Include(r => r.CreatedByUser)
             .Where(r => r.ProjectId == projectId)
             .OrderBy(r => r.CreatedAt)
             .ToListAsync();
@@ -1001,6 +1009,7 @@ public class ProjectService : IProjectService
         var resources = await _dbContext.Resources
             .Include(r => r.Files)
                 .ThenInclude(rf => rf.File)
+            .Include(r => r.CreatedByUser)
             .Where(r => r.ObjectiveId == objectiveId)
             .OrderBy(r => r.CreatedAt)
             .ToListAsync();

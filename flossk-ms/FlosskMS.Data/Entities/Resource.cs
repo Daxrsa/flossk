@@ -15,6 +15,10 @@ public class Resource
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
+    // Creator tracking
+    public string? CreatedByUserId { get; set; }
+    public ApplicationUser? CreatedByUser { get; set; }
+
     // Optional relationship to Project (a resource can belong to a project)
     public Guid? ProjectId { get; set; }
     public Project? Project { get; set; }

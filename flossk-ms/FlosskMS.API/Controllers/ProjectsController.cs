@@ -338,7 +338,13 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [HttpPost("resources")]
     public async Task<IActionResult> CreateResource([FromBody] CreateResourceDto request)
     {
-        return await _projectService.CreateResourceAsync(request);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        return await _projectService.CreateResourceAsync(request, userId);
     }
 
     /// <summary>

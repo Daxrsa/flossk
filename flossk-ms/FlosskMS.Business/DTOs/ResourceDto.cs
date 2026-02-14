@@ -11,5 +11,7 @@ public class ResourceDto
     public Guid? ObjectiveId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public string? CreatedByUserId { get; set; }
+    public string? CreatedByUserName { get; set; }
     public List<FileDto> Files { get; set; } = new();
 }
