@@ -334,7 +334,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     /// <summary>
     /// Create a new resource (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("resources")]
     public async Task<IActionResult> CreateResource([FromBody] CreateResourceDto request)
     {
@@ -353,7 +353,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     /// <summary>
     /// Update a resource (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("resources/{id:guid}")]
     public async Task<IActionResult> UpdateResource(Guid id, [FromBody] UpdateResourceDto request)
     {
@@ -363,7 +363,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     /// <summary>
     /// Delete a resource (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("resources/{id:guid}")]
     public async Task<IActionResult> DeleteResource(Guid id)
     {
