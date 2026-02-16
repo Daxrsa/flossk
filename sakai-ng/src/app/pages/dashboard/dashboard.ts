@@ -86,21 +86,38 @@ interface ProjectDeadline {
             font-weight: 600;
         }
         
-        :host ::ng-deep .fc .fc-button {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+        :host ::ng-deep .fc .fc-button,
+        :host ::ng-deep .fc .fc-button-primary {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
             padding: 0.5rem 1rem;
             text-transform: capitalize;
         }
         
-        :host ::ng-deep .fc .fc-button:hover {
-            background-color: var(--primary-600);
-            border-color: var(--primary-600);
+        :host ::ng-deep .fc .fc-button:hover:not(:disabled),
+        :host ::ng-deep .fc .fc-button-primary:hover:not(:disabled),
+        :host ::ng-deep .fc .fc-button:focus,
+        :host ::ng-deep .fc .fc-button-primary:focus {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+            opacity: 0.9;
+            filter: brightness(0.92);
         }
         
-        :host ::ng-deep .fc .fc-button-active {
-            background-color: var(--primary-700) !important;
-            border-color: var(--primary-700) !important;
+        :host ::ng-deep .fc .fc-button:disabled {
+            opacity: 0.6;
+        }
+        
+        :host ::ng-deep .fc .fc-button-active,
+        :host ::ng-deep .fc .fc-button-primary:not(:disabled).fc-button-active,
+        :host ::ng-deep .fc .fc-button-primary:not(:disabled):active {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+            opacity: 1;
+            filter: brightness(0.85);
         }
         
         :host ::ng-deep .fc-daygrid-event {
@@ -116,6 +133,22 @@ interface ProjectDeadline {
         
         :host ::ng-deep .fc-day-today {
             background-color: var(--primary-50) !important;
+        }
+        
+        /* Dark mode - make list day side text black */
+        :host ::ng-deep .dark .fc-list-day-side-text,
+        :host ::ng-deep [class*="dark"] .fc-list-day-side-text {
+            color: #000000 !important;
+        }
+        
+        @media (max-width: 768px) {
+            :host ::ng-deep .fc-header-toolbar.fc-toolbar.fc-toolbar-ltr {
+                display: flex;
+                flex-direction: column;
+                align-items: start;
+                gap: 0.5rem;
+                color: black !important;
+            }
         }
     `],
     template: `   
@@ -494,47 +527,44 @@ interface ProjectDeadline {
         </p-dialog>
 
         <!-- Project Event Details Dialog -->
-        <p-dialog [(visible)]="eventDialogVisible" [header]="selectedEvent?.title || 'Event Details'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'auto'}" appendTo="body">
-            <div *ngIf="selectedEvent" class="flex flex-col gap-4">
-                <div class="flex items-center gap-3">
-                    <i [class]="selectedEvent.type === 'start' ? 'pi pi-play text-3xl text-blue-500' : 'pi pi-flag text-3xl text-orange-500'"></i>
-                    <div>
-                        <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 m-0">{{ selectedEvent.title }}</h3>
-                        <p class="text-muted-color text-sm m-0 mt-1">{{ selectedEvent.type === 'start' ? 'Project Start Date' : 'Project Deadline' }}</p>
+        <p-dialog [(visible)]="eventDialogVisible" [modal]="true" [style]="{width: '40rem'}" appendTo="body">
+            <div *ngIf="selectedEvent" class="flex flex-col gap-5">
+                <!-- Event Title with Icon -->
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center" 
+                         [ngClass]="selectedEvent.type === 'start' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-orange-100 dark:bg-orange-900/30'">
+                        <i [class]="selectedEvent.type === 'start' ? 'pi pi-play text-xl text-blue-600 dark:text-blue-400' : 'pi pi-flag text-xl text-orange-600 dark:text-orange-400'"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 m-0 mb-2">{{ selectedEvent.title }}</h3>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <p-tag [value]="selectedEvent.type === 'start' ? 'Start Date' : 'Deadline'" 
+                                   [severity]="selectedEvent.type === 'start' ? 'info' : 'warn'" 
+                                   [rounded]="true"></p-tag>
+                            <p-tag [value]="selectedEvent.status" 
+                                   [severity]="getProjectStatusSeverity(selectedEvent.status)"
+                                   [rounded]="true"></p-tag>
+                        </div>
                     </div>
                 </div>
                 
-                <p-divider />
+                <!-- Date -->
+                <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4">
+                    <div class="flex items-center gap-3">
+                        <i class="pi pi-calendar text-2xl text-surface-500"></i>
+                        <div class="text-lg font-semibold text-surface-900 dark:text-surface-0">{{ selectedEvent.date | date:'fullDate' }}</div>
+                    </div>
+                </div>
                 
-                <div class="flex flex-col gap-3">
-                    <div>
-                        <label class="block text-surface-900 dark:text-surface-0 font-semibold mb-2">Date</label>
-                        <div class="flex items-center gap-2">
-                            <i class="pi pi-calendar text-muted-color"></i>
-                            <span class="text-surface-700 dark:text-surface-300">{{ selectedEvent.date | date:'fullDate' }}</span>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-surface-900 dark:text-surface-0 font-semibold mb-2">Status</label>
-                        <p-tag [value]="selectedEvent.status" [severity]="getProjectStatusSeverity(selectedEvent.status)"></p-tag>
-                    </div>
-                    
-                    <div *ngIf="selectedEvent.description">
-                        <label class="block text-surface-900 dark:text-surface-0 font-semibold mb-2">Description</label>
-                        <p class="text-surface-700 dark:text-surface-300 m-0">{{ selectedEvent.description }}</p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-surface-900 dark:text-surface-0 font-semibold mb-2">Event Type</label>
-                        <p-tag [value]="selectedEvent.type === 'start' ? 'Start Date' : 'End Date'" 
-                               [severity]="selectedEvent.type === 'start' ? 'info' : 'warn'"></p-tag>
-                    </div>
+                <!-- Description -->
+                <div *ngIf="selectedEvent.description">
+                    <div class="text-xs text-muted-color uppercase tracking-wide mb-2">Description</div>
+                    <p class="text-surface-700 dark:text-surface-300 leading-relaxed m-0">{{ selectedEvent.description }}</p>
                 </div>
             </div>
             
             <div class="flex justify-end gap-2 mt-6">
-                <p-button label="Close" severity="secondary" (onClick)="eventDialogVisible = false" />
+                <p-button label="Close" (onClick)="eventDialogVisible = false" />
             </div>
         </p-dialog>
     `
