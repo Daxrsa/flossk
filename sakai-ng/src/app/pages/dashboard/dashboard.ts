@@ -135,9 +135,20 @@ interface ProjectDeadline {
             background-color: var(--primary-50) !important;
         }
         
-        /* Dark mode - make list day side text black */
         :host ::ng-deep .dark .fc-list-day-side-text,
         :host ::ng-deep [class*="dark"] .fc-list-day-side-text {
+            color: #000000 !important;
+        }
+
+        ::ng-deep [class*="dark"] .fc-direction-ltr .fc-list-day-side-text, .fc-direction-rtl .fc-list-day-text {
+            color: #000000 !important;
+        }
+
+        ::ng-deep [class*="dark"] .fc-list-day-text {
+            color: #000000 !important;
+        }
+
+        ::ng-deep [class*="dark"] .fc-col-header-cell-cushion {
             color: #000000 !important;
         }
         
