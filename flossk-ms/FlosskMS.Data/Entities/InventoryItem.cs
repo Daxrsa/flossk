@@ -1,0 +1,25 @@
+namespace FlosskMS.Data.Entities;
+
+public class InventoryItem
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public InventoryCategory Category { get; set; }
+    public int Quantity { get; set; }
+    public InventoryStatus Status { get; set; } = InventoryStatus.Free;
+    public string? Description { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+
+    // User currently using this item (only when Status is InUse)
+    public string? CurrentUserId { get; set; }
+    public ApplicationUser? CurrentUser { get; set; }
+    public DateTime? CheckedOutAt { get; set; }
+
+    // Creator tracking
+    public string CreatedByUserId { get; set; } = string.Empty;
+    public ApplicationUser CreatedByUser { get; set; } = null!;
+
+    // Navigation properties
+    public ICollection<InventoryItemImage> Images { get; set; } = [];
+}

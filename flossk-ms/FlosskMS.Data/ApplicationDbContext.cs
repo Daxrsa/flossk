@@ -26,6 +26,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProjectTeamMember> ProjectTeamMembers { get; set; }
     public DbSet<ObjectiveTeamMember> ObjectiveTeamMembers { get; set; }
     public DbSet<CalendarEvent> CalendarEvents { get; set; }
+    public DbSet<InventoryItem> InventoryItems { get; set; }
+    public DbSet<InventoryItemImage> InventoryItemImages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -365,6 +367,56 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // InventoryItem configuration
+        builder.Entity<InventoryItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Category)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            entity.Property(e => e.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.CurrentUser)
+                .WithMany()
+                .HasForeignKey(e => e.CurrentUserId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CurrentUserId);
+        });
+
+        // InventoryItemImage configuration
+        builder.Entity<InventoryItemImage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.HasOne(e => e.InventoryItem)
+                .WithMany(i => i.Images)
+                .HasForeignKey(e => e.InventoryItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.UploadedFile)
+                .WithMany()
+                .HasForeignKey(e => e.UploadedFileId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.InventoryItemId);
+            entity.HasIndex(e => e.UploadedFileId);
+            entity.HasIndex(e => new { e.InventoryItemId, e.UploadedFileId }).IsUnique();
         });
     }
 }
