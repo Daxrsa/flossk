@@ -61,6 +61,9 @@ interface Objective {
     assignedTo: Member;
     members?: Member[];
     resources?: Resource[];
+    createdByUserId?: string;
+    createdByFirstName?: string;
+    createdByLastName?: string;
 }
 
 interface Project {
@@ -76,6 +79,8 @@ interface Project {
     resources?: Resource[];
     githubRepo?: string; // GitHub repository URL for tracking commits
     createdByUserId?: string; // Project creator user ID
+    createdByFirstName?: string; // Project creator first name
+    createdByLastName?: string; // Project creator last name
 }
 
 interface GitHubCommit {
@@ -268,6 +273,15 @@ interface GitHubRepo {
         <!-- Objective Detail Dialog -->
         <p-dialog [(visible)]="objectiveDetailDialogVisible" [header]="viewingObjective?.title" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '80vh', 'overflow': 'auto'}" appendTo="body" [maximizable]="true">
             <div *ngIf="viewingObjective" class="flex flex-col gap-5">
+                <!-- Creator Information -->
+                <div *ngIf="viewingObjective.createdByFirstName || viewingObjective.createdByLastName" class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3">
+                    <div class="flex items-center gap-2">
+                        <i class="pi pi-user text-primary"></i>
+                        <span class="font-semibold text-surface-600 dark:text-surface-400">Created by:</span>
+                        <span class="text-surface-900 dark:text-surface-0">{{ viewingObjective.createdByFirstName }} {{ viewingObjective.createdByLastName }}</span>
+                    </div>
+                </div>
+
                 <!-- Status and Progress
                 <div class="flex items-center justify-between">
                     <p-tag 
@@ -563,7 +577,7 @@ interface GitHubRepo {
         
         <div class="card">
             <div class="flex justify-end items-center mb-6">
-                <p-button label="New Project" icon="pi pi-plus" size="small" (onClick)="openAddDialog()"></p-button>
+                <p-button *ngIf="isAdmin()" label="New Project" icon="pi pi-plus" size="small" (onClick)="openAddDialog()"></p-button>
             </div>
 
             <!-- Kanban-style Board -->
@@ -582,8 +596,8 @@ interface GitHubRepo {
                                         {{ project.title }}
                                     </h4>
                                     <div class="flex justify-content-center align-content-end">
-                                        <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
-                                        <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
+                                        <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
+                                        <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
                                     </div>
                                 </div>
 
@@ -664,8 +678,8 @@ interface GitHubRepo {
                                         {{ project.title }}
                                     </h4>
                                     <div class="flex justify-content-center align-content-end">
-                                    <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
-                                    <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
+                                    <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
+                                    <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
                                     </div>
                                 </div>
 
@@ -752,8 +766,8 @@ interface GitHubRepo {
                                         <!-- <i class="pi pi-check-circle text-green-500 text-xl"></i> -->
                                     </div>
                                     <div class="flex justify-content-center align-content-end">
-                                        <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
-                                        <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
+                                        <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
+                                        <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
                                     </div>
                                 </div>
 
@@ -815,8 +829,8 @@ interface GitHubRepo {
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <p-button label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
-                        <p-button label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
+                        <p-button *ngIf="isAdmin()" label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
+                        <p-button *ngIf="isAdmin()" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
                         <p-button icon="pi pi-times" [text]="true" [rounded]="true" (onClick)="selectedProject = null"></p-button>
                     </div>
                 </div>
@@ -848,11 +862,15 @@ interface GitHubRepo {
                                                 <div class="flex justify-between items-start mb-2">
                                                     <h5 class="font-semibold text-sm text-surface-900 dark:text-surface-0 m-0 flex-1">{{ objective.title }}</h5>
                                                     <div class="flex gap-1">
-                                                        <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
-                                                        <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
+                                                        <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
+                                                        <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
                                                     </div>
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
+                                                <div *ngIf="objective.createdByFirstName || objective.createdByLastName" class="text-xs text-surface-500 dark:text-surface-500 mb-2 flex items-center gap-1">
+                                                    <i class="pi pi-user" style="font-size: 0.65rem"></i>
+                                                    <span>{{ objective.createdByFirstName }} {{ objective.createdByLastName }}</span>
+                                                </div>
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center gap-1">
                                                         @if (objective.members && objective.members.length > 0) {
@@ -898,11 +916,15 @@ interface GitHubRepo {
                                                 <div class="flex justify-between items-start mb-2">
                                                     <h5 class="font-semibold text-sm text-surface-900 dark:text-surface-0 m-0 flex-1">{{ objective.title }}</h5>
                                                     <div class="flex gap-1">
-                                                        <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
-                                                        <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
+                                                        <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
+                                                        <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
                                                     </div>
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
+                                                <div *ngIf="objective.createdByFirstName || objective.createdByLastName" class="text-xs text-surface-500 dark:text-surface-500 mb-2 flex items-center gap-1">
+                                                    <i class="pi pi-user" style="font-size: 0.65rem"></i>
+                                                    <span>{{ objective.createdByFirstName }} {{ objective.createdByLastName }}</span>
+                                                </div>
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center gap-1">
                                                         @if (objective.members && objective.members.length > 0) {
@@ -957,11 +979,15 @@ interface GitHubRepo {
                                                         <!-- <i class="pi pi-check-circle text-green-500 text-sm"></i> -->
                                                     </div>
                                                     <div class="flex gap-1">
-                                                        <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
-                                                        <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
+                                                        <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
+                                                        <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
                                                     </div>
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
+                                                <div *ngIf="objective.createdByFirstName || objective.createdByLastName" class="text-xs text-surface-500 dark:text-surface-500 mb-2 flex items-center gap-1">
+                                                    <i class="pi pi-user" style="font-size: 0.65rem"></i>
+                                                    <span>{{ objective.createdByFirstName }} {{ objective.createdByLastName }}</span>
+                                                </div>
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center gap-1">
                                                         @if (objective.members && objective.members.length > 0) {
@@ -1025,6 +1051,15 @@ interface GitHubRepo {
                                     <a [href]="getGithubRepoUrl(selectedProject.githubRepo)" target="_blank" class="text-primary hover:underline">
                                         {{ selectedProject.githubRepo }}
                                     </a>
+                                </div>
+                            </div>
+
+                            <!-- Creator Information -->
+                            <div *ngIf="selectedProject.createdByFirstName || selectedProject.createdByLastName" class="border-t border-surface-200 dark:border-surface-700 pt-3 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <i class="pi pi-user text-primary"></i>
+                                    <span class="font-semibold text-surface-600 dark:text-surface-400">Created by:</span>
+                                    <span class="text-surface-900 dark:text-surface-0">{{ selectedProject.createdByFirstName }} {{ selectedProject.createdByLastName }}</span>
                                 </div>
                             </div>
 
@@ -1308,13 +1343,18 @@ export class Projects {
                     status: this.mapObjectiveStatusFromApi(o.status),
                     assignedTo: { name: 'Unassigned', avatar: '', role: 'Member' },
                     members: this.mapTeamMembersFromApi(o.teamMembers || []),
-                    resources: o.resources || []
+                    resources: o.resources || [],
+                    createdByUserId: o.createdByUserId,
+                    createdByFirstName: o.createdByFirstName,
+                    createdByLastName: o.createdByLastName
                 })),
                 resources: p.resources || [],
                 githubRepo: p.githubRepo,
-                createdByUserId: p.createdByUserId
+                createdByUserId: p.createdByUserId,
+                createdByFirstName: p.createdByFirstName,
+                createdByLastName: p.createdByLastName
             };
-            console.log('Mapped project:', project.title, 'createdByUserId:', p.createdByUserId);
+            console.log('Mapped project:', project.title, 'createdBy:', p.createdByFirstName, p.createdByLastName);
             return project;
         });
     }
@@ -2008,7 +2048,10 @@ export class Projects {
                         description: createdObjective.description,
                         status: this.mapObjectiveStatusFromApi(createdObjective.status),
                         assignedTo: { name: 'Unassigned', avatar: '', role: 'Member' },
-                        members: []
+                        members: [],
+                        createdByUserId: createdObjective.createdByUserId,
+                        createdByFirstName: createdObjective.createdByFirstName,
+                        createdByLastName: createdObjective.createdByLastName
                     };
                     
                     if (this.selectedProject) {
@@ -2038,7 +2081,10 @@ export class Projects {
                                 ...this.selectedProject.objectives[index],
                                 title: updatedObjective.title,
                                 description: updatedObjective.description,
-                                status: this.mapObjectiveStatusFromApi(updatedObjective.status)
+                                status: this.mapObjectiveStatusFromApi(updatedObjective.status),
+                                createdByUserId: updatedObjective.createdByUserId,
+                                createdByFirstName: updatedObjective.createdByFirstName,
+                                createdByLastName: updatedObjective.createdByLastName
                             };
                         }
                         this.updateProjectProgress();
@@ -2295,6 +2341,11 @@ export class Projects {
         //     isCreator: isCreator
         // });
         return isCreator;
+    }
+    
+    isAdmin(): boolean {
+        const role = this.currentUser.role?.toLowerCase();
+        return role === 'admin' || role === 'administrator';
     }
     
     joinObjective(objective: Objective, event: Event) {
@@ -3179,7 +3230,10 @@ export class Projects {
                     type: r.type?.toLowerCase() || 'documentation',
                     createdByUserId: r.createdByUserId || r.CreatedByUserId,
                     createdByUserName: r.createdByUserName || r.CreatedByUserName
-                }))
+                })),
+                createdByUserId: o.createdByUserId,
+                createdByFirstName: o.createdByFirstName,
+                createdByLastName: o.createdByLastName
             })),
             resources: (p.resources || []).map((r: any) => ({
                 ...r,
@@ -3188,7 +3242,9 @@ export class Projects {
                 createdByUserName: r.createdByUserName || r.CreatedByUserName
             })),
             githubRepo: p.githubRepo,
-            createdByUserId: p.createdByUserId
+            createdByUserId: p.createdByUserId,
+            createdByFirstName: p.createdByFirstName,
+            createdByLastName: p.createdByLastName
         };
     }
 
