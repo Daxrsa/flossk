@@ -15,4 +15,5 @@ public interface IInventoryService
     Task<IActionResult> CheckInInventoryItemAsync(Guid id, string userId);
     Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId);
     Task<IActionResult> RemoveImageFromInventoryItemAsync(Guid id, Guid imageId);
+    Task<IActionResult> SeedInventoryItemsAsync(string createdByUserId);
 }

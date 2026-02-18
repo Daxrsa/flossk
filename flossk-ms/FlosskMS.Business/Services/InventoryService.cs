@@ -364,6 +364,146 @@ public class InventoryService : IInventoryService
         return new OkObjectResult(new { Message = "Image removed successfully." });
     }
 
+    public async Task<IActionResult> SeedInventoryItemsAsync(string createdByUserId)
+    {
+        var user = await _context.Users.FindAsync(createdByUserId);
+        if (user == null)
+        {
+            return new NotFoundObjectResult(new { Message = "Creator user not found." });
+        }
+
+        // Check if inventory items already exist
+        var existingItemsCount = await _context.Set<InventoryItem>().CountAsync();
+        if (existingItemsCount > 0)
+        {
+            return new BadRequestObjectResult(new { Message = "Inventory items already exist. Seeding is only allowed on an empty inventory." });
+        }
+
+        var seedItems = new List<InventoryItem>
+        {
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Arduino Uno R3",
+                Category = InventoryCategory.Electronic,
+                Quantity = 5,
+                Description = "Microcontroller board based on the ATmega328P",
+                Status = InventoryStatus.Free,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Raspberry Pi 4 Model B",
+                Category = InventoryCategory.Electronic,
+                Quantity = 3,
+                Description = "Single-board computer with 4GB RAM",
+                Status = InventoryStatus.Free,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Soldering Iron Station",
+                Category = InventoryCategory.Tool,
+                Quantity = 2,
+                Description = "Digital temperature controlled soldering station",
+                Status = InventoryStatus.Free,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "3D Printer Filament (PLA)",
+                Category = InventoryCategory.Components,
+                Quantity = 10,
+                Description = "1kg spools of PLA filament in various colors",
+                Status = InventoryStatus.Free,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Oscilloscope",
+                Category = InventoryCategory.Electronic,
+                Quantity = 1,
+                Description = "Digital storage oscilloscope 100MHz",
+                Status = InventoryStatus.Free,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Breadboards",
+                Category = InventoryCategory.Components,
+                Quantity = 15,
+                Description = "830 point solderless breadboards",
+                Status = InventoryStatus.Free,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Screwdriver Set",
+                Category = InventoryCategory.Tool,
+                Quantity = 3,
+                Description = "Precision screwdriver set with multiple bits",
+                Status = InventoryStatus.Free,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Workbench",
+                Category = InventoryCategory.Furniture,
+                Quantity = 4,
+                Description = "Heavy-duty electronics workbench with ESD protection",
+                Status = InventoryStatus.Free,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Multimeter",
+                Category = InventoryCategory.Electronic,
+                Quantity = 6,
+                Description = "Digital multimeter with auto-ranging",
+                Status = InventoryStatus.Free,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Wire Stripper",
+                Category = InventoryCategory.Tool,
+                Quantity = 4,
+                Description = "Automatic wire stripper and cutter",
+                Status = InventoryStatus.Free,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+        _context.Set<InventoryItem>().AddRange(seedItems);
+        await _context.SaveChangesAsync();
+
+        return new OkObjectResult(new 
+        { 
+            Message = $"Successfully seeded {seedItems.Count} inventory items.", 
+            Count = seedItems.Count,
+            Items = seedItems.Select(i => new { i.Id, i.Name, i.Category, i.Quantity, i.Status }).ToList()
+        });
+    }
+
     #region Helper Methods
 
     private async Task<InventoryItem?> GetItemWithIncludesAsync(Guid id)

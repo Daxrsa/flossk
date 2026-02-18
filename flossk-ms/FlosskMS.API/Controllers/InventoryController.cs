@@ -102,6 +102,21 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
         return await _inventoryService.DeleteInventoryItemAsync(id);
     }
 
+    /// <summary>
+    /// Seed sample inventory items to the database (Admin only)
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("seed")]
+    public async Task<IActionResult> SeedInventoryItems()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _inventoryService.SeedInventoryItemsAsync(userId);
+    }
+
     #endregion
 
     #region Check In/Out Endpoints
