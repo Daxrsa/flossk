@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '@environments/environment.prod';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -28,19 +30,32 @@ interface User {
 }
 
 interface InventoryItem {
-    id: number;
+    id: string;
     name: string;
-    description: string;
+    description?: string;
     category: string;
     quantity: number;
-    price: number;
-    status: 'free' | 'in-use';
-    image?: string;
-    images?: string[];
-    rating?: number;
-    location: string;
-    lastUpdated: string;
-    inUseBy?: User;
+    status: string;
+    createdAt: string;
+    updatedAt?: string;
+    currentUserEmail?: string;
+    thumbnailPath?: string;
+    images?: InventoryItemImage[];
+}
+
+interface InventoryItemImage {
+    id: string;
+    uploadedFileId: string;
+    filePath: string;
+    originalFileName: string;
+}
+
+interface PaginatedInventoryResponse {
+    data: InventoryItem[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
 }
 
 @Component({
@@ -145,16 +160,8 @@ interface InventoryItem {
                         <td>
                             <div class="flex align-items-center gap-2">
                                 <img 
-                                    *ngIf="item.images && item.images.length > 0" 
-                                    [src]="item.images[0]" 
-                                    [alt]="item.name" 
-                                    width="50" 
-                                    class="shadow-lg rounded cursor-pointer"
-                                    (click)="showGallery(item)"
-                                />
-                                <img 
-                                    *ngIf="(!item.images || item.images.length === 0) && item.image" 
-                                    [src]="item.image" 
+                                    *ngIf="item.thumbnailPath || (item.images && item.images.length > 0)" 
+                                    [src]="getImageUrl(item)" 
                                     [alt]="item.name" 
                                     width="50" 
                                     class="shadow-lg rounded cursor-pointer"
@@ -166,41 +173,20 @@ interface InventoryItem {
                         <td>{{ item.category }}</td>
                         <td>{{ item.quantity }}</td>
                         <td>
-                            <div *ngIf="item.status === 'free'" class="flex items-center">
+                            <div class="flex items-center">
                                 <p-tag 
-                                    value="Free" 
-                                    severity="success"
+                                    [value]="getStatusLabel(item.status)" 
+                                    [severity]="getStatusSeverity(item.status)"
                                 />
-                            </div>
-                            <div *ngIf="item.status === 'in-use' && item.inUseBy" class="flex items-center gap-3">
-                                <p-tag 
-                                    value="In Use" 
-                                    severity="warn"
-                                />
-                                <div class="flex items-center gap-2">
-                                    <p-avatar 
-                                        [image]="item.inUseBy.avatar" 
-                                        shape="circle" 
-                                        size="normal"
-                                        [style]="{'width': '2rem', 'height': '2rem'}"
-                                    />
-                                    <div class="flex flex-col">
-                                        <span class="text-sm font-semibold">{{ item.inUseBy.name }}</span>
-                                        <span class="text-xs text-muted-color">{{ item.inUseBy.email }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div *ngIf="item.status === 'in-use' && !item.inUseBy">
-                                <p-tag 
-                                    value="In Use" 
-                                    severity="warn"
-                                />
+                                <span *ngIf="item.currentUserEmail" class="ml-2 text-sm text-muted-color">
+                                    ({{ item.currentUserEmail }})
+                                </span>
                             </div>
                         </td>
                         <td>
                             <div class="flex gap-2">
                                 <p-button 
-                                    *ngIf="item.status === 'free'"
+                                    *ngIf="item.status === 'Free'"
                                     icon="pi pi-sign-in" 
                                     [rounded]="true" 
                                     [text]="true" 
@@ -209,7 +195,7 @@ interface InventoryItem {
                                     (onClick)="checkOutItem(item)"
                                 />
                                 <p-button 
-                                    *ngIf="item.status === 'in-use'"
+                                    *ngIf="item.status === 'InUse'"
                                     icon="pi pi-sign-out" 
                                     [rounded]="true" 
                                     [text]="true" 
@@ -320,17 +306,6 @@ interface InventoryItem {
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <label for="status" class="font-semibold">Status</label>
-                    <p-select 
-                        id="status"
-                        [(ngModel)]="currentItem.status" 
-                        [options]="statusOptions"
-                        placeholder="Select status"
-                        class="w-full"
-                    />
-                </div>
-
-                <div class="flex flex-col gap-2">
                     <label for="rating" class="font-semibold">Rating</label>
                 </div>
 
@@ -394,9 +369,9 @@ interface InventoryItem {
             [contentStyle]="{ 'padding': '1rem', 'display': 'flex', 'justify-content': 'center' }"
         >
             <img 
-                *ngIf="selectedItem?.image || (selectedItem?.images && selectedItem?.images?.length === 1)"
-                [src]="selectedItem!.image || selectedItem!.images![0]" 
-                [alt]="selectedItem?.name"
+                *ngIf="selectedItem"
+                [src]="getImageUrl(selectedItem)" 
+                [alt]="selectedItem.name"
                 style="max-width: 100%; max-height: 70vh; object-fit: contain;"
             />
         </p-dialog>
@@ -409,8 +384,8 @@ interface InventoryItem {
             [contentStyle]="{ 'padding': '0' }"
         >
             <p-galleria 
-                *ngIf="galleryItem?.images"
-                [value]="galleryItem?.images" 
+                *ngIf="galleryItem"
+                [value]="getGalleryImages(galleryItem)" 
                 [numVisible]="5"
                 [responsiveOptions]="responsiveOptions"
                 [circular]="true"
@@ -428,19 +403,49 @@ interface InventoryItem {
         </p-dialog>
     `
 })
-export class Inventory {
+export class Inventory implements OnInit {
+    private http = inject(HttpClient);
+    private apiUrl = `${environment.apiUrl}/Inventory`;
+
     constructor(
         private confirmationService: ConfirmationService,
         private messageService: MessageService
     ) { }
 
+    ngOnInit() {
+        this.loadInventoryItems();
+    }
+
+    loadInventoryItems() {
+        this.http.get<PaginatedInventoryResponse>(
+            `${this.apiUrl}?page=${this.currentPage}&pageSize=${this.pageSize}`
+        ).subscribe({
+            next: (response) => {
+                this.inventoryItems = response.data;
+                this.totalRecords = response.totalCount;
+            },
+            error: (error) => {
+                console.error('Error loading inventory:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to load inventory items'
+                });
+            }
+        });
+    }
+
     dialogVisible = false;
     dialogMode: 'add' | 'edit' = 'add';
-    currentItem: InventoryItem = this.getEmptyItem();
+    currentItem: any = this.getEmptyItem();
     galleryVisible = false;
     galleryItem: InventoryItem | null = null;
     singleImageVisible = false;
     selectedItem: InventoryItem | null = null;
+    inventoryItems: InventoryItem[] = [];
+    totalRecords = 0;
+    currentPage = 1;
+    pageSize = 20;
 
     responsiveOptions = [
         {
@@ -458,184 +463,24 @@ export class Inventory {
     ];
 
     categories = [
-        { label: 'Electronics', value: 'Electronics' },
+        { label: 'Electronic', value: 'Electronic' },
+        { label: 'Tool', value: 'Tool' },
+        { label: 'Components', value: 'Components' },
         { label: 'Furniture', value: 'Furniture' },
-        { label: 'Tools', value: 'Tools' },
-        { label: 'Office Supplies', value: 'Office Supplies' },
         { label: 'Hardware', value: 'Hardware' },
-        { label: 'Components', value: 'Components' }
+        { label: 'Office Supplies', value: 'OfficeSupplies' }
     ];
 
     statusOptions = [
-        { label: 'Free', value: 'free' },
-        { label: 'In Use', value: 'in-use' }
+        { label: 'Free', value: 'Free' },
+        { label: 'In Use', value: 'InUse' }
     ];
 
-    users: User[] = [
-        {
-            id: 1,
-            name: 'Amy Elsner',
-            avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png',
-            email: 'amy.elsner@flossk.org'
-        },
-        {
-            id: 2,
-            name: 'Bernardo Dominic',
-            avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png',
-            email: 'bernardo.dominic@flossk.org'
-        },
-        {
-            id: 3,
-            name: 'Ioni Bowcher',
-            avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png',
-            email: 'ioni.bowcher@flossk.org'
-        },
-        {
-            id: 4,
-            name: 'Asiya Javayant',
-            avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png',
-            email: 'asiya.javayant@flossk.org'
-        }
-    ];
 
-    inventoryItems: InventoryItem[] = [
-        {
-            id: 1,
-            name: 'Arduino Uno R3',
-            description: 'Microcontroller board based on the ATmega328P',
-            category: 'Electronics',
-            quantity: 45,
-            price: 22.99,
-            status: 'in-use',
-            inUseBy: {
-                id: 1,
-                name: 'Amy Elsner',
-                avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png',
-                email: 'amy.elsner@flossk.org'
-            },
-            images: [
-                'https://images.unsplash.com/photo-1553406830-ef2513450d76?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1484788984921-03950022c9ef?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1496171367470-9ed9a91ea931?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=800&h=600&fit=crop'
-            ],
-            rating: 5,
-            location: 'Shelf A-12',
-            lastUpdated: '2025-12-08'
-        },
-        {
-            id: 2,
-            name: 'Raspberry Pi 4',
-            description: 'Single-board computer with 4GB RAM',
-            category: 'Electronics',
-            quantity: 12,
-            price: 55.00,
-            status: 'free',
-            image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=100&h=100&fit=crop',
-            rating: 5,
-            location: 'Shelf A-13',
-            lastUpdated: '2025-12-07'
-        },
-        {
-            id: 3,
-            name: 'Soldering Station',
-            description: 'Digital temperature-controlled soldering iron',
-            category: 'Tools',
-            quantity: 8,
-            price: 89.99,
-            status: 'in-use',
-            inUseBy: {
-                id: 2,
-                name: 'Bernardo Dominic',
-                avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png',
-                email: 'bernardo.dominic@flossk.org'
-            },
-            image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=100&h=100&fit=crop',
-            rating: 4,
-            location: 'Workbench 2',
-            lastUpdated: '2025-12-06'
-        },
-        {
-            id: 4,
-            name: 'LED Strip 5M RGB',
-            description: 'Addressable RGB LED strip with WS2812B',
-            category: 'Components',
-            quantity: 0,
-            price: 18.50,
-            status: 'free',
-            image: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=100&h=100&fit=crop',
-            rating: 4,
-            location: 'Drawer C-5',
-            lastUpdated: '2025-12-05'
-        },
-        {
-            id: 5,
-            name: 'Multimeter Digital',
-            description: 'Auto-ranging digital multimeter with LCD display',
-            category: 'Tools',
-            quantity: 15,
-            price: 45.00,
-            status: 'free',
-            image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=100&h=100&fit=crop',
-            rating: 5,
-            location: 'Tool Cabinet',
-            lastUpdated: '2025-12-08'
-        },
-        {
-            id: 6,
-            name: 'Breadboard 830 Points',
-            description: 'Solderless breadboard for prototyping',
-            category: 'Components',
-            quantity: 32,
-            price: 5.99,
-            status: 'in-use',
-            inUseBy: {
-                id: 3,
-                name: 'Ioni Bowcher',
-                avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png',
-                email: 'ioni.bowcher@flossk.org'
-            },
-            rating: 4,
-            location: 'Bin D-8',
-            lastUpdated: '2025-12-07'
-        },
-        {
-            id: 7,
-            name: 'Desk Lamp LED',
-            description: 'Adjustable LED desk lamp with USB charging',
-            category: 'Furniture',
-            quantity: 6,
-            price: 34.99,
-            status: 'free',
-            image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=100&h=100&fit=crop',
-            rating: 4,
-            location: 'Office Area',
-            lastUpdated: '2025-12-06'
-        },
-        {
-            id: 8,
-            name: 'USB-C Cable 2M',
-            description: 'High-speed USB-C cable with data transfer',
-            category: 'Electronics',
-            quantity: 28,
-            price: 12.99,
-            status: 'in-use',
-            inUseBy: {
-                id: 4,
-                name: 'Asiya Javayant',
-                avatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png',
-                email: 'asiya.javayant@flossk.org'
-            },
-            rating: 4,
-            location: 'Drawer A-3',
-            lastUpdated: '2025-12-08'
-        }
-    ];
 
     showGallery(item: InventoryItem) {
-        // Check if item has multiple images or single image
-        const imageCount = item.images ? item.images.length : (item.image ? 1 : 0);
+        // Check if item has images
+        const imageCount = item.images?.length || 0;
         
         if (imageCount > 1) {
             // Show gallery for multiple images
@@ -648,18 +493,27 @@ export class Inventory {
         }
     }
 
-    getEmptyItem(): InventoryItem {
+    getImageUrl(item: InventoryItem, index: number = 0): string {
+        if (item.images && item.images.length > index) {
+            return `${environment.apiUrl}/${item.images[index].filePath}`;
+        }
+        return item.thumbnailPath ? `${environment.apiUrl}/${item.thumbnailPath}` : '';
+    }
+
+    getGalleryImages(item: InventoryItem): string[] {
+        if (item.images && item.images.length > 0) {
+            return item.images.map(img => `${environment.apiUrl}/${img.filePath}`);
+        }
+        return [];
+    }
+
+    getEmptyItem(): any {
         return {
-            id: 0,
             name: '',
             description: '',
             category: '',
             quantity: 0,
-            price: 0,
-            status: 'free',
-            location: '',
-            lastUpdated: new Date().toISOString().split('T')[0],
-            rating: 0
+            status: 'Free'
         };
     }
 
@@ -711,7 +565,7 @@ export class Inventory {
         }
 
         if (this.dialogMode === 'add') {
-            this.currentItem.id = Math.max(...this.inventoryItems.map(i => i.id)) + 1;
+            // ID will be generated by the backend
             this.currentItem.lastUpdated = new Date().toISOString().split('T')[0];
             this.inventoryItems.push(this.currentItem);
             this.messageService.add({
@@ -758,16 +612,16 @@ export class Inventory {
 
     getStatusLabel(status: string): string {
         const labels: { [key: string]: string } = {
-            'free': 'Free',
-            'in-use': 'In Use'
+            'Free': 'Free',
+            'InUse': 'In Use'
         };
         return labels[status] || status;
     }
 
     getStatusSeverity(status: string): 'success' | 'warn' | 'danger' {
         const severities: { [key: string]: 'success' | 'warn' | 'danger' } = {
-            'free': 'success',
-            'in-use': 'warn'
+            'Free': 'success',
+            'InUse': 'warn'
         };
         return severities[status] || 'success';
     }
@@ -790,31 +644,44 @@ export class Inventory {
     }
 
     checkOutItem(item: InventoryItem) {
-        // For demo purposes, assign to first user. In real app, this would be current logged-in user
-        const currentUser = this.users[0];
-        
-        item.status = 'in-use';
-        item.inUseBy = currentUser;
-        item.lastUpdated = new Date().toISOString().split('T')[0];
-        
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: `${item.name} checked out to ${currentUser.name}`
+        this.http.post(`${this.apiUrl}/${item.id}/checkout`, {}).subscribe({
+            next: () => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: `${item.name} checked out successfully`
+                });
+                this.loadInventoryItems();
+            },
+            error: (error) => {
+                console.error('Error checking out item:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to check out item'
+                });
+            }
         });
     }
 
     checkInItem(item: InventoryItem) {
-        const userName = item.inUseBy?.name || 'Unknown User';
-        
-        item.status = 'free';
-        item.inUseBy = undefined;
-        item.lastUpdated = new Date().toISOString().split('T')[0];
-        
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: `${item.name} checked in from ${userName}`
+        this.http.post(`${this.apiUrl}/${item.id}/checkin`, {}).subscribe({
+            next: () => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: `${item.name} checked in successfully`
+                });
+                this.loadInventoryItems();
+            },
+            error: (error) => {
+                console.error('Error checking in item:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to check in item'
+                });
+            }
         });
     }
 }
