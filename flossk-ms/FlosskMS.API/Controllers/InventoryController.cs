@@ -70,7 +70,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     /// <summary>
     /// Create a new inventory item (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateInventoryItem([FromBody] CreateInventoryItemDto request)
     {
@@ -85,7 +85,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     /// <summary>
     /// Update an inventory item (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateInventoryItem(Guid id, [FromBody] UpdateInventoryItemDto request)
     {
@@ -95,7 +95,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     /// <summary>
     /// Delete an inventory item (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteInventoryItem(Guid id)
     {

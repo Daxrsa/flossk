@@ -87,7 +87,7 @@ public class FileService : IFileService
                 OriginalFileName = file.FileName,
                 ContentType = file.ContentType,
                 FileSize = file.Length,
-                FilePath = filePath,
+                FilePath = $"{_settings.UploadPath}/{uniqueFileName}",
                 UploadedAt = DateTime.UtcNow,
                 CreatedByUserId = userId,
                 IsScanned = true,
