@@ -17,7 +17,7 @@ public class InventoryService : IInventoryService
 
     public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? search = null)
     {
-        var query = _context.Set<InventoryItem>()
+        var query = _context.InventoryItems
             .Include(i => i.CurrentUser)
             .Include(i => i.CreatedByUser)
             .Include(i => i.Images)
@@ -79,7 +79,7 @@ public class InventoryService : IInventoryService
             return new NotFoundObjectResult(new { Message = "User not found." });
         }
 
-        var items = await _context.Set<InventoryItem>()
+        var items = await _context.InventoryItems
             .Include(i => i.CurrentUser)
             .Include(i => i.CreatedByUser)
             .Include(i => i.Images)
@@ -117,7 +117,7 @@ public class InventoryService : IInventoryService
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.Set<InventoryItem>().Add(item);
+        _context.InventoryItems.Add(item);
 
         // Add images if provided
         if (dto.ImageFileIds != null && dto.ImageFileIds.Count > 0)
@@ -134,7 +134,7 @@ public class InventoryService : IInventoryService
                         UploadedFileId = fileId,
                         AddedAt = DateTime.UtcNow
                     };
-                    _context.Set<InventoryItemImage>().Add(image);
+                    _context.InventoryItemImages.Add(image);
                 }
             }
         }
@@ -148,7 +148,7 @@ public class InventoryService : IInventoryService
 
     public async Task<IActionResult> UpdateInventoryItemAsync(Guid id, UpdateInventoryItemDto dto)
     {
-        var item = await _context.Set<InventoryItem>().FindAsync(id);
+        var item = await _context.InventoryItems.FindAsync(id);
 
         if (item == null)
         {
@@ -186,10 +186,10 @@ public class InventoryService : IInventoryService
         if (dto.ImageFileIds != null)
         {
             // Remove existing images
-            var existingImages = await _context.Set<InventoryItemImage>()
+            var existingImages = await _context.InventoryItemImages
                 .Where(img => img.InventoryItemId == id)
                 .ToListAsync();
-            _context.Set<InventoryItemImage>().RemoveRange(existingImages);
+            _context.InventoryItemImages.RemoveRange(existingImages);
 
             // Add new images
             foreach (var fileId in dto.ImageFileIds)
@@ -204,7 +204,7 @@ public class InventoryService : IInventoryService
                         UploadedFileId = fileId,
                         AddedAt = DateTime.UtcNow
                     };
-                    _context.Set<InventoryItemImage>().Add(image);
+                    _context.InventoryItemImages.Add(image);
                 }
             }
         }
@@ -218,7 +218,7 @@ public class InventoryService : IInventoryService
 
     public async Task<IActionResult> DeleteInventoryItemAsync(Guid id)
     {
-        var item = await _context.Set<InventoryItem>().FindAsync(id);
+        var item = await _context.InventoryItems.FindAsync(id);
 
         if (item == null)
         {
@@ -230,7 +230,7 @@ public class InventoryService : IInventoryService
             return new BadRequestObjectResult(new { Message = "Cannot delete an inventory item that is currently in use. Please check it in first." });
         }
 
-        _context.Set<InventoryItem>().Remove(item);
+        _context.InventoryItems.Remove(item);
         await _context.SaveChangesAsync();
 
         return new OkObjectResult(new { Message = "Inventory item deleted successfully." });
@@ -308,7 +308,7 @@ public class InventoryService : IInventoryService
 
     public async Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId)
     {
-        var item = await _context.Set<InventoryItem>().FindAsync(id);
+        var item = await _context.InventoryItems.FindAsync(id);
         if (item == null)
         {
             return new NotFoundObjectResult(new { Message = "Inventory item not found." });
@@ -320,7 +320,7 @@ public class InventoryService : IInventoryService
             return new NotFoundObjectResult(new { Message = "File not found." });
         }
 
-        var existingImage = await _context.Set<InventoryItemImage>()
+        var existingImage = await _context.InventoryItemImages
             .FirstOrDefaultAsync(img => img.InventoryItemId == id && img.UploadedFileId == fileId);
 
         if (existingImage != null)
@@ -336,7 +336,7 @@ public class InventoryService : IInventoryService
             AddedAt = DateTime.UtcNow
         };
 
-        _context.Set<InventoryItemImage>().Add(image);
+        _context.InventoryItemImages.Add(image);
         await _context.SaveChangesAsync();
 
         return new OkObjectResult(new { Message = "Image added successfully." });
@@ -344,13 +344,13 @@ public class InventoryService : IInventoryService
 
     public async Task<IActionResult> RemoveImageFromInventoryItemAsync(Guid id, Guid imageId)
     {
-        var item = await _context.Set<InventoryItem>().FindAsync(id);
+        var item = await _context.InventoryItems.FindAsync(id);
         if (item == null)
         {
             return new NotFoundObjectResult(new { Message = "Inventory item not found." });
         }
 
-        var image = await _context.Set<InventoryItemImage>()
+        var image = await _context.InventoryItemImages
             .FirstOrDefaultAsync(img => img.InventoryItemId == id && img.Id == imageId);
 
         if (image == null)
@@ -358,7 +358,7 @@ public class InventoryService : IInventoryService
             return new NotFoundObjectResult(new { Message = "Image not found for this inventory item." });
         }
 
-        _context.Set<InventoryItemImage>().Remove(image);
+        _context.InventoryItemImages.Remove(image);
         await _context.SaveChangesAsync();
 
         return new OkObjectResult(new { Message = "Image removed successfully." });
@@ -373,7 +373,7 @@ public class InventoryService : IInventoryService
         }
 
         // Check if inventory items already exist
-        var existingItemsCount = await _context.Set<InventoryItem>().CountAsync();
+        var existingItemsCount = await _context.InventoryItems.CountAsync();
         if (existingItemsCount > 0)
         {
             return new BadRequestObjectResult(new { Message = "Inventory items already exist. Seeding is only allowed on an empty inventory." });
@@ -493,7 +493,7 @@ public class InventoryService : IInventoryService
             }
         };
 
-        _context.Set<InventoryItem>().AddRange(seedItems);
+        _context.InventoryItems.AddRange(seedItems);
         await _context.SaveChangesAsync();
 
         return new OkObjectResult(new 
@@ -504,11 +504,32 @@ public class InventoryService : IInventoryService
         });
     }
 
+    public async Task<IActionResult> DeleteAllInventoryItemsAsync()
+    {
+        var allItems = await _context.InventoryItems.ToListAsync();
+        var count = allItems.Count;
+
+        if (count == 0)
+        {
+            return new OkObjectResult(new { Message = "No inventory items to delete." });
+        }
+
+        // Delete all associated images first
+        var allImages = await _context.InventoryItemImages.ToListAsync();
+        _context.InventoryItemImages.RemoveRange(allImages);
+
+        // Delete all inventory items
+        _context.InventoryItems.RemoveRange(allItems);
+        await _context.SaveChangesAsync();
+
+        return new OkObjectResult(new { Message = $"Successfully deleted {count} inventory items.", Count = count });
+    }
+
     #region Helper Methods
 
     private async Task<InventoryItem?> GetItemWithIncludesAsync(Guid id)
     {
-        return await _context.Set<InventoryItem>()
+        return await _context.InventoryItems
             .Include(i => i.CurrentUser)
             .Include(i => i.CreatedByUser)
             .Include(i => i.Images)

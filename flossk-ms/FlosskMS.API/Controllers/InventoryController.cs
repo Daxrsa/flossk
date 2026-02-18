@@ -117,6 +117,16 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
         return await _inventoryService.SeedInventoryItemsAsync(userId);
     }
 
+    /// <summary>
+    /// Delete all inventory items from the database (Admin only)
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("all")]
+    public async Task<IActionResult> DeleteAllInventoryItems()
+    {
+        return await _inventoryService.DeleteAllInventoryItemsAsync();
+    }
+
     #endregion
 
     #region Check In/Out Endpoints
