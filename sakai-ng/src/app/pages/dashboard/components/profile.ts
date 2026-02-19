@@ -18,9 +18,11 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { SelectModule } from 'primeng/select';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { ConfirmationService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
 import { ProjectsService } from '@/pages/service/projects.service';
+import { InventoryService, InventoryItem } from '@/pages/service/inventory.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment.prod';
 
@@ -43,9 +45,10 @@ interface User {
 
 @Component({
     selector: 'app-profile',
-    imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule, ConfirmDialogModule],
-    providers: [ConfirmationService],
+    imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule, ConfirmDialogModule, ToastModule],
+    providers: [ConfirmationService, MessageService],
     template: `
+        <p-toast />
         <p-confirmdialog></p-confirmdialog>
         <!-- Loading Skeleton -->
         <div *ngIf="isLoading" class="grid grid-cols-12 gap-8">
@@ -490,6 +493,58 @@ interface User {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Checked Out Items Card -->
+                        <div class="card mt-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <i style="font-size: 1.5rem;" class="pi pi-box text-primary text-xl"></i>
+                                <h3 class="text-xl font-bold text-surface-900 dark:text-surface-0 m-0">
+                                    <ng-container *ngIf="isOwnProfile">Checked Out Items</ng-container>
+                                    <ng-container *ngIf="!isOwnProfile">{{ userProfile.firstName }}'s Checked Out Items</ng-container>
+                                </h3>
+                            </div>
+                            <div class="flex flex-col gap-3">
+                                <div *ngIf="checkedOutItems && checkedOutItems.length > 0" class="flex flex-col gap-3">
+                                    <div *ngFor="let item of checkedOutItems" class="border border-surface-200 dark:border-surface-700 rounded-border p-3">
+                                        <div class="flex items-start gap-3">
+                                            <img 
+                                                *ngIf="item.thumbnailPath || (item.images && item.images.length > 0)" 
+                                                [src]="getInventoryItemImageUrl(item)" 
+                                                [alt]="item.name" 
+                                                class="w-16 h-16 object-cover rounded-border"
+                                            />
+                                            <div *ngIf="!item.thumbnailPath && (!item.images || item.images.length === 0)" class="w-16 h-16 bg-surface-100 dark:bg-surface-800 rounded-border flex items-center justify-center">
+                                                <i class="pi pi-box text-2xl text-surface-400"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 mb-1">{{ item.name }}</h4>
+                                                <p class="text-sm text-muted-color mb-2" *ngIf="item.description">{{ item.description }}</p>
+                                                <div class="flex items-center gap-2">
+                                                    <p-tag [value]="item.category" severity="secondary" styleClass="text-xs"></p-tag>
+                                                    <span class="text-xs text-muted-color" *ngIf="item.checkedOutAt">
+                                                        Since {{ formatDate(item.checkedOutAt) }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div *ngIf="isOwnProfile">
+                                                <p-button 
+                                                    icon="pi pi-sign-out" 
+                                                    severity="warn"
+                                                    [outlined]="true"
+                                                    size="small"
+                                                    pTooltip="Check In"
+                                                    (onClick)="checkInInventoryItem(item)"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div *ngIf="!checkedOutItems || checkedOutItems.length === 0" class="text-center py-6 text-muted-color">
+                                    <i class="pi pi-inbox text-5xl mb-3"></i>
+                                    <p class="text-base">No items currently checked out</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -501,14 +556,18 @@ export class Profile implements OnInit {
     isLoading = true;
     isOwnProfile = true;
     profileUserId = '';
+    checkedOutItems: InventoryItem[] = [];
     private route = inject(ActivatedRoute);
     private projectsService = inject(ProjectsService);
+    private inventoryService = inject(InventoryService);
 
-    constructor(private authService: AuthService, private http: HttpClient, private confirmationService: ConfirmationService) {
+    constructor(private authService: AuthService, private http: HttpClient, private confirmationService: ConfirmationService, private messageService: MessageService) {
         // Use effect to reactively update when currentUser signal changes (only for own profile)
+        // This should only execute when viewing own profile and user data changes
         effect(() => {
             const user = this.authService.currentUser();
-            if (user && this.isOwnProfile) {
+            // Only reload if we're on our own profile page (no userId in route params)
+            if (user && this.isOwnProfile && !this.route.snapshot.paramMap.has('userId')) {
                 this.loadUserProfile();
                 this.isLoading = false;
             }
@@ -582,6 +641,7 @@ export class Profile implements OnInit {
                 // Viewing own profile
                 this.isOwnProfile = true;
                 this.loadUserProfile();
+                this.loadCheckedOutItems();
             }
         });
     }
@@ -594,6 +654,7 @@ export class Profile implements OnInit {
                 console.log('Fetched user data:', user);
                 this.mapUserToProfile(user);
                 this.loadUserProjects(userId);
+                this.loadCheckedOutItems();
                 this.isLoading = false;
             },
             error: (err) => {
@@ -676,6 +737,7 @@ export class Profile implements OnInit {
             // Load user's projects
             if (user.id) {
                 this.loadUserProjects(user.id);
+                this.loadCheckedOutItems();
             }
         }
     }
@@ -714,6 +776,46 @@ export class Profile implements OnInit {
             error: (err) => {
                 console.error('Error loading user projects:', err);
                 this.userProjects = [];
+            }
+        });
+    }
+
+    loadCheckedOutItems() {
+        if (!this.profileUserId) return;
+        
+        const observable = this.isOwnProfile 
+            ? this.inventoryService.getMyInventoryItems()
+            : this.inventoryService.getInventoryItemsByUser(this.profileUserId);
+        
+        observable.subscribe({
+            next: (items) => {
+                this.checkedOutItems = items;
+            },
+            error: (err) => {
+                console.error('Error loading checked out items:', err);
+                this.checkedOutItems = [];
+            }
+        });
+    }
+
+    checkInInventoryItem(item: InventoryItem) {
+        this.inventoryService.checkInItem(item.id).subscribe({
+            next: () => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: `${item.name} has been checked in successfully`
+                });
+                // Reload the checked out items
+                this.loadCheckedOutItems();
+            },
+            error: (err) => {
+                console.error('Error checking in item:', err);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: err.error?.Errors?.[0] || 'Failed to check in item'
+                });
             }
         });
     }
@@ -955,5 +1057,37 @@ export class Profile implements OnInit {
 
     hasProfilePicture(pictureUrl: string | undefined): boolean {
         return !!pictureUrl && !isDefaultAvatar(pictureUrl);
+    }
+
+    getInventoryItemImageUrl(item: InventoryItem): string {
+        if (item.thumbnailPath) {
+            return item.thumbnailPath.startsWith('http')
+                ? item.thumbnailPath
+                : `${environment.baseUrl}${item.thumbnailPath}`;
+        }
+        if (item.images && item.images.length > 0) {
+            const firstImage = item.images[0];
+            return firstImage.filePath.startsWith('http')
+                ? firstImage.filePath
+                : `${environment.baseUrl}${firstImage.filePath}`;
+        }
+        return '';
+    }
+
+    formatDate(dateString: string): string {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInMs = now.getTime() - date.getTime();
+        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+        if (diffInDays === 0) {
+            return 'Today';
+        } else if (diffInDays === 1) {
+            return 'Yesterday';
+        } else if (diffInDays < 7) {
+            return `${diffInDays} days ago`;
+        } else {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
     }
 }

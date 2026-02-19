@@ -1,16 +1,41 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { environment } from '@environments/environment.prod';
+
+export interface InventoryItemImage {
+    id: string;
+    fileId: string;
+    fileName: string;
+    filePath: string;
+    addedAt: string;
+}
 
 export interface InventoryItem {
     id: string;
-    properties: { [key: string]: any };
+    name: string;
+    description?: string;
+    category: string;
+    quantity: number;
+    status: string;
     createdAt: string;
     updatedAt?: string;
-    createdByUserId: string;
-    createdByUserEmail: string;
-    createdByUserFullName: string;
+    currentUserId?: string;
+    currentUserEmail?: string;
+    currentUserFirstName?: string;
+    currentUserLastName?: string;
+    currentUserFullName?: string;
+    currentUserProfilePictureUrl?: string;
+    checkedOutAt?: string;
+    createdByUserId?: string;
+    createdByUserEmail?: string;
+    createdByUserFirstName?: string;
+    createdByUserLastName?: string;
+    createdByUserFullName?: string;
+    createdByUserProfilePictureUrl?: string;
+    thumbnailPath?: string;
+    images?: InventoryItemImage[];
+    properties?: { [key: string]: any };
 }
 
 export interface PaginatedInventoryResponse {
@@ -55,6 +80,18 @@ export class InventoryService {
 
     deleteInventoryItem(id: string): Observable<any> {
         return this.http.delete(`${this.API_URL}/${id}`);
+    }
+
+    getMyInventoryItems(): Observable<InventoryItem[]> {
+        return this.http.get<InventoryItem[]>(`${this.API_URL}/my-items`);
+    }
+
+    getInventoryItemsByUser(userId: string): Observable<InventoryItem[]> {
+        return this.http.get<InventoryItem[]>(`${this.API_URL}/user/${userId}`);
+    }
+
+    checkInItem(id: string): Observable<any> {
+        return this.http.post(`${this.API_URL}/${id}/checkin`, {});
     }
 
     importInventoryFile(file: File): Observable<any> {
