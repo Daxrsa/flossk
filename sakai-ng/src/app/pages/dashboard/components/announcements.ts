@@ -13,7 +13,7 @@ import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService } from 'primeng/api';
 import { AnnouncementsService, Announcement, ReactionSummary } from '@/pages/service/announcements.service';
-import { AuthService } from '@/pages/service/auth.service';
+import { AuthService, getInitials } from '@/pages/service/auth.service';
 import { environment } from '@environments/environment.prod';
 
 interface AnnouncementDisplay {
@@ -22,6 +22,7 @@ interface AnnouncementDisplay {
     content: string;
     author: string;
     authorAvatar: string;
+    authorInitials: string;
     date: string;
     category: string;
     priority: string;
@@ -85,7 +86,19 @@ interface AnnouncementDisplay {
             <div *ngIf="selectedAnnouncement" class="flex flex-col gap-4">
                 <!-- Author Info -->
                 <div class="flex items-center gap-3 mb-2">
-                    <p-avatar [image]="selectedAnnouncement.authorAvatar" shape="circle" size="large"></p-avatar>
+                    <p-avatar 
+                        *ngIf="selectedAnnouncement.authorAvatar"
+                        [image]="selectedAnnouncement.authorAvatar" 
+                        shape="circle" 
+                        size="large"
+                    ></p-avatar>
+                    <p-avatar 
+                        *ngIf="!selectedAnnouncement.authorAvatar"
+                        [label]="selectedAnnouncement.authorInitials" 
+                        shape="circle" 
+                        size="large"
+                        [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                    ></p-avatar>
                     <div>
                         <div class="font-semibold text-surface-900 dark:text-surface-0">{{ selectedAnnouncement.author }}</div>
                         <div class="text-sm text-muted-color">{{ selectedAnnouncement.date }}</div>
@@ -227,7 +240,20 @@ export class Announcements implements OnInit {
     dialogVisible = false;
     viewDialogVisible = false;
     dialogMode: 'add' | 'edit' = 'add';
-    currentAnnouncement: AnnouncementDisplay = this.getEmptyAnnouncement();
+    currentAnnouncement: AnnouncementDisplay = {
+        id: '',
+        title: '',
+        content: '',
+        author: '',
+        authorAvatar: '',
+        authorInitials: '',
+        date: '',
+        category: 'General',
+        priority: 'normal',
+        views: 0,
+        reactions: [],
+        isCurrentUserCreator: true
+    };
     selectedAnnouncement: AnnouncementDisplay | null = null;
     
     // Computed admin check - reactive to auth state changes
@@ -292,7 +318,7 @@ export class Announcements implements OnInit {
             content: a.body || a.content,
             author: authorName,
             authorAvatar: authorAvatar,
-            // authorInitials: getInitials(authorName),
+            authorInitials: getInitials(authorName),
             date: a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
             category: a.category || 'General',
             priority: a.importance?.toLowerCase() || a.priority?.toLowerCase() || 'normal',
@@ -313,12 +339,23 @@ export class Announcements implements OnInit {
     }
 
     getEmptyAnnouncement(): AnnouncementDisplay {
+        const currentUser = this.authService.currentUser();
+        const authorName = currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Current User';
+        
+        let authorAvatar = '';
+        if (currentUser?.profilePictureUrl) {
+            authorAvatar = currentUser.profilePictureUrl.startsWith('http')
+                ? currentUser.profilePictureUrl
+                : `${environment.baseUrl}${currentUser.profilePictureUrl}`;
+        }
+        
         return {
             id: '',
             title: '',
             content: '',
-            author: 'Current User',
-            authorAvatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png',
+            author: authorName,
+            authorAvatar: authorAvatar,
+            authorInitials: getInitials(authorName),
             date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
             category: 'General',
             priority: 'normal',
