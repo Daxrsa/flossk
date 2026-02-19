@@ -21,6 +21,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { InputIcon } from "primeng/inputicon";
 import { IconField } from "primeng/iconfield";
 import { AvatarModule } from 'primeng/avatar';
+import { SkeletonModule } from 'primeng/skeleton';
+import { AuthService } from '@/pages/service/auth.service';
 
 interface User {
     id: number;
@@ -92,7 +94,8 @@ interface PaginatedInventoryResponse {
         GalleriaModule,
         InputIcon,
         IconField,
-        AvatarModule
+        AvatarModule,
+        SkeletonModule
     ],
     providers: [ConfirmationService, MessageService],
     styles: `
@@ -152,7 +155,7 @@ interface PaginatedInventoryResponse {
             />
 
             <p-table 
-                [value]="inventoryItems" 
+                [value]="isLoading ? skeletonArray : inventoryItems" 
                 [paginator]="true" 
                 [rows]="10"
                 [rowsPerPageOptions]="[5, 10, 20]"
@@ -177,7 +180,34 @@ interface PaginatedInventoryResponse {
                 </ng-template>
 
                 <ng-template #body let-item>
-                    <tr>
+                    <!-- Skeleton Loading Rows -->
+                    <tr *ngIf="isLoading">
+                        <td>
+                            <div class="flex align-items-center gap-2">
+                                <p-skeleton width="50px" height="50px" />
+                                <p-skeleton width="10rem" />
+                            </div>
+                        </td>
+                        <td><p-skeleton width="8rem" /></td>
+                        <td><p-skeleton width="3rem" /></td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <p-skeleton width="5rem" height="1.5rem" />
+                                <p-skeleton shape="circle" size="2rem" />
+                                <p-skeleton width="8rem" />
+                            </div>
+                        </td>
+                        <td>
+                            <div class="flex gap-2">
+                                <p-skeleton shape="circle" size="2.5rem" />
+                                <p-skeleton shape="circle" size="2.5rem" />
+                                <p-skeleton shape="circle" size="2.5rem" />
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Actual Data Rows -->
+                    <tr *ngIf="!isLoading">
                         <td>
                             <div class="flex align-items-center gap-2">
                                 <img 
@@ -441,6 +471,7 @@ interface PaginatedInventoryResponse {
 })
 export class Inventory implements OnInit {
     private http = inject(HttpClient);
+    private authService = inject(AuthService);
     private apiUrl = `${environment.apiUrl}/Inventory`;
 
     constructor(
@@ -453,6 +484,7 @@ export class Inventory implements OnInit {
     }
 
     loadInventoryItems() {
+        this.isLoading = true;
         this.http.get<PaginatedInventoryResponse>(
             `${this.apiUrl}?page=${this.currentPage}&pageSize=${this.pageSize}`
         ).subscribe({
@@ -460,6 +492,7 @@ export class Inventory implements OnInit {
                 console.log('Inventory API response:', response);
                 this.inventoryItems = response.data;
                 this.totalRecords = response.totalCount;
+                this.isLoading = false;
             },
             error: (error) => {
                 console.error('Error loading inventory:', error);
@@ -468,6 +501,7 @@ export class Inventory implements OnInit {
                     summary: 'Error',
                     detail: 'Failed to load inventory items'
                 });
+                this.isLoading = false;
             }
         });
     }
@@ -483,6 +517,8 @@ export class Inventory implements OnInit {
     totalRecords = 0;
     currentPage = 1;
     pageSize = 20;
+    isLoading = false;
+    skeletonArray = Array(10).fill({});
 
     responsiveOptions = [
         {
