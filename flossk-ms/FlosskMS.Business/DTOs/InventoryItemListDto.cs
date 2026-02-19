@@ -14,4 +14,7 @@ public class InventoryItemListDto
     
     // First image thumbnail if available
     public string? ThumbnailPath { get; set; }
+    
+    // Images
+    public List<InventoryItemImageDto> Images { get; set; } = [];
 }

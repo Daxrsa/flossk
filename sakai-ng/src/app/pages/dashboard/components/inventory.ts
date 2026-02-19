@@ -38,16 +38,23 @@ interface InventoryItem {
     status: string;
     createdAt: string;
     updatedAt?: string;
+    currentUserId?: string;
     currentUserEmail?: string;
+    currentUserFullName?: string;
+    checkedOutAt?: string;
+    createdByUserId?: string;
+    createdByUserEmail?: string;
+    createdByUserFullName?: string;
     thumbnailPath?: string;
     images?: InventoryItemImage[];
 }
 
 interface InventoryItemImage {
     id: string;
-    uploadedFileId: string;
+    fileId: string;
+    fileName: string;
     filePath: string;
-    originalFileName: string;
+    addedAt: string;
 }
 
 interface PaginatedInventoryResponse {
@@ -421,6 +428,7 @@ export class Inventory implements OnInit {
             `${this.apiUrl}?page=${this.currentPage}&pageSize=${this.pageSize}`
         ).subscribe({
             next: (response) => {
+                console.log('Inventory API response:', response);
                 this.inventoryItems = response.data;
                 this.totalRecords = response.totalCount;
             },
@@ -495,14 +503,14 @@ export class Inventory implements OnInit {
 
     getImageUrl(item: InventoryItem, index: number = 0): string {
         if (item.images && item.images.length > index) {
-            return `${environment.apiUrl}/${item.images[index].filePath}`;
+            return `${environment.baseUrl}${item.images[index].filePath}`;
         }
-        return item.thumbnailPath ? `${environment.apiUrl}/${item.thumbnailPath}` : '';
+        return item.thumbnailPath ? `${environment.baseUrl}${item.thumbnailPath}` : '';
     }
 
     getGalleryImages(item: InventoryItem): string[] {
         if (item.images && item.images.length > 0) {
-            return item.images.map(img => `${environment.apiUrl}/${img.filePath}`);
+            return item.images.map(img => `${environment.baseUrl}${img.filePath}`);
         }
         return [];
     }

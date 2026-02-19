@@ -1,3 +1,4 @@
+using AutoMapper;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
@@ -9,10 +10,12 @@ namespace FlosskMS.Business.Services;
 public class InventoryService : IInventoryService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMapper _mapper;
 
-    public InventoryService(ApplicationDbContext context)
+    public InventoryService(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
     public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? search = null)
@@ -51,7 +54,7 @@ public class InventoryService : IInventoryService
 
         return new OkObjectResult(new
         {
-            Data = items.Select(MapToListDto),
+            Data = _mapper.Map<List<InventoryItemListDto>>(items),
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize,
@@ -68,7 +71,7 @@ public class InventoryService : IInventoryService
             return new NotFoundObjectResult(new { Message = "Inventory item not found." });
         }
 
-        return new OkObjectResult(MapToDto(item));
+        return new OkObjectResult(_mapper.Map<InventoryItemDto>(item));
     }
 
     public async Task<IActionResult> GetInventoryItemsByUserAsync(string userId)
@@ -88,7 +91,7 @@ public class InventoryService : IInventoryService
             .OrderByDescending(i => i.CheckedOutAt)
             .ToListAsync();
 
-        return new OkObjectResult(items.Select(MapToDto));
+        return new OkObjectResult(_mapper.Map<List<InventoryItemDto>>(items));
     }
 
     public async Task<IActionResult> CreateInventoryItemAsync(CreateInventoryItemDto dto, string createdByUserId)
@@ -143,7 +146,7 @@ public class InventoryService : IInventoryService
 
         // Reload with includes
         var createdItem = await GetItemWithIncludesAsync(item.Id);
-        return new OkObjectResult(new { Message = "Inventory item created successfully.", Data = MapToDto(createdItem!) });
+        return new OkObjectResult(new { Message = "Inventory item created successfully.", Data = _mapper.Map<InventoryItemDto>(createdItem) });
     }
 
     public async Task<IActionResult> UpdateInventoryItemAsync(Guid id, UpdateInventoryItemDto dto)
@@ -213,7 +216,7 @@ public class InventoryService : IInventoryService
 
         // Reload with includes
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
-        return new OkObjectResult(new { Message = "Inventory item updated successfully.", Data = MapToDto(updatedItem!) });
+        return new OkObjectResult(new { Message = "Inventory item updated successfully.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
     public async Task<IActionResult> DeleteInventoryItemAsync(Guid id)
@@ -271,7 +274,7 @@ public class InventoryService : IInventoryService
 
         // Reload with includes
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
-        return new OkObjectResult(new { Message = "Inventory item checked out successfully.", Data = MapToDto(updatedItem!) });
+        return new OkObjectResult(new { Message = "Inventory item checked out successfully.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
     public async Task<IActionResult> CheckInInventoryItemAsync(Guid id, string userId)
@@ -303,7 +306,7 @@ public class InventoryService : IInventoryService
 
         // Reload with includes
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
-        return new OkObjectResult(new { Message = "Inventory item checked in successfully.", Data = MapToDto(updatedItem!) });
+        return new OkObjectResult(new { Message = "Inventory item checked in successfully.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
     public async Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId)
@@ -535,51 +538,6 @@ public class InventoryService : IInventoryService
             .Include(i => i.Images)
                 .ThenInclude(img => img.UploadedFile)
             .FirstOrDefaultAsync(i => i.Id == id);
-    }
-
-    private static InventoryItemDto MapToDto(InventoryItem item)
-    {
-        return new InventoryItemDto
-        {
-            Id = item.Id,
-            Name = item.Name,
-            Category = item.Category.ToString(),
-            Quantity = item.Quantity,
-            Status = item.Status.ToString(),
-            Description = item.Description,
-            CreatedAt = item.CreatedAt,
-            UpdatedAt = item.UpdatedAt,
-            CurrentUserId = item.CurrentUserId,
-            CurrentUserEmail = item.CurrentUser?.Email,
-            CurrentUserFullName = item.CurrentUser != null ? $"{item.CurrentUser.FirstName} {item.CurrentUser.LastName}".Trim() : null,
-            CheckedOutAt = item.CheckedOutAt,
-            CreatedByUserId = item.CreatedByUserId,
-            CreatedByUserEmail = item.CreatedByUser?.Email ?? string.Empty,
-            CreatedByUserFullName = item.CreatedByUser != null ? $"{item.CreatedByUser.FirstName} {item.CreatedByUser.LastName}".Trim() : string.Empty,
-            Images = item.Images.Select(img => new InventoryItemImageDto
-            {
-                Id = img.Id,
-                FileId = img.UploadedFileId,
-                FileName = img.UploadedFile.FileName,
-                FilePath = img.UploadedFile.FilePath,
-                AddedAt = img.AddedAt
-            }).ToList()
-        };
-    }
-
-    private static InventoryItemListDto MapToListDto(InventoryItem item)
-    {
-        return new InventoryItemListDto
-        {
-            Id = item.Id,
-            Name = item.Name,
-            Category = item.Category.ToString(),
-            Quantity = item.Quantity,
-            Status = item.Status.ToString(),
-            CreatedAt = item.CreatedAt,
-            CurrentUserEmail = item.CurrentUser?.Email,
-            ThumbnailPath = item.Images.FirstOrDefault()?.UploadedFile.FilePath
-        };
     }
 
     #endregion

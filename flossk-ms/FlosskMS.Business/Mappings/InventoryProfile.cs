@@ -28,13 +28,14 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.CurrentUserEmail, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.Email : null))
             .ForMember(dest => dest.ThumbnailPath, opt => opt.MapFrom(src => 
                 src.Images.FirstOrDefault() != null 
-                    ? src.Images.FirstOrDefault()!.UploadedFile.FilePath 
-                    : null));
+                    ? "/uploads/" + src.Images.FirstOrDefault()!.UploadedFile.FileName 
+                    : null))
+            .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images));
 
         CreateMap<InventoryItemImage, InventoryItemImageDto>()
             .ForMember(dest => dest.FileId, opt => opt.MapFrom(src => src.UploadedFileId))
             .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.UploadedFile.FileName))
-            .ForMember(dest => dest.FilePath, opt => opt.MapFrom(src => src.UploadedFile.FilePath));
+            .ForMember(dest => dest.FilePath, opt => opt.MapFrom(src => "/uploads/" + src.UploadedFile.FileName));
 
         CreateMap<CreateInventoryItemDto, InventoryItem>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
