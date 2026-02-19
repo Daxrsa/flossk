@@ -158,7 +158,7 @@ interface PaginatedInventoryResponse {
                 [rows]="10"
                 [rowsPerPageOptions]="[5, 10, 20]"
                 [tableStyle]="{ 'min-width': '75rem' }"
-                [globalFilterFields]="['name', 'category', 'location', 'status']"
+                [globalFilterFields]="['name', 'category', 'status']"
                 #dt
             >
                 <ng-template #caption>
@@ -318,18 +318,6 @@ interface PaginatedInventoryResponse {
                         />
                     </div>
 
-                    <div class="flex flex-col gap-2">
-                        <label for="location" class="font-semibold">Location</label>
-                        <input 
-                            pInputText 
-                            id="location" 
-                            [(ngModel)]="currentItem.location" 
-                            class="w-full"
-                        />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-2">
                         <label for="quantity" class="font-semibold">Quantity</label>
                         <p-inputNumber
