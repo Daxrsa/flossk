@@ -482,8 +482,6 @@ export class Inventory implements OnInit {
         { label: 'In Use', value: 'InUse' }
     ];
 
-
-
     showGallery(item: InventoryItem) {
         // Check if item has images
         const imageCount = item.images?.length || 0;
