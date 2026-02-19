@@ -21,7 +21,6 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { InputIcon } from "primeng/inputicon";
 import { IconField } from "primeng/iconfield";
 import { AvatarModule } from 'primeng/avatar';
-import { SkeletonModule } from 'primeng/skeleton';
 import { AuthService } from '@/pages/service/auth.service';
 
 interface User {
@@ -94,8 +93,7 @@ interface PaginatedInventoryResponse {
         GalleriaModule,
         InputIcon,
         IconField,
-        AvatarModule,
-        SkeletonModule
+        AvatarModule
     ],
     providers: [ConfirmationService, MessageService],
     styles: `
@@ -155,7 +153,7 @@ interface PaginatedInventoryResponse {
             />
 
             <p-table 
-                [value]="isLoading ? skeletonArray : inventoryItems" 
+                [value]="inventoryItems" 
                 [paginator]="true" 
                 [rows]="10"
                 [rowsPerPageOptions]="[5, 10, 20]"
@@ -180,34 +178,7 @@ interface PaginatedInventoryResponse {
                 </ng-template>
 
                 <ng-template #body let-item>
-                    <!-- Skeleton Loading Rows -->
-                    <tr *ngIf="isLoading">
-                        <td>
-                            <div class="flex align-items-center gap-2">
-                                <p-skeleton width="50px" height="50px" />
-                                <p-skeleton width="10rem" />
-                            </div>
-                        </td>
-                        <td><p-skeleton width="8rem" /></td>
-                        <td><p-skeleton width="3rem" /></td>
-                        <td>
-                            <div class="flex items-center gap-2">
-                                <p-skeleton width="5rem" height="1.5rem" />
-                                <p-skeleton shape="circle" size="2rem" />
-                                <p-skeleton width="8rem" />
-                            </div>
-                        </td>
-                        <td>
-                            <div class="flex gap-2">
-                                <p-skeleton shape="circle" size="2.5rem" />
-                                <p-skeleton shape="circle" size="2.5rem" />
-                                <p-skeleton shape="circle" size="2.5rem" />
-                            </div>
-                        </td>
-                    </tr>
-                    
-                    <!-- Actual Data Rows -->
-                    <tr *ngIf="!isLoading">
+                    <tr>
                         <td>
                             <div class="flex align-items-center gap-2">
                                 <img 
@@ -243,7 +214,7 @@ interface PaginatedInventoryResponse {
                                         size="normal"
                                         [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
                                     />
-                                    <span class="text-sm text-muted-color">
+                                    <span class="text-sm">
                                         {{ item.currentUserFullName }}
                                     </span>
                                 </div>
@@ -484,7 +455,6 @@ export class Inventory implements OnInit {
     }
 
     loadInventoryItems() {
-        this.isLoading = true;
         this.http.get<PaginatedInventoryResponse>(
             `${this.apiUrl}?page=${this.currentPage}&pageSize=${this.pageSize}`
         ).subscribe({
@@ -492,7 +462,6 @@ export class Inventory implements OnInit {
                 console.log('Inventory API response:', response);
                 this.inventoryItems = response.data;
                 this.totalRecords = response.totalCount;
-                this.isLoading = false;
             },
             error: (error) => {
                 console.error('Error loading inventory:', error);
@@ -501,7 +470,6 @@ export class Inventory implements OnInit {
                     summary: 'Error',
                     detail: 'Failed to load inventory items'
                 });
-                this.isLoading = false;
             }
         });
     }
@@ -517,8 +485,6 @@ export class Inventory implements OnInit {
     totalRecords = 0;
     currentPage = 1;
     pageSize = 20;
-    isLoading = false;
-    skeletonArray = Array(10).fill({});
 
     responsiveOptions = [
         {
@@ -770,5 +736,9 @@ export class Inventory implements OnInit {
         const names = fullName.trim().split(' ');
         if (names.length === 1) return names[0].charAt(0).toUpperCase();
         return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+    }
+
+    canCheckIn(item: InventoryItem): null | boolean {
+        return null;
     }
 }
