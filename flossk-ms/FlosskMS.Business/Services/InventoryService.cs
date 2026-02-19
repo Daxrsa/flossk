@@ -21,8 +21,10 @@ public class InventoryService : IInventoryService
     public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? search = null)
     {
         var query = _context.InventoryItems
-            .Include(i => i.CurrentUser)
-            .Include(i => i.CreatedByUser)
+            .Include(i => i.CurrentUser!)
+                .ThenInclude(u => u.UploadedFiles)
+            .Include(i => i.CreatedByUser!)
+                .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
                 .ThenInclude(img => img.UploadedFile)
             .AsQueryable();
@@ -83,8 +85,10 @@ public class InventoryService : IInventoryService
         }
 
         var items = await _context.InventoryItems
-            .Include(i => i.CurrentUser)
-            .Include(i => i.CreatedByUser)
+            .Include(i => i.CurrentUser!)
+                .ThenInclude(u => u.UploadedFiles)
+            .Include(i => i.CreatedByUser!)
+                .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
                 .ThenInclude(img => img.UploadedFile)
             .Where(i => i.CurrentUserId == userId && i.Status == InventoryStatus.InUse)
@@ -269,6 +273,7 @@ public class InventoryService : IInventoryService
         item.CurrentUserId = userId;
         item.CheckedOutAt = DateTime.UtcNow;
         item.UpdatedAt = DateTime.UtcNow;
+        item.CurrentUser = user;
 
         await _context.SaveChangesAsync();
 
@@ -533,8 +538,10 @@ public class InventoryService : IInventoryService
     private async Task<InventoryItem?> GetItemWithIncludesAsync(Guid id)
     {
         return await _context.InventoryItems
-            .Include(i => i.CurrentUser)
-            .Include(i => i.CreatedByUser)
+            .Include(i => i.CurrentUser!)
+                .ThenInclude(u => u.UploadedFiles)
+            .Include(i => i.CreatedByUser!)
+                .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
                 .ThenInclude(img => img.UploadedFile)
             .FirstOrDefaultAsync(i => i.Id == id);

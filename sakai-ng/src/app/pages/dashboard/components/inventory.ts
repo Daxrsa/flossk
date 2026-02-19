@@ -40,11 +40,17 @@ interface InventoryItem {
     updatedAt?: string;
     currentUserId?: string;
     currentUserEmail?: string;
+    currentUserFirstName?: string;
+    currentUserLastName?: string;
     currentUserFullName?: string;
+    currentUserProfilePictureUrl?: string;
     checkedOutAt?: string;
     createdByUserId?: string;
     createdByUserEmail?: string;
+    createdByUserFirstName?: string;
+    createdByUserLastName?: string;
     createdByUserFullName?: string;
+    createdByUserProfilePictureUrl?: string;
     thumbnailPath?: string;
     images?: InventoryItemImage[];
 }
@@ -68,27 +74,35 @@ interface PaginatedInventoryResponse {
 @Component({
     selector: 'app-inventory',
     imports: [
-    CommonModule,
-    FormsModule,
-    ButtonModule,
-    TableModule,
-    TagModule,
-    DialogModule,
-    InputTextModule,
-    InputNumberModule,
-    TextareaModule,
-    SelectModule,
-    ConfirmDialogModule,
-    ToastModule,
-    ToolbarModule,
-    FileUploadModule,
-    RatingModule,
-    GalleriaModule,
-    InputIcon,
-    IconField,
-    AvatarModule
-],
+        CommonModule,
+        FormsModule,
+        ButtonModule,
+        TableModule,
+        TagModule,
+        DialogModule,
+        InputTextModule,
+        InputNumberModule,
+        TextareaModule,
+        SelectModule,
+        ConfirmDialogModule,
+        ToastModule,
+        ToolbarModule,
+        FileUploadModule,
+        RatingModule,
+        GalleriaModule,
+        InputIcon,
+        IconField,
+        AvatarModule
+    ],
     providers: [ConfirmationService, MessageService],
+    styles: `
+        .p-galleria-thumbnail-next-icon {
+            display: none !important;
+        }
+        .p-galleria-thumbnail-prev-icon {
+            display: none !important;
+        }`,
+
     template: `
         <p-toast />
         <p-confirmDialog />
@@ -185,8 +199,9 @@ interface PaginatedInventoryResponse {
                                     [value]="getStatusLabel(item.status)" 
                                     [severity]="getStatusSeverity(item.status)"
                                 />
-                                <span *ngIf="item.currentUserEmail" class="ml-2 text-sm text-muted-color">
-                                    ({{ item.currentUserEmail }})
+                                <span *ngIf="item.currentUserFullName" class="ml-2 text-sm text-muted-color">
+                                    {{ item.currentUserProfilePictureUrl ? '' : '' }}
+                                    {{ item.currentUserFullName }}
                                 </span>
                             </div>
                         </td>
@@ -489,7 +504,7 @@ export class Inventory implements OnInit {
     showGallery(item: InventoryItem) {
         // Check if item has images
         const imageCount = item.images?.length || 0;
-        
+
         if (imageCount > 1) {
             // Show gallery for multiple images
             this.galleryItem = item;
@@ -545,7 +560,7 @@ export class Inventory implements OnInit {
         if (!this.currentItem.images) {
             this.currentItem.images = [];
         }
-        
+
         const files = event.files;
         for (let file of files) {
             const reader = new FileReader();
@@ -653,7 +668,8 @@ export class Inventory implements OnInit {
 
     checkOutItem(item: InventoryItem) {
         this.http.post(`${this.apiUrl}/${item.id}/checkout`, {}).subscribe({
-            next: () => {
+            next: (response) => {
+                console.log('Check-out response:', response);
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',
@@ -674,7 +690,8 @@ export class Inventory implements OnInit {
 
     checkInItem(item: InventoryItem) {
         this.http.post(`${this.apiUrl}/${item.id}/checkin`, {}).subscribe({
-            next: () => {
+            next: (response) => {
+                console.log('Check-in response:', response);
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',

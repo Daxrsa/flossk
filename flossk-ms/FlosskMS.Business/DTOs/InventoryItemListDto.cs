@@ -11,6 +11,10 @@ public class InventoryItemListDto
     
     // Current user (abbreviated)
     public string? CurrentUserEmail { get; set; }
+    public string? CurrentUserFirstName { get; set; }
+    public string? CurrentUserLastName { get; set; }
+    public string? CurrentUserFullName { get; set; }
+    public string? CurrentUserProfilePictureUrl { get; set; }
     
     // First image thumbnail if available
     public string? ThumbnailPath { get; set; }
