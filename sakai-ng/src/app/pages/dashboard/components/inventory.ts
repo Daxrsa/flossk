@@ -194,15 +194,29 @@ interface PaginatedInventoryResponse {
                         <td>{{ item.category }}</td>
                         <td>{{ item.quantity }}</td>
                         <td>
-                            <div class="flex items-center">
+                            <div class="flex items-center gap-2">
                                 <p-tag 
                                     [value]="getStatusLabel(item.status)" 
                                     [severity]="getStatusSeverity(item.status)"
                                 />
-                                <span *ngIf="item.currentUserFullName" class="ml-2 text-sm text-muted-color">
-                                    {{ item.currentUserProfilePictureUrl ? '' : '' }}
-                                    {{ item.currentUserFullName }}
-                                </span>
+                                <div *ngIf="item.currentUserFullName" class="flex items-center gap-2">
+                                    <p-avatar
+                                        *ngIf="item.currentUserProfilePictureUrl"
+                                        [image]="getProfilePictureUrl(item.currentUserProfilePictureUrl)"
+                                        shape="circle"
+                                        size="normal"
+                                    />
+                                    <p-avatar
+                                        *ngIf="!item.currentUserProfilePictureUrl"
+                                        [label]="getUserInitials(item.currentUserFullName)"
+                                        shape="circle"
+                                        size="normal"
+                                        [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                                    />
+                                    <span class="text-sm text-muted-color">
+                                        {{ item.currentUserFullName }}
+                                    </span>
+                                </div>
                             </div>
                         </td>
                         <td>
@@ -708,5 +722,17 @@ export class Inventory implements OnInit {
                 });
             }
         });
+    }
+
+    getProfilePictureUrl(url: string | undefined): string {
+        if (!url) return '';
+        return url.startsWith('http') ? url : `${environment.baseUrl}${url}`;
+    }
+
+    getUserInitials(fullName: string | undefined): string {
+        if (!fullName) return '?';
+        const names = fullName.trim().split(' ');
+        if (names.length === 1) return names[0].charAt(0).toUpperCase();
+        return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
     }
 }
