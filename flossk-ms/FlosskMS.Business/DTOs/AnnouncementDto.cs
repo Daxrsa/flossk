@@ -16,7 +16,7 @@ public class AnnouncementDto
     public string CreatedByUserId { get; set; } = string.Empty;
     public string CreatedByFirstName { get; set; } = string.Empty;
     public string CreatedByLastName { get; set; } = string.Empty;
-    public string? CreatedByProfilePicture { get; set; }
+    public string CreatedByProfilePicture { get; set; } = string.Empty;
     
     // Permission flags
     public bool IsCurrentUserCreator { get; set; }

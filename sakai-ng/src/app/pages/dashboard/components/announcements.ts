@@ -14,6 +14,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService } from 'primeng/api';
 import { AnnouncementsService, Announcement, ReactionSummary } from '@/pages/service/announcements.service';
 import { AuthService } from '@/pages/service/auth.service';
+import { environment } from '@environments/environment.prod';
 
 interface AnnouncementDisplay {
     id: string;
@@ -274,14 +275,24 @@ export class Announcements implements OnInit {
     }
 
     mapToDisplay(a: any): AnnouncementDisplay {
+        const authorName = a.createdByFirstName && a.createdByLastName 
+            ? `${a.createdByFirstName} ${a.createdByLastName}` 
+            : 'Unknown';
+        
+        let authorAvatar = '';
+        if (a.createdByProfilePicture) {
+            authorAvatar = a.createdByProfilePicture.startsWith('http')
+                ? a.createdByProfilePicture
+                : `${environment.baseUrl}${a.createdByProfilePicture}`;
+        }
+        
         return {
             id: a.id,
             title: a.title,
             content: a.body || a.content,
-            author: a.createdByFirstName && a.createdByLastName 
-                ? `${a.createdByFirstName} ${a.createdByLastName}` 
-                : 'Unknown',
-            authorAvatar: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png',
+            author: authorName,
+            authorAvatar: authorAvatar,
+            // authorInitials: getInitials(authorName),
             date: a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
             category: a.category || 'General',
             priority: a.importance?.toLowerCase() || a.priority?.toLowerCase() || 'normal',

@@ -78,6 +78,7 @@ public class AnnouncementService : IAnnouncementService
 
         var query = _dbContext.Announcements
             .Include(a => a.CreatedByUser)
+                .ThenInclude(u => u.UploadedFiles)
             .Include(a => a.Reactions)
                 .ThenInclude(r => r.User)
             .AsQueryable();
@@ -119,6 +120,7 @@ public class AnnouncementService : IAnnouncementService
     {
         var announcement = await _dbContext.Announcements
             .Include(a => a.CreatedByUser)
+                .ThenInclude(u => u.UploadedFiles)
             .Include(a => a.Reactions)
                 .ThenInclude(r => r.User)
             .FirstOrDefaultAsync(a => a.Id == id);
@@ -356,7 +358,10 @@ public class AnnouncementService : IAnnouncementService
             CreatedByUserId = announcement.CreatedByUserId,
             CreatedByFirstName = announcement.CreatedByUser?.FirstName ?? "",
             CreatedByLastName = announcement.CreatedByUser?.LastName ?? "",
-            CreatedByProfilePicture = null,
+            CreatedByProfilePicture = announcement.CreatedByUser?.UploadedFiles?
+                .Where(f => f.FileType == FileType.ProfilePicture)
+                .Select(f => "/uploads/" + f.FileName)
+                .FirstOrDefault(),
             IsCurrentUserCreator = !string.IsNullOrEmpty(currentUserId) && announcement.CreatedByUserId == currentUserId,
             Reactions = GetReactionSummaries(announcement.Reactions ?? new List<AnnouncementReaction>(), currentUserId)
         };
