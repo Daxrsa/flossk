@@ -16,7 +16,11 @@ public class InventoryItemListDto
     public string? CurrentUserLastName { get; set; }
     public string? CurrentUserFullName { get; set; }
     public string? CurrentUserProfilePictureUrl { get; set; }
-    
+
+    // Creator (abbreviated)
+    public string? CreatedByUserFullName { get; set; }
+    public string? CreatedByUserProfilePictureUrl { get; set; }
+
     // Images
     public List<InventoryItemImageDto> Images { get; set; } = [];
 }

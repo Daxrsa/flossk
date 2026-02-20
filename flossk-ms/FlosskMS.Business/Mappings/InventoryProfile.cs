@@ -29,9 +29,11 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.CreatedByUserEmail, opt => opt.MapFrom(src => src.CreatedByUser.Email))
             .ForMember(dest => dest.CreatedByUserFirstName, opt => opt.MapFrom(src => src.CreatedByUser.FirstName))
             .ForMember(dest => dest.CreatedByUserLastName, opt => opt.MapFrom(src => src.CreatedByUser.LastName))
-            .ForMember(dest => dest.CreatedByUserFullName, opt => opt.MapFrom(src => 
-                $"{src.CreatedByUser.FirstName} {src.CreatedByUser.LastName}".Trim()))
-            .ForMember(dest => dest.CreatedByUserProfilePictureUrl, opt => opt.MapFrom(src => 
+            .ForMember(dest => dest.CreatedByUserFullName, opt => opt.MapFrom(src =>
+                src.CreatedByUser != null
+                    ? $"{src.CreatedByUser.FirstName} {src.CreatedByUser.LastName}".Trim()
+                    : null))
+            .ForMember(dest => dest.CreatedByUserProfilePictureUrl, opt => opt.MapFrom(src =>
                 src.CreatedByUser != null && src.CreatedByUser.UploadedFiles != null
                     ? src.CreatedByUser.UploadedFiles
                         .Where(f => f.FileType == FileType.ProfilePicture)
@@ -53,6 +55,17 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.CurrentUserProfilePictureUrl, opt => opt.MapFrom(src => 
                 src.CurrentUser != null && src.CurrentUser.UploadedFiles != null
                     ? src.CurrentUser.UploadedFiles
+                        .Where(f => f.FileType == FileType.ProfilePicture)
+                        .Select(f => "/uploads/" + f.FileName)
+                        .FirstOrDefault()
+                    : null))
+            .ForMember(dest => dest.CreatedByUserFullName, opt => opt.MapFrom(src =>
+                src.CreatedByUser != null
+                    ? $"{src.CreatedByUser.FirstName} {src.CreatedByUser.LastName}".Trim()
+                    : null))
+            .ForMember(dest => dest.CreatedByUserProfilePictureUrl, opt => opt.MapFrom(src =>
+                src.CreatedByUser != null && src.CreatedByUser.UploadedFiles != null
+                    ? src.CreatedByUser.UploadedFiles
                         .Where(f => f.FileType == FileType.ProfilePicture)
                         .Select(f => "/uploads/" + f.FileName)
                         .FirstOrDefault()

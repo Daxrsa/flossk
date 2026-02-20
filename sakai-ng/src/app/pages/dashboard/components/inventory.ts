@@ -30,6 +30,16 @@ interface User {
     email: string;
 }
 
+interface HistoryLogEntry {
+    date: string;
+    action: string;
+    detail?: string;
+    userFullName?: string;
+    userProfilePictureUrl?: string;
+    icon: string;
+    color: string;
+}
+
 interface InventoryItem {
     id: string;
     name: string;
@@ -47,11 +57,11 @@ interface InventoryItem {
     currentUserProfilePictureUrl?: string;
     checkedOutAt?: string;
     createdByUserId?: string;
+    createdByUserFullName?: string;
+    createdByUserProfilePictureUrl?: string;
     createdByUserEmail?: string;
     createdByUserFirstName?: string;
     createdByUserLastName?: string;
-    createdByUserFullName?: string;
-    createdByUserProfilePictureUrl?: string;
     images?: InventoryItemImage[];
 }
 
@@ -234,6 +244,14 @@ interface PaginatedInventoryResponse {
                                     pTooltip="Delete"
                                     (onClick)="confirmDelete(item)"
                                 />
+                                <p-button
+                                    icon="pi pi-history"
+                                    [rounded]="true"
+                                    [text]="true"
+                                    severity="info"
+                                    pTooltip="History"
+                                    (onClick)="openHistoryDialog(item)"
+                                />
                             </div>
                         </td>
                     </tr>
@@ -399,6 +417,52 @@ interface PaginatedInventoryResponse {
             />
         </p-dialog>
 
+        <!-- History Log Dialog -->
+        <p-dialog
+            [(visible)]="historyVisible"
+            [header]="'History \u2014 ' + (historyItem?.name || '')"
+            [modal]="true"
+            [style]="{ width: '38rem' }"
+            [breakpoints]="{ '575px': '95vw' }"
+            [contentStyle]="{ 'max-height': '70vh', 'overflow-y': 'auto', 'padding': '1.5rem' }"
+        >
+            <div *ngIf="historyLog.length === 0" class="text-center text-muted-color py-8">
+                <i class="pi pi-history text-5xl mb-3 block"></i>
+                <p>No history available</p>
+            </div>
+            <div *ngIf="historyLog.length > 0" class="flex flex-col gap-2">
+                <div *ngFor="let entry of historyLog" class="flex items-start gap-3 p-3 border rounded-lg">
+                    <span
+                        class="flex items-center justify-center text-white rounded-full w-8 h-8 shrink-0 mt-0.5"
+                        [style]="{ 'background-color': entry.color }"
+                    >
+                        <i [class]="entry.icon + ' text-sm'"></i>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <p-avatar
+                                *ngIf="entry.userProfilePictureUrl"
+                                [image]="getProfilePictureUrl(entry.userProfilePictureUrl)"
+                                shape="circle"
+                                size="normal"
+                            />
+                            <p-avatar
+                                *ngIf="!entry.userProfilePictureUrl && entry.userFullName"
+                                [label]="getUserInitials(entry.userFullName)"
+                                shape="circle"
+                                size="normal"
+                                [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                            />
+                            <span class="font-semibold text-sm">{{ entry.action }}</span>
+                        </div>
+                        <p *ngIf="entry.userFullName" class="text-sm text-muted-color mt-1 mb-0">{{ entry.userFullName }}</p>
+                        <p *ngIf="entry.detail" class="text-sm text-muted-color mb-0">{{ entry.detail }}</p>
+                        <p class="text-xs text-muted-color mt-1 mb-0">{{ entry.date | date:'MMM d, y, h:mm a' }}</p>
+                    </div>
+                </div>
+            </div>
+        </p-dialog>
+
         <!-- Gallery Dialog -->
         <p-dialog 
             [(visible)]="galleryVisible" 
@@ -466,6 +530,9 @@ export class Inventory implements OnInit {
     selectedFiles: File[] = [];
     existingImages: InventoryItemImage[] = [];
     newImagePreviews: string[] = [];
+    historyVisible = false;
+    historyItem: InventoryItem | null = null;
+    historyLog: HistoryLogEntry[] = [];
     galleryVisible = false;
     galleryItem: InventoryItem | null = null;
     singleImageVisible = false;
@@ -517,6 +584,63 @@ export class Inventory implements OnInit {
             this.selectedItem = item;
             this.singleImageVisible = true;
         }
+    }
+
+    openHistoryDialog(item: InventoryItem) {
+        this.historyItem = item;
+        const entries: HistoryLogEntry[] = [];
+
+        // Created
+        entries.push({
+            date: item.createdAt,
+            action: 'Item created',
+            userFullName: item.createdByUserFullName,
+            userProfilePictureUrl: item.createdByUserProfilePictureUrl,
+            icon: 'pi pi-plus',
+            color: '#22c55e'
+        });
+
+        // Images added (if any)
+        if (item.images && item.images.length > 0) {
+            item.images.forEach(img => {
+                entries.push({
+                    date: img.addedAt,
+                    action: 'Image added',
+                    detail: img.fileName,
+                    icon: 'pi pi-image',
+                    color: '#3b82f6'
+                });
+            });
+        }
+
+        // Updated (if different from created)
+        if (item.updatedAt && item.updatedAt !== item.createdAt) {
+            entries.push({
+                date: item.updatedAt,
+                action: 'Item updated',
+                detail: 'Details were modified',
+                icon: 'pi pi-pencil',
+                color: '#f59e0b'
+            });
+        }
+
+        // Checked out
+        if (item.checkedOutAt && item.currentUserFullName) {
+            entries.push({
+                date: item.checkedOutAt,
+                action: 'Checked out',
+                userFullName: item.currentUserFullName,
+                userProfilePictureUrl: item.currentUserProfilePictureUrl,
+                icon: 'pi pi-sign-in',
+                color: '#ef4444'
+            });
+        }
+
+        // Sort ascending by date
+        entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        this.historyLog = entries;
+        this.historyVisible = true;
     }
 
     getImageUrl(item: InventoryItem, index: number = 0): string {
