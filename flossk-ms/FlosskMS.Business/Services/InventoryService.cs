@@ -188,30 +188,20 @@ public class InventoryService : IInventoryService
 
         item.UpdatedAt = DateTime.UtcNow;
 
-        // Upload and update images if provided
-        if (dto.Images != null)
+        // Upload and append new images if provided
+        if (dto.Images != null && dto.Images.Count > 0)
         {
-            // Remove existing images
-            var existingImages = await _context.InventoryItemImages
-                .Where(img => img.InventoryItemId == id)
-                .ToListAsync();
-            _context.InventoryItemImages.RemoveRange(existingImages);
-
-            // Upload and add new images
-            if (dto.Images.Count > 0)
+            var uploadResult = await _fileService.UploadFilesAsync(dto.Images, userId);
+            foreach (var fileResult in uploadResult.Results.Where(r => r.Success))
             {
-                var uploadResult = await _fileService.UploadFilesAsync(dto.Images, userId);
-                foreach (var fileResult in uploadResult.Results.Where(r => r.Success))
+                var image = new InventoryItemImage
                 {
-                    var image = new InventoryItemImage
-                    {
-                        Id = Guid.NewGuid(),
-                        InventoryItemId = item.Id,
-                        UploadedFileId = fileResult.FileId!.Value,
-                        AddedAt = DateTime.UtcNow
-                    };
-                    _context.InventoryItemImages.Add(image);
-                }
+                    Id = Guid.NewGuid(),
+                    InventoryItemId = item.Id,
+                    UploadedFileId = fileResult.FileId!.Value,
+                    AddedAt = DateTime.UtcNow
+                };
+                _context.InventoryItemImages.Add(image);
             }
         }
 
