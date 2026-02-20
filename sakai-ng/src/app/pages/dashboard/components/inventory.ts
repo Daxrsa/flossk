@@ -444,6 +444,7 @@ export class Inventory implements OnInit {
     dialogVisible = false;
     dialogMode: 'add' | 'edit' = 'add';
     currentItem: any = this.getEmptyItem();
+    selectedFiles: File[] = [];
     galleryVisible = false;
     galleryItem: InventoryItem | null = null;
     singleImageVisible = false;
@@ -524,6 +525,7 @@ export class Inventory implements OnInit {
     openAddDialog() {
         this.dialogMode = 'add';
         this.currentItem = this.getEmptyItem();
+        this.selectedFiles = [];
         this.dialogVisible = true;
     }
 
@@ -534,6 +536,7 @@ export class Inventory implements OnInit {
         if (!this.currentItem.images) {
             this.currentItem.images = [];
         }
+        this.selectedFiles = [];
         this.dialogVisible = true;
     }
 
@@ -544,6 +547,7 @@ export class Inventory implements OnInit {
 
         const files = event.files;
         for (let file of files) {
+            this.selectedFiles.push(file);
             const reader = new FileReader();
             reader.onload = (e: any) => {
                 this.currentItem.images!.push(e.target.result);
@@ -555,6 +559,9 @@ export class Inventory implements OnInit {
     removeImage(index: number) {
         if (this.currentItem.images) {
             this.currentItem.images.splice(index, 1);
+        }
+        if (this.selectedFiles.length > index) {
+            this.selectedFiles.splice(index, 1);
         }
     }
 
@@ -568,16 +575,18 @@ export class Inventory implements OnInit {
             return;
         }
 
+        const formData = new FormData();
+        formData.append('Name', this.currentItem.name);
+        formData.append('Description', this.currentItem.description || '');
+        formData.append('Category', this.currentItem.category);
+        formData.append('Quantity', (this.currentItem.quantity || 1).toString());
+
+        for (const file of this.selectedFiles) {
+            formData.append('Images', file, file.name);
+        }
+
         if (this.dialogMode === 'add') {
-            // Create new item via API
-            const createDto = {
-                name: this.currentItem.name,
-                description: this.currentItem.description || '',
-                category: this.currentItem.category,
-                quantity: this.currentItem.quantity || 1
-            };
-            
-            this.http.post(this.apiUrl, createDto).subscribe({
+            this.http.post(this.apiUrl, formData).subscribe({
                 next: (response) => {
                     console.log('Item created:', response);
                     this.messageService.add({
@@ -598,15 +607,7 @@ export class Inventory implements OnInit {
                 }
             });
         } else {
-            // Update existing item via API
-            const updateDto = {
-                name: this.currentItem.name,
-                description: this.currentItem.description || '',
-                category: this.currentItem.category,
-                quantity: this.currentItem.quantity || 1
-            };
-            
-            this.http.put(`${this.apiUrl}/${this.currentItem.id}`, updateDto).subscribe({
+            this.http.put(`${this.apiUrl}/${this.currentItem.id}`, formData).subscribe({
                 next: (response) => {
                     console.log('Item updated:', response);
                     this.messageService.add({
