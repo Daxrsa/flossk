@@ -449,7 +449,7 @@ interface PaginatedInventoryResponse {
             </div>
             <div *ngIf="!historyLoading && historyLog.length > 0" class="flex flex-col gap-2">
                 <div *ngFor="let entry of historyLog" class="flex flex-col gap-2 p-3 border border-surface-200 dark:border-surface-700 rounded-lg">
-                    <!-- Row 1: icon + action name -->
+                    <!-- Single row: log icon + action + avatar + full name -->
                     <div class="flex items-center gap-2">
                         <span
                             class="flex items-center justify-center text-white rounded-full w-7 h-7 shrink-0"
@@ -458,23 +458,23 @@ interface PaginatedInventoryResponse {
                             <i [class]="entry.icon + ' text-xs'"></i>
                         </span>
                         <span class="font-semibold text-sm">{{ entry.action }}</span>
-                    </div>
-                    <!-- Row 2: avatar + full name -->
-                    <div *ngIf="entry.userFullName" class="flex items-center gap-2 ml-1">
-                        <p-avatar
-                            *ngIf="entry.userProfilePictureUrl"
-                            [image]="getProfilePictureUrl(entry.userProfilePictureUrl)"
-                            shape="circle"
-                            size="normal"
-                        />
-                        <p-avatar
-                            *ngIf="!entry.userProfilePictureUrl"
-                            [label]="getUserInitials(entry.userFullName)"
-                            shape="circle"
-                            size="normal"
-                            [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
-                        />
-                        <span class="text-sm text-muted-color">{{ entry.userFullName }}</span>
+                        <ng-container *ngIf="entry.userFullName">
+                            <span class="text-muted-color text-sm">·</span>
+                            <p-avatar
+                                *ngIf="entry.userProfilePictureUrl"
+                                [image]="getProfilePictureUrl(entry.userProfilePictureUrl)"
+                                shape="circle"
+                                size="normal"
+                            />
+                            <p-avatar
+                                *ngIf="!entry.userProfilePictureUrl"
+                                [label]="getUserInitials(entry.userFullName)"
+                                shape="circle"
+                                size="normal"
+                                [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                            />
+                            <span class="text-sm text-muted-color">{{ entry.userFullName }}</span>
+                        </ng-container>
                     </div>
                     <!-- Detail image or text -->
                     <img *ngIf="entry.detailImageUrl" [src]="entry.detailImageUrl" [alt]="entry.detail" class="rounded-md max-h-32 object-cover border border-surface-200 dark:border-surface-700" />
