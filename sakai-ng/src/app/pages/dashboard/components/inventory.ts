@@ -632,13 +632,14 @@ export class Inventory implements OnInit {
         const isImageUrl = log.detail?.startsWith('/uploads/');
 
         const iconMap: Record<string, { icon: string; color: string }> = {
-            'Item created':  { icon: 'pi pi-plus',      color: '#22c55e' },
-            'Item updated':  { icon: 'pi pi-pencil',    color: '#f59e0b' },
-            'Item deleted':  { icon: 'pi pi-trash',     color: '#ef4444' },
-            'Checked out':   { icon: 'pi pi-sign-in',   color: '#ef4444' },
-            'Checked in':    { icon: 'pi pi-sign-out',  color: '#22c55e' },
-            'Image added':   { icon: 'pi pi-image',     color: '#3b82f6' },
-            'Image removed': { icon: 'pi pi-times',     color: '#f97316' },
+            'Item created':  { icon: 'pi pi-plus',        color: '#22c55e' },
+            'Item updated':  { icon: 'pi pi-pencil',      color: '#f59e0b' },
+            'Field updated': { icon: 'pi pi-pen-to-square', color: '#f59e0b' },
+            'Item deleted':  { icon: 'pi pi-trash',       color: '#ef4444' },
+            'Checked out':   { icon: 'pi pi-sign-in',     color: '#ef4444' },
+            'Checked in':    { icon: 'pi pi-sign-out',    color: '#22c55e' },
+            'Image added':   { icon: 'pi pi-image',       color: '#3b82f6' },
+            'Image removed': { icon: 'pi pi-times',       color: '#f97316' },
         };
         const meta = iconMap[log.action] ?? { icon: 'pi pi-info-circle', color: '#94a3b8' };
 

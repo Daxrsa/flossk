@@ -85,7 +85,7 @@ public class LogService : ILogService
             .Include(l => l.User)
                 .ThenInclude(u => u.UploadedFiles)
             .Where(l => l.EntityType == entityType && l.EntityId == entityId)
-            .OrderBy(l => l.Timestamp)
+            .OrderByDescending(l => l.Timestamp)
             .ToListAsync();
 
         return new OkObjectResult(_mapper.Map<List<LogDto>>(logs));

@@ -193,9 +193,19 @@ public class InventoryService : IInventoryService
             return new NotFoundObjectResult(new { Message = "Inventory item not found." });
         }
 
+        // Snapshot old values before any mutation
+        var oldName        = item.Name;
+        var oldCategory    = item.Category.ToString();
+        var oldQuantity    = item.Quantity;
+        var oldDescription = item.Description;
+
+        // Track field-level changes for logging
+        var fieldChanges = new List<(string Field, string OldValue, string NewValue)>();
+
         // Update fields if provided
-        if (!string.IsNullOrEmpty(dto.Name))
+        if (!string.IsNullOrEmpty(dto.Name) && dto.Name != item.Name)
         {
+            fieldChanges.Add(("Name", oldName, dto.Name));
             item.Name = dto.Name;
         }
 
@@ -205,16 +215,24 @@ public class InventoryService : IInventoryService
             {
                 return new BadRequestObjectResult(new { Message = "Invalid category. Valid values are: Electronic, Tool, Components, Furniture, Hardware, OfficeSupplies." });
             }
-            item.Category = category;
+            if (category != item.Category)
+            {
+                fieldChanges.Add(("Category", oldCategory, category.ToString()));
+                item.Category = category;
+            }
         }
 
-        if (dto.Quantity.HasValue)
+        if (dto.Quantity.HasValue && dto.Quantity.Value != item.Quantity)
         {
+            fieldChanges.Add(("Quantity", oldQuantity.ToString(), dto.Quantity.Value.ToString()));
             item.Quantity = dto.Quantity.Value;
         }
 
-        if (dto.Description != null)
+        if (dto.Description != null && dto.Description != item.Description)
         {
+            fieldChanges.Add(("Description",
+                string.IsNullOrWhiteSpace(oldDescription) ? "(empty)" : oldDescription,
+                string.IsNullOrWhiteSpace(dto.Description) ? "(empty)" : dto.Description));
             item.Description = dto.Description;
         }
 
@@ -239,15 +257,33 @@ public class InventoryService : IInventoryService
 
         await _context.SaveChangesAsync();
 
-        await _logService.CreateAsync(new CreateLogDto
+        // Log one entry per changed field
+        foreach (var (field, oldValue, newValue) in fieldChanges)
         {
-            EntityType = "Inventory",
-            EntityId = item.Id.ToString(),
-            EntityName = item.Name,
-            Action = "Item updated",
-            Detail = "Details were modified",
-            UserId = userId
-        });
+            await _logService.CreateAsync(new CreateLogDto
+            {
+                EntityType = "Inventory",
+                EntityId = item.Id.ToString(),
+                EntityName = item.Name,
+                Action = "Field updated",
+                Detail = $"{field}: \"{oldValue}\" → \"{newValue}\"",
+                UserId = userId
+            });
+        }
+
+        // If nothing changed in fields but the call still hit (e.g. only images), log a generic entry
+        if (fieldChanges.Count == 0 && (dto.Images == null || dto.Images.Count == 0))
+        {
+            await _logService.CreateAsync(new CreateLogDto
+            {
+                EntityType = "Inventory",
+                EntityId = item.Id.ToString(),
+                EntityName = item.Name,
+                Action = "Item updated",
+                Detail = "No changes detected",
+                UserId = userId
+            });
+        }
 
         // Log each new image appended during update
         if (dto.Images != null && dto.Images.Count > 0)
