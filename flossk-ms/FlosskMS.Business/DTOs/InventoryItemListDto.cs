@@ -17,9 +17,6 @@ public class InventoryItemListDto
     public string? CurrentUserFullName { get; set; }
     public string? CurrentUserProfilePictureUrl { get; set; }
     
-    // First image thumbnail if available
-    public string? ThumbnailPath { get; set; }
-    
     // Images
     public List<InventoryItemImageDto> Images { get; set; } = [];
 }

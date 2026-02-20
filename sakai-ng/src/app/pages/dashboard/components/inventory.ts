@@ -52,7 +52,6 @@ interface InventoryItem {
     createdByUserLastName?: string;
     createdByUserFullName?: string;
     createdByUserProfilePictureUrl?: string;
-    thumbnailPath?: string;
     images?: InventoryItemImage[];
 }
 
@@ -161,7 +160,7 @@ interface PaginatedInventoryResponse {
                         <td>
                             <div class="flex align-items-center gap-2">
                                 <img 
-                                    *ngIf="item.thumbnailPath || (item.images && item.images.length > 0)" 
+                                    *ngIf="item.images && item.images.length > 0" 
                                     [src]="getImageUrl(item)" 
                                     [alt]="item.name" 
                                     width="50" 
@@ -336,6 +335,13 @@ interface PaginatedInventoryResponse {
                                     class="w-20 h-20 object-cover rounded"
                                 />
                                 <span class="flex-1 text-sm truncate">{{ img.fileName || 'Image ' + (i+1) }}</span>
+                                <p-button
+                                    icon="pi pi-times"
+                                    [rounded]="true"
+                                    [text]="true"
+                                    severity="danger"
+                                    (onClick)="removeExistingImage(img, i)"
+                                />
                             </div>
                         </div>
                         <div *ngIf="newImagePreviews.length > 0">
@@ -517,7 +523,7 @@ export class Inventory implements OnInit {
         if (item.images && item.images.length > index) {
             return `${environment.baseUrl}${item.images[index].filePath}`;
         }
-        return item.thumbnailPath ? `${environment.baseUrl}${item.thumbnailPath}` : '';
+        return '';
     }
 
     getGalleryImages(item: InventoryItem): string[] {
@@ -548,24 +554,11 @@ export class Inventory implements OnInit {
 
     openEditDialog(item: InventoryItem) {
         this.dialogMode = 'edit';
-        this.http.get<any>(`${this.apiUrl}/${item.id}`).subscribe({
-            next: (fullItem) => {
-                this.currentItem = { ...fullItem };
-                this.existingImages = fullItem.images ? [...fullItem.images] : [];
-                this.newImagePreviews = [];
-                this.selectedFiles = [];
-                this.dialogVisible = true;
-            },
-            error: (error) => {
-                console.error('Error loading item details:', error);
-                // Fall back to list data
-                this.currentItem = { ...item };
-                this.existingImages = item.images ? [...item.images] : [];
-                this.newImagePreviews = [];
-                this.selectedFiles = [];
-                this.dialogVisible = true;
-            }
-        });
+        this.currentItem = { ...item };
+        this.existingImages = item.images ? [...item.images] : [];
+        this.newImagePreviews = [];
+        this.selectedFiles = [];
+        this.dialogVisible = true;
     }
 
     onImagesSelect(event: any) {
@@ -583,6 +576,32 @@ export class Inventory implements OnInit {
     removeNewImage(index: number) {
         this.newImagePreviews.splice(index, 1);
         this.selectedFiles.splice(index, 1);
+    }
+
+    removeExistingImage(img: InventoryItemImage, index: number) {
+        this.http.delete(`${this.apiUrl}/${this.currentItem.id}/images/${img.id}`).subscribe({
+            next: () => {
+                this.existingImages.splice(index, 1);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: 'Image removed'
+                });
+                // Refresh the list so the table reflects the change
+                const listIdx = this.inventoryItems.findIndex(i => i.id === this.currentItem.id);
+                if (listIdx !== -1) {
+                    this.inventoryItems[listIdx].images = [...this.existingImages];
+                }
+            },
+            error: (error) => {
+                console.error('Error removing image:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to remove image'
+                });
+            }
+        });
     }
 
     getExistingImageSrc(img: InventoryItemImage): string {

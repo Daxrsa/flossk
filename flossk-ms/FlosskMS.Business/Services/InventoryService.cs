@@ -542,7 +542,7 @@ public class InventoryService : IInventoryService
             .Include(i => i.CreatedByUser!)
                 .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
-                .ThenInclude(img => img.UploadedFile)
+                .ThenInclude(img => img.UploadedFile).AsSplitQuery()
             .FirstOrDefaultAsync(i => i.Id == id);
     }
 

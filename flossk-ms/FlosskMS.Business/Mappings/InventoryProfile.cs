@@ -57,10 +57,6 @@ public class InventoryProfile : Profile
                         .Select(f => "/uploads/" + f.FileName)
                         .FirstOrDefault()
                     : null))
-            .ForMember(dest => dest.ThumbnailPath, opt => opt.MapFrom(src => 
-                src.Images.FirstOrDefault() != null 
-                    ? "/uploads/" + src.Images.FirstOrDefault()!.UploadedFile.FileName 
-                    : null))
             .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images));
 
         CreateMap<InventoryItemImage, InventoryItemImageDto>()
