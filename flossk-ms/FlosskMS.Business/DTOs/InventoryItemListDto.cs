@@ -11,6 +11,7 @@ public class InventoryItemListDto
     public DateTime CreatedAt { get; set; }
     
     // Current user (abbreviated)
+    public string? CurrentUserId { get; set; }
     public string? CurrentUserEmail { get; set; }
     public string? CurrentUserFirstName { get; set; }
     public string? CurrentUserLastName { get; set; }

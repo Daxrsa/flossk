@@ -554,6 +554,11 @@ export class Inventory implements OnInit {
                 console.log('Inventory API response:', response);
                 this.inventoryItems = response.data;
                 this.totalRecords = response.totalCount;
+                this.inventoryItems.forEach(item => {
+                    if (item.status === 'InUse') {
+                        console.log(`[${item.name}] checkedOutByLoggedInUser:`, this.checkedOutByLoggedInUser(item));
+                    }
+                });
             },
             error: (error) => {
                 console.error('Error loading inventory:', error);
@@ -986,5 +991,10 @@ export class Inventory implements OnInit {
 
     canCheckIn(item: InventoryItem): null | boolean {
         return null;
+    }
+
+    checkedOutByLoggedInUser(item: InventoryItem): boolean {
+        const loggedInUserId = this.authService.currentUser()?.id;
+        return item.status === 'InUse' && !!loggedInUserId && item.currentUserId === loggedInUserId;
     }
 }

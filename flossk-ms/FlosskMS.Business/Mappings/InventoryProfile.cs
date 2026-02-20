@@ -45,6 +45,7 @@ public class InventoryProfile : Profile
         CreateMap<InventoryItem, InventoryItemListDto>()
             .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.CurrentUserId, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.Id : null))
             .ForMember(dest => dest.CurrentUserEmail, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.Email : null))
             .ForMember(dest => dest.CurrentUserFirstName, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.FirstName : null))
             .ForMember(dest => dest.CurrentUserLastName, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.LastName : null))
