@@ -41,6 +41,14 @@ interface HistoryLogEntry {
     color: string;
 }
 
+interface PaginatedLogsResponse {
+    data: LogDto[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+}
+
 interface LogDto {
     id: string;
     entityType: string;
@@ -482,6 +490,18 @@ interface PaginatedInventoryResponse {
                     <!-- Timestamp -->
                     <p class="text-xs text-muted-color mb-0">{{ entry.date | date:'MMM d, y, h:mm a' }}</p>
                 </div>
+                <!-- Load More -->
+                <div *ngIf="historyHasMore" class="flex justify-center pt-1">
+                    <p-button
+                        [label]="historyLoadingMore ? 'Loading...' : 'Load more'"
+                        [icon]="historyLoadingMore ? 'pi pi-spin pi-spinner' : 'pi pi-chevron-down'"
+                        [disabled]="historyLoadingMore"
+                        severity="secondary"
+                        [text]="true"
+                        size="small"
+                        (onClick)="loadMoreHistory()"
+                    />
+                </div>
             </div>
         </p-dialog>
 
@@ -556,6 +576,11 @@ export class Inventory implements OnInit {
     historyItem: InventoryItem | null = null;
     historyLog: HistoryLogEntry[] = [];
     historyLoading = false;
+    historyLoadingMore = false;
+    historyPage = 1;
+    historyPageSize = 5;
+    historyTotalCount = 0;
+    get historyHasMore(): boolean { return this.historyLog.length < this.historyTotalCount; }
     galleryVisible = false;
     galleryItem: InventoryItem | null = null;
     singleImageVisible = false;
@@ -612,17 +637,42 @@ export class Inventory implements OnInit {
     openHistoryDialog(item: InventoryItem) {
         this.historyItem = item;
         this.historyLog = [];
+        this.historyPage = 1;
+        this.historyTotalCount = 0;
         this.historyLoading = true;
         this.historyVisible = true;
 
-        this.http.get<LogDto[]>(`${environment.apiUrl}/logs/Inventory/${item.id}`).subscribe({
-            next: (logs) => {
-                this.historyLog = logs.map(log => this.mapLogToHistoryEntry(log));
+        this.http.get<PaginatedLogsResponse>(
+            `${environment.apiUrl}/logs?entityType=Inventory&entityId=${item.id}&page=1&pageSize=${this.historyPageSize}`
+        ).subscribe({
+            next: (res) => {
+                this.historyLog = res.data.map(log => this.mapLogToHistoryEntry(log));
+                this.historyTotalCount = res.totalCount;
                 this.historyLoading = false;
             },
             error: () => {
                 this.historyLog = [];
                 this.historyLoading = false;
+            }
+        });
+    }
+
+    loadMoreHistory() {
+        if (!this.historyItem || this.historyLoadingMore) return;
+        this.historyLoadingMore = true;
+        this.historyPage++;
+
+        this.http.get<PaginatedLogsResponse>(
+            `${environment.apiUrl}/logs?entityType=Inventory&entityId=${this.historyItem.id}&page=${this.historyPage}&pageSize=${this.historyPageSize}`
+        ).subscribe({
+            next: (res) => {
+                this.historyLog.push(...res.data.map(log => this.mapLogToHistoryEntry(log)));
+                this.historyTotalCount = res.totalCount;
+                this.historyLoadingMore = false;
+            },
+            error: () => {
+                this.historyPage--;
+                this.historyLoadingMore = false;
             }
         });
     }
