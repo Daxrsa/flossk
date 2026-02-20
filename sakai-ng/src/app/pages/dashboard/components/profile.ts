@@ -41,6 +41,7 @@ interface User {
     roles: string[];
     profilePictureUrl: string;
     cvUrl?: string;
+    bannerUrl?: string;
 }
 
 @Component({
@@ -219,63 +220,82 @@ interface User {
         <div class="grid grid-cols-12 gap-8">
             <!-- Profile Header Card -->
             <div class="col-span-12">
-                <div class="card">
-                    <div class="flex flex-col lg:flex-row gap-8">
-                        <!-- Profile Picture and Status -->
-                        <div class="flex flex-col items-center">
-                            <!-- Custom Avatar -->
-                            <div class="relative inline-block">
-                                <img 
-                                    *ngIf="hasProfilePicture(userProfile.picture)"
-                                    [src]="userProfile.picture" 
-                                    [alt]="userProfile.firstName + ' ' + userProfile.lastName"
-                                    class="w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 lg:w-72 lg:h-72 object-cover rounded-full border-4 border-surface-0 dark:border-surface-900 shadow-lg hover:scale-105 transition-transform duration-300"
-                                >
-                                <p-avatar 
-                                    *ngIf="!hasProfilePicture(userProfile.picture)"
-                                    [label]="getInitials(userProfile.firstName + ' ' + userProfile.lastName)"
-                                    shape="circle"
-                                    size="xlarge"
-                                    [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)', 'width': '18rem', 'height': '18rem', 'font-size': '6rem'}"
-                                    class="border-4 border-surface-0 dark:border-surface-900 shadow-lg"
-                                ></p-avatar>
-                                <!-- Status Badge -->
-                                <!-- <div class="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 md:bottom-4 md:right-4">
-                                    <span 
-                                        [class]="userProfile.activity === 'Active' ? 'bg-green-500' : 'bg-red-500'"
-                                        class="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border-4 border-surface-0 dark:border-surface-900 shadow-md"
-                                    >
-                                        <i [class]="userProfile.activity === 'Active'" class="text-white text-base sm:text-lg md:text-xl"></i>
-                                    </span>
-                                </div> -->
-                            </div>
+                <div class="card !p-0 overflow-hidden">
+                    <!-- Banner -->
+                    <div class="relative h-52 bg-gradient-to-r from-primary-300 via-primary-500 to-primary-700 overflow-hidden group">
+                        <img
+                            *ngIf="userProfile.bannerUrl"
+                            [src]="userProfile.bannerUrl"
+                            alt="Profile banner"
+                            class="w-full h-full object-cover"
+                        />
+                        <!-- Change banner button (own profile) -->
+                        <div *ngIf="isOwnProfile" class="absolute bottom-4 right-4 flex gap-2 items-center">
+                            <p-fileupload
+                                mode="basic"
+                                chooseIcon="pi pi-camera"
+                                chooseLabel="Change banner"
+                                accept="image/*"
+                                [maxFileSize]="5000000"
+                                (onSelect)="onBannerSelect($event)"
+                                [auto]="true"
+                                styleClass="!text-white !border-0"
+                            />
+                            <button
+                                *ngIf="userProfile.bannerUrl"
+                                (click)="deleteBanner()"
+                                class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/50 text-white border-0 hover:bg-red-600/80 backdrop-blur-sm transition-all cursor-pointer"
+                            >
+                                <i class="pi pi-trash text-xs"></i>
+                                Remove
+                            </button>
                         </div>
-                        
-                        <!-- Profile Information -->
-                        <div class="flex-1">
-                            <div class="flex flex-col gap-6">
-                                <div class="flex flex-col gap-2 mb-2">
-                                    <h2 class="text-3xl font-bold text-surface-900 dark:text-surface-0">
-                                        {{ userProfile.firstName }} {{ userProfile.lastName }}
-                                    </h2>
-                                    <p class="text-muted-color flex items-center gap-2">
-                                        <i class="pi pi-envelope text-sm"></i>
-                                         {{ userProfile.email }}
-                                    </p>
-                                 
-                                    <p *ngIf="userProfile.phone" class="text-muted-color flex items-center gap-2">
-                                        <i class="pi pi-phone text-sm"></i>
-                                        {{ userProfile.phone }}
-                                    </p>
-                                    <p *ngIf="userProfile.location" class="text-muted-color flex items-center gap-2">
-                                        <i class="pi pi-map-marker text-sm"></i>
-                                        {{ userProfile.location }}
-                                    </p>
-                                    
-                                    
+                    </div>
+                    <!-- Profile content -->
+                    <div class="px-6 pb-6">
+                        <div class="flex flex-col lg:flex-row gap-6">
+                            <!-- Avatar overlapping banner -->
+                            <div class="-mt-28 flex-shrink-0">
+                                <div class="relative inline-block">
+                                    <img
+                                        *ngIf="hasProfilePicture(userProfile.picture)"
+                                        [src]="userProfile.picture"
+                                        [alt]="userProfile.firstName + ' ' + userProfile.lastName"
+                                        class="w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 object-cover rounded-full border-4 border-surface-0 dark:border-surface-900 shadow-lg"
+                                    >
+                                    <p-avatar
+                                        *ngIf="!hasProfilePicture(userProfile.picture)"
+                                        [label]="getInitials(userProfile.firstName + ' ' + userProfile.lastName)"
+                                        shape="circle"
+                                        size="xlarge"
+                                        [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)', 'width': '16rem', 'height': '16rem', 'font-size': '5rem'}"
+                                        class="border-4 border-surface-0 dark:border-surface-900 shadow-lg"
+                                    />
                                 </div>
+                            </div>
+                            <!-- Profile Information -->
+                            <div class="flex-1 pt-3">
+                                <div class="flex flex-col gap-4">
+                                    <div class="flex flex-col gap-1">
+                                        <h2 class="text-3xl font-bold text-surface-900 dark:text-surface-0">
+                                            {{ userProfile.firstName }} {{ userProfile.lastName }}
+                                        </h2>
+                                        <p class="text-muted-color flex items-center gap-2">
+                                            <i class="pi pi-envelope text-sm"></i>
+                                             {{ userProfile.email }}
+                                        </p>
+                                     
+                                        <p *ngIf="userProfile.phone" class="text-muted-color flex items-center gap-2">
+                                            <i class="pi pi-phone text-sm"></i>
+                                            {{ userProfile.phone }}
+                                        </p>
+                                        <p *ngIf="userProfile.location" class="text-muted-color flex items-center gap-2">
+                                            <i class="pi pi-map-marker text-sm"></i>
+                                            {{ userProfile.location }}
+                                        </p>
+                                    </div>
 
-                                <div class="flex gap-3">
+                                    <div class="flex gap-3">
                                         <a *ngIf="userProfile.socialLinks.github" [href]="userProfile.socialLinks.github" target="_blank" class="text-surface-600 dark:text-surface-400 hover:text-primary transition-colors">
                                             <i class="pi pi-github" style="font-size: 1.25rem"></i>
                                         </a>
@@ -302,22 +322,22 @@ interface User {
                                         </a>
                                     </div>
                                 
-                                <div class="flex flex-wrap gap-4">
-                                    <div class="flex items-center gap-2">
-                                        <i class="pi pi-calendar text-muted-color"></i>
-                                        <span class="text-muted-color">Joined: </span>
-                                        <span class="font-semibold">{{ userProfile.dateJoined }}</span>
+                                    <div class="flex flex-wrap gap-4">
+                                        <div class="flex items-center gap-2">
+                                            <i class="pi pi-calendar text-muted-color"></i>
+                                            <span class="text-muted-color">Joined: </span>
+                                            <span class="font-semibold">{{ userProfile.dateJoined }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <i class="pi pi-briefcase text-muted-color"></i>
+                                            <span class="text-muted-color">Role: </span>
+                                            <span class="font-semibold">{{ userProfile.role }}</span>
+                                        </div>
                                     </div>
-                                    <div class="flex items-center gap-2">
-                                        <i class="pi pi-briefcase text-muted-color"></i>
-                                        <span class="text-muted-color">Role: </span>
-                                        <span class="font-semibold">{{ userProfile.role }}</span>
+                                    
+                                    <div class="flex gap-2" *ngIf="isOwnProfile">
+                                        <p-button label="Edit" icon="pi pi-pencil" outlined (onClick)="openEditDialog()"></p-button>
                                     </div>
-                                </div>
-                                
-                                <div class="flex gap-2" *ngIf="isOwnProfile">
-                                    <p-button label="Edit" icon="pi pi-pencil" outlined (onClick)="openEditDialog()"></p-button>
-                                    <!-- <p-button label="Settings" icon="pi pi-cog" severity="secondary" outlined></p-button> -->
                                 </div>
                             </div>
                         </div>
@@ -606,6 +626,7 @@ export class Profile implements OnInit {
 
     userProfile = {
         picture: '',
+        bannerUrl: '',
         firstName: '',
         lastName: '',
         email: '',
@@ -679,6 +700,13 @@ export class Profile implements OnInit {
                 : `${environment.baseUrl}${user.cvUrl}`;
         }
 
+        let bannerUrl = '';
+        if (user.bannerUrl) {
+            bannerUrl = user.bannerUrl.startsWith('http')
+                ? user.bannerUrl
+                : `${environment.baseUrl}${user.bannerUrl}`;
+        }
+
         this.userProfile = {
             ...this.userProfile,
             firstName: user.firstName || '',
@@ -687,6 +715,7 @@ export class Profile implements OnInit {
             role: user.roles?.[0] || 'Member',
             dateJoined: user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '',
             picture: pictureUrl,
+            bannerUrl: bannerUrl,
             biography: user.biography || '',
             phone: user.phoneNumber || '',
             location: user.location || '',
@@ -717,6 +746,13 @@ export class Profile implements OnInit {
                     : `${environment.baseUrl}${user.cvUrl}`;
             }
 
+            let bannerUrl = '';
+            if (user.bannerUrl) {
+                bannerUrl = user.bannerUrl.startsWith('http')
+                    ? user.bannerUrl
+                    : `${environment.baseUrl}${user.bannerUrl}`;
+            }
+
             this.userProfile = {
                 ...this.userProfile,
                 firstName: user.firstName || '',
@@ -725,6 +761,7 @@ export class Profile implements OnInit {
                 role: user.roles?.[0] || 'Member',
                 dateJoined: user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '',
                 picture: pictureUrl,
+                bannerUrl: bannerUrl,
                 biography: user.biography || '',
                 phone: user.phoneNumber || '',
                 location: user.location || '',
@@ -887,6 +924,34 @@ export class Profile implements OnInit {
         console.log('editProfile.socialLinks:', this.editProfile.socialLinks);
         this.skillsString = this.userProfile.skills.join(', ');
         this.editDialogVisible = true;
+    }
+
+    onBannerSelect(event: any) {
+        const file = event.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('bannerFile', file);
+        this.http.post<any>(`${environment.apiUrl}/Auth/me/banner`, formData).subscribe({
+            next: (response) => {
+                if (response.bannerUrl) {
+                    this.userProfile.bannerUrl = response.bannerUrl.startsWith('http')
+                        ? response.bannerUrl
+                        : `${environment.baseUrl}${response.bannerUrl}`;
+                }
+                this.authService.updateCurrentUser({ ...response });
+            },
+            error: (err) => console.error('Error uploading banner:', err)
+        });
+    }
+
+    deleteBanner() {
+        this.http.delete<any>(`${environment.apiUrl}/Auth/me/banner`).subscribe({
+            next: (response) => {
+                this.userProfile.bannerUrl = '';
+                this.authService.updateCurrentUser({ ...response });
+            },
+            error: (err) => console.error('Error deleting banner:', err)
+        });
     }
 
     onFileSelect(event: any) {

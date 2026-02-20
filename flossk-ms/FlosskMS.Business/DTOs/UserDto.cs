@@ -18,4 +18,5 @@ public class UserDto
     public List<string> Roles { get; set; } = [];
     public string? ProfilePictureUrl { get; set; }
     public string? CVUrl { get; set; }
+    public string? BannerUrl { get; set; }
 }

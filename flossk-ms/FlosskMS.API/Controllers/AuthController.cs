@@ -46,6 +46,16 @@ public class AuthController(IAuthService authService) : ControllerBase
     public async Task<IActionResult> DeleteProfilePicture()
         => await _authService.DeleteProfilePictureAsync(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
+    [Authorize]
+    [HttpPost("me/banner")]
+    public async Task<IActionResult> UploadBanner(IFormFile bannerFile)
+        => await _authService.UploadBannerAsync(User.FindFirstValue(ClaimTypes.NameIdentifier), bannerFile);
+
+    [Authorize]
+    [HttpDelete("me/banner")]
+    public async Task<IActionResult> DeleteBanner()
+        => await _authService.DeleteBannerAsync(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
     /// <summary>
     /// Upload or replace CV (PDF only)
     /// </summary>

@@ -717,6 +717,90 @@ public class AuthService(
         return new OkObjectResult(await MapToUserDtoAsync(user!));
     }
 
+    public async Task<IActionResult> UploadBannerAsync(string? userId, IFormFile bannerFile)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return new NotFoundResult();
+
+        // Validate image type
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        var fileExtension = Path.GetExtension(bannerFile.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(fileExtension))
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = ["Only image files are allowed for the banner."]
+            });
+        }
+
+        // Remove existing banner if any
+        var existingBanner = user.UploadedFiles.FirstOrDefault(f => f.FileType == FileType.ProfileBanner);
+        if (existingBanner != null)
+            await _fileService.DeleteFileAsync(existingBanner.Id, userId, isAdmin: true);
+
+        // Upload new banner
+        var uploadResult = await _fileService.UploadFileAsync(bannerFile, userId);
+        if (!uploadResult.Success)
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = [uploadResult.Error ?? "Failed to upload banner."]
+            });
+        }
+
+        var uploadedFile = await _dbContext.UploadedFiles.FindAsync(uploadResult.FileId);
+        if (uploadedFile != null)
+        {
+            uploadedFile.FileType = FileType.ProfileBanner;
+            uploadedFile.UserId = userId;
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        return new OkObjectResult(await MapToUserDtoAsync(user!));
+    }
+
+    public async Task<IActionResult> DeleteBannerAsync(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return new NotFoundResult();
+
+        var bannerFile = user.UploadedFiles.FirstOrDefault(f => f.FileType == FileType.ProfileBanner);
+        if (bannerFile == null)
+        {
+            return new NotFoundObjectResult(new AuthResponseDto
+            {
+                Errors = ["No banner found."]
+            });
+        }
+
+        await _fileService.DeleteFileAsync(bannerFile.Id, userId, isAdmin: true);
+
+        user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        return new OkObjectResult(await MapToUserDtoAsync(user!));
+    }
+
     public async Task<IActionResult> GetUserCVAsync(string userId)
     {
         var user = await _dbContext.Users
@@ -817,6 +901,7 @@ public class AuthService(
         var roles = await _userManager.GetRolesAsync(user);
         var profilePicture = user.UploadedFiles?.FirstOrDefault(f => f.FileType == FileType.ProfilePicture);
         var cvFile = user.UploadedFiles?.FirstOrDefault(f => f.FileType == FileType.CV);
+        var bannerFile = user.UploadedFiles?.FirstOrDefault(f => f.FileType == FileType.ProfileBanner);
         
         // Convert file path to URL path (e.g., /uploads/filename.jpg)
         string? profilePictureUrl = null;
@@ -829,6 +914,12 @@ public class AuthService(
         if (cvFile != null)
         {
             cvUrl = $"/uploads/{cvFile.FileName}";
+        }
+
+        string? bannerUrl = null;
+        if (bannerFile != null)
+        {
+            bannerUrl = $"/uploads/{bannerFile.FileName}";
         }
         
         return new UserDto
@@ -848,7 +939,8 @@ public class AuthService(
             CreatedAt = user.CreatedAt,
             Roles = [.. roles],
             ProfilePictureUrl = profilePictureUrl,
-            CVUrl = cvUrl
+            CVUrl = cvUrl,
+            BannerUrl = bannerUrl
         };
     }
 }

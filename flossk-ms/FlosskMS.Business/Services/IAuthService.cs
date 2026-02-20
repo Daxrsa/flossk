@@ -13,6 +13,8 @@ public interface IAuthService
     Task<IActionResult> DeleteProfilePictureAsync(string? userId);
     Task<IActionResult> UploadCVAsync(string? userId, IFormFile cvFile);
     Task<IActionResult> DeleteCVAsync(string? userId);
+    Task<IActionResult> UploadBannerAsync(string? userId, IFormFile bannerFile);
+    Task<IActionResult> DeleteBannerAsync(string? userId);
     Task<IActionResult> GetUserCVAsync(string userId);
     Task<IActionResult> DownloadUserCVAsync(string userId);
     Task<IActionResult> ApproveEmail(ApproveEmailRequestDto? request);
