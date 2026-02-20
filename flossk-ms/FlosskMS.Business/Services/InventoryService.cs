@@ -11,11 +11,13 @@ public class InventoryService : IInventoryService
 {
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
+    private readonly IFileService _fileService;
 
-    public InventoryService(ApplicationDbContext context, IMapper mapper)
+    public InventoryService(ApplicationDbContext context, IMapper mapper, IFileService fileService)
     {
         _context = context;
         _mapper = mapper;
+        _fileService = fileService;
     }
 
     public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? search = null)
@@ -126,23 +128,20 @@ public class InventoryService : IInventoryService
 
         _context.InventoryItems.Add(item);
 
-        // Add images if provided
-        if (dto.ImageFileIds != null && dto.ImageFileIds.Count > 0)
+        // Upload and add images if provided
+        if (dto.Images != null && dto.Images.Count > 0)
         {
-            foreach (var fileId in dto.ImageFileIds)
+            var uploadResult = await _fileService.UploadFilesAsync(dto.Images, createdByUserId);
+            foreach (var fileResult in uploadResult.Results.Where(r => r.Success))
             {
-                var file = await _context.UploadedFiles.FindAsync(fileId);
-                if (file != null)
+                var image = new InventoryItemImage
                 {
-                    var image = new InventoryItemImage
-                    {
-                        Id = Guid.NewGuid(),
-                        InventoryItemId = item.Id,
-                        UploadedFileId = fileId,
-                        AddedAt = DateTime.UtcNow
-                    };
-                    _context.InventoryItemImages.Add(image);
-                }
+                    Id = Guid.NewGuid(),
+                    InventoryItemId = item.Id,
+                    UploadedFileId = fileResult.FileId!.Value,
+                    AddedAt = DateTime.UtcNow
+                };
+                _context.InventoryItemImages.Add(image);
             }
         }
 
@@ -153,7 +152,7 @@ public class InventoryService : IInventoryService
         return new OkObjectResult(new { Message = "Inventory item created successfully.", Data = _mapper.Map<InventoryItemDto>(createdItem) });
     }
 
-    public async Task<IActionResult> UpdateInventoryItemAsync(Guid id, UpdateInventoryItemDto dto)
+    public async Task<IActionResult> UpdateInventoryItemAsync(Guid id, UpdateInventoryItemDto dto, string userId)
     {
         var item = await _context.InventoryItems.FindAsync(id);
 
@@ -189,8 +188,8 @@ public class InventoryService : IInventoryService
 
         item.UpdatedAt = DateTime.UtcNow;
 
-        // Update images if provided
-        if (dto.ImageFileIds != null)
+        // Upload and update images if provided
+        if (dto.Images != null)
         {
             // Remove existing images
             var existingImages = await _context.InventoryItemImages
@@ -198,17 +197,17 @@ public class InventoryService : IInventoryService
                 .ToListAsync();
             _context.InventoryItemImages.RemoveRange(existingImages);
 
-            // Add new images
-            foreach (var fileId in dto.ImageFileIds)
+            // Upload and add new images
+            if (dto.Images.Count > 0)
             {
-                var file = await _context.UploadedFiles.FindAsync(fileId);
-                if (file != null)
+                var uploadResult = await _fileService.UploadFilesAsync(dto.Images, userId);
+                foreach (var fileResult in uploadResult.Results.Where(r => r.Success))
                 {
                     var image = new InventoryItemImage
                     {
                         Id = Guid.NewGuid(),
                         InventoryItemId = item.Id,
-                        UploadedFileId = fileId,
+                        UploadedFileId = fileResult.FileId!.Value,
                         AddedAt = DateTime.UtcNow
                     };
                     _context.InventoryItemImages.Add(image);

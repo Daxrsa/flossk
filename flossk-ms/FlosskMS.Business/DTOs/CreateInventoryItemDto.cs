@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace FlosskMS.Business.DTOs;
 
@@ -18,5 +19,5 @@ public class CreateInventoryItemDto
     [StringLength(2000)]
     public string? Description { get; set; }
 
-    public List<Guid>? ImageFileIds { get; set; }
+    public List<IFormFile>? Images { get; set; }
 }

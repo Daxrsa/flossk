@@ -72,7 +72,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     /// </summary>
     [Authorize]
     [HttpPost]
-    public async Task<IActionResult> CreateInventoryItem([FromBody] CreateInventoryItemDto request)
+    public async Task<IActionResult> CreateInventoryItem([FromForm] CreateInventoryItemDto request)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
@@ -87,9 +87,14 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     /// </summary>
     [Authorize]
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> UpdateInventoryItem(Guid id, [FromBody] UpdateInventoryItemDto request)
+    public async Task<IActionResult> UpdateInventoryItem(Guid id, [FromForm] UpdateInventoryItemDto request)
     {
-        return await _inventoryService.UpdateInventoryItemAsync(id, request);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _inventoryService.UpdateInventoryItemAsync(id, request, userId);
     }
 
     /// <summary>

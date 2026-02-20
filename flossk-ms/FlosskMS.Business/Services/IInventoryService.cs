@@ -9,7 +9,7 @@ public interface IInventoryService
     Task<IActionResult> GetInventoryItemByIdAsync(Guid id);
     Task<IActionResult> GetInventoryItemsByUserAsync(string userId);
     Task<IActionResult> CreateInventoryItemAsync(CreateInventoryItemDto dto, string createdByUserId);
-    Task<IActionResult> UpdateInventoryItemAsync(Guid id, UpdateInventoryItemDto dto);
+    Task<IActionResult> UpdateInventoryItemAsync(Guid id, UpdateInventoryItemDto dto, string userId);
     Task<IActionResult> DeleteInventoryItemAsync(Guid id);
     Task<IActionResult> CheckOutInventoryItemAsync(Guid id, string userId, CheckOutInventoryItemDto? dto = null);
     Task<IActionResult> CheckInInventoryItemAsync(Guid id, string userId);
