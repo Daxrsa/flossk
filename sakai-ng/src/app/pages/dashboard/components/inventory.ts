@@ -294,6 +294,7 @@ interface PaginatedInventoryResponse {
                             [options]="categories"
                             placeholder="Select a category"
                             class="w-full"
+                            appendTo="body"
                         />
                     </div>
 
@@ -326,24 +327,36 @@ interface PaginatedInventoryResponse {
                         styleClass="w-full mb-2"
                     />
                     <div class="flex flex-col gap-2">
-                        <div *ngIf="currentItem.images && currentItem.images.length > 0">
-                            <div *ngFor="let img of currentItem.images; let i = index" class="flex gap-2 align-items-center border rounded p-2 mb-2">
-                                <img 
-                                    [src]="img" 
-                                    alt="Image {{i+1}}" 
+                        <div *ngIf="existingImages.length > 0">
+                            <p class="text-sm font-medium mb-1">Existing images</p>
+                            <div *ngFor="let img of existingImages; let i = index" class="flex gap-2 align-items-center border rounded p-2 mb-2">
+                                <img
+                                    [src]="getExistingImageSrc(img)"
+                                    [alt]="img.fileName || 'Image ' + (i+1)"
                                     class="w-20 h-20 object-cover rounded"
                                 />
-                                <span class="flex-1 text-sm truncate">Image {{i+1}}</span>
-                                <p-button 
-                                    icon="pi pi-times" 
-                                    [rounded]="true" 
-                                    [text]="true" 
+                                <span class="flex-1 text-sm truncate">{{ img.fileName || 'Image ' + (i+1) }}</span>
+                            </div>
+                        </div>
+                        <div *ngIf="newImagePreviews.length > 0">
+                            <p class="text-sm font-medium mb-1">New images</p>
+                            <div *ngFor="let preview of newImagePreviews; let i = index" class="flex gap-2 align-items-center border rounded p-2 mb-2">
+                                <img
+                                    [src]="preview"
+                                    [alt]="selectedFiles[i]?.name || 'New image ' + (i+1)"
+                                    class="w-20 h-20 object-cover rounded"
+                                />
+                                <span class="flex-1 text-sm truncate">{{ selectedFiles[i]?.name || 'New image ' + (i+1) }}</span>
+                                <p-button
+                                    icon="pi pi-times"
+                                    [rounded]="true"
+                                    [text]="true"
                                     severity="danger"
-                                    (onClick)="removeImage(i)"
+                                    (onClick)="removeNewImage(i)"
                                 />
                             </div>
                         </div>
-                        <div *ngIf="!currentItem.images || currentItem.images.length === 0" class="text-muted-color text-sm">
+                        <div *ngIf="existingImages.length === 0 && newImagePreviews.length === 0" class="text-muted-color text-sm">
                             No images uploaded
                         </div>
                     </div>
@@ -445,6 +458,8 @@ export class Inventory implements OnInit {
     dialogMode: 'add' | 'edit' = 'add';
     currentItem: any = this.getEmptyItem();
     selectedFiles: File[] = [];
+    existingImages: InventoryItemImage[] = [];
+    newImagePreviews: string[] = [];
     galleryVisible = false;
     galleryItem: InventoryItem | null = null;
     singleImageVisible = false;
@@ -526,43 +541,52 @@ export class Inventory implements OnInit {
         this.dialogMode = 'add';
         this.currentItem = this.getEmptyItem();
         this.selectedFiles = [];
+        this.existingImages = [];
+        this.newImagePreviews = [];
         this.dialogVisible = true;
     }
 
     openEditDialog(item: InventoryItem) {
         this.dialogMode = 'edit';
-        this.currentItem = { ...item };
-        // Initialize images array if it doesn't exist
-        if (!this.currentItem.images) {
-            this.currentItem.images = [];
-        }
-        this.selectedFiles = [];
-        this.dialogVisible = true;
+        this.http.get<any>(`${this.apiUrl}/${item.id}`).subscribe({
+            next: (fullItem) => {
+                this.currentItem = { ...fullItem };
+                this.existingImages = fullItem.images ? [...fullItem.images] : [];
+                this.newImagePreviews = [];
+                this.selectedFiles = [];
+                this.dialogVisible = true;
+            },
+            error: (error) => {
+                console.error('Error loading item details:', error);
+                // Fall back to list data
+                this.currentItem = { ...item };
+                this.existingImages = item.images ? [...item.images] : [];
+                this.newImagePreviews = [];
+                this.selectedFiles = [];
+                this.dialogVisible = true;
+            }
+        });
     }
 
     onImagesSelect(event: any) {
-        if (!this.currentItem.images) {
-            this.currentItem.images = [];
-        }
-
         const files = event.files;
         for (let file of files) {
             this.selectedFiles.push(file);
             const reader = new FileReader();
             reader.onload = (e: any) => {
-                this.currentItem.images!.push(e.target.result);
+                this.newImagePreviews.push(e.target.result);
             };
             reader.readAsDataURL(file);
         }
     }
 
-    removeImage(index: number) {
-        if (this.currentItem.images) {
-            this.currentItem.images.splice(index, 1);
-        }
-        if (this.selectedFiles.length > index) {
-            this.selectedFiles.splice(index, 1);
-        }
+    removeNewImage(index: number) {
+        this.newImagePreviews.splice(index, 1);
+        this.selectedFiles.splice(index, 1);
+    }
+
+    getExistingImageSrc(img: InventoryItemImage): string {
+        return `${environment.baseUrl}${img.filePath}`;
     }
 
     saveItem() {
