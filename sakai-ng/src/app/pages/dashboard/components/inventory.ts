@@ -183,6 +183,7 @@ interface PaginatedInventoryResponse {
                         <th>Category</th>
                         <th>Quantity</th>
                         <th>Status</th>
+                        <th>Usage</th>
                         <th>Actions</th>
                     </tr>
                 </ng-template>
@@ -231,7 +232,6 @@ interface PaginatedInventoryResponse {
                             </div>
                         </td>
                         <td>
-                            <div class="flex gap-2">
                                 <p-button 
                                     *ngIf="item.status === 'Free'"
                                     icon="pi pi-sign-in" 
@@ -242,7 +242,7 @@ interface PaginatedInventoryResponse {
                                     (onClick)="checkOutItem(item)"
                                 />
                                 <p-button 
-                                    *ngIf="item.status === 'InUse'"
+                                    *ngIf="checkedOutByLoggedInUser(item)"
                                     icon="pi pi-sign-out" 
                                     [rounded]="true" 
                                     [text]="true" 
@@ -250,7 +250,8 @@ interface PaginatedInventoryResponse {
                                     pTooltip="Check In"
                                     (onClick)="checkInItem(item)"
                                 />
-                                <p-button 
+                                <td>
+                                    <p-button 
                                     icon="pi pi-pencil" 
                                     [rounded]="true" 
                                     [text]="true" 
@@ -274,8 +275,7 @@ interface PaginatedInventoryResponse {
                                     pTooltip="History"
                                     (onClick)="openHistoryDialog(item)"
                                 />
-                            </div>
-                        </td>
+                                </td>
                     </tr>
                 </ng-template>
 
@@ -687,14 +687,14 @@ export class Inventory implements OnInit {
         const isImageUrl = log.detail?.startsWith('/uploads/');
 
         const iconMap: Record<string, { icon: string; color: string }> = {
-            'Item created':  { icon: 'pi pi-plus',        color: '#22c55e' },
-            'Item updated':  { icon: 'pi pi-pencil',      color: '#f59e0b' },
+            'Item created': { icon: 'pi pi-plus', color: '#22c55e' },
+            'Item updated': { icon: 'pi pi-pencil', color: '#f59e0b' },
             'Field updated': { icon: 'pi pi-pen-to-square', color: '#f59e0b' },
-            'Item deleted':  { icon: 'pi pi-trash',       color: '#ef4444' },
-            'Checked out':   { icon: 'pi pi-sign-in',     color: '#ef4444' },
-            'Checked in':    { icon: 'pi pi-sign-out',    color: '#22c55e' },
-            'Image added':   { icon: 'pi pi-image',       color: '#3b82f6' },
-            'Image removed': { icon: 'pi pi-times',       color: '#f97316' },
+            'Item deleted': { icon: 'pi pi-trash', color: '#ef4444' },
+            'Checked out': { icon: 'pi pi-sign-in', color: '#ef4444' },
+            'Checked in': { icon: 'pi pi-sign-out', color: '#22c55e' },
+            'Image added': { icon: 'pi pi-image', color: '#3b82f6' },
+            'Image removed': { icon: 'pi pi-times', color: '#f97316' },
         };
         const meta = iconMap[log.action] ?? { icon: 'pi pi-info-circle', color: '#94a3b8' };
 
@@ -987,10 +987,6 @@ export class Inventory implements OnInit {
         const names = fullName.trim().split(' ');
         if (names.length === 1) return names[0].charAt(0).toUpperCase();
         return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
-    }
-
-    canCheckIn(item: InventoryItem): null | boolean {
-        return null;
     }
 
     checkedOutByLoggedInUser(item: InventoryItem): boolean {
