@@ -12,12 +12,14 @@ public class InventoryService : IInventoryService
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IFileService _fileService;
+    private readonly ILogService _logService;
 
-    public InventoryService(ApplicationDbContext context, IMapper mapper, IFileService fileService)
+    public InventoryService(ApplicationDbContext context, IMapper mapper, IFileService fileService, ILogService logService)
     {
         _context = context;
         _mapper = mapper;
         _fileService = fileService;
+        _logService = logService;
     }
 
     public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? search = null)
@@ -147,6 +149,36 @@ public class InventoryService : IInventoryService
 
         await _context.SaveChangesAsync();
 
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Inventory",
+            EntityId = item.Id.ToString(),
+            EntityName = item.Name,
+            Action = "Item created",
+            UserId = createdByUserId
+        });
+
+        // Log each image added during creation
+        if (dto.Images != null && dto.Images.Count > 0)
+        {
+            var savedImages = await _context.InventoryItemImages
+                .Include(img => img.UploadedFile)
+                .Where(img => img.InventoryItemId == item.Id)
+                .ToListAsync();
+            foreach (var img in savedImages)
+            {
+                await _logService.CreateAsync(new CreateLogDto
+                {
+                    EntityType = "Inventory",
+                    EntityId = item.Id.ToString(),
+                    EntityName = item.Name,
+                    Action = "Image added",
+                    Detail = "/uploads/" + img.UploadedFile.FileName,
+                    UserId = createdByUserId
+                });
+            }
+        }
+
         // Reload with includes
         var createdItem = await GetItemWithIncludesAsync(item.Id);
         return new OkObjectResult(new { Message = "Inventory item created successfully.", Data = _mapper.Map<InventoryItemDto>(createdItem) });
@@ -207,12 +239,45 @@ public class InventoryService : IInventoryService
 
         await _context.SaveChangesAsync();
 
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Inventory",
+            EntityId = item.Id.ToString(),
+            EntityName = item.Name,
+            Action = "Item updated",
+            Detail = "Details were modified",
+            UserId = userId
+        });
+
+        // Log each new image appended during update
+        if (dto.Images != null && dto.Images.Count > 0)
+        {
+            var savedImages = await _context.InventoryItemImages
+                .Include(img => img.UploadedFile)
+                .Where(img => img.InventoryItemId == item.Id)
+                .OrderByDescending(img => img.AddedAt)
+                .Take(dto.Images.Count)
+                .ToListAsync();
+            foreach (var img in savedImages)
+            {
+                await _logService.CreateAsync(new CreateLogDto
+                {
+                    EntityType = "Inventory",
+                    EntityId = item.Id.ToString(),
+                    EntityName = item.Name,
+                    Action = "Image added",
+                    Detail = "/uploads/" + img.UploadedFile.FileName,
+                    UserId = userId
+                });
+            }
+        }
+
         // Reload with includes
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
         return new OkObjectResult(new { Message = "Inventory item updated successfully.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
-    public async Task<IActionResult> DeleteInventoryItemAsync(Guid id)
+    public async Task<IActionResult> DeleteInventoryItemAsync(Guid id, string userId)
     {
         var item = await _context.InventoryItems.FindAsync(id);
 
@@ -226,8 +291,19 @@ public class InventoryService : IInventoryService
             return new BadRequestObjectResult(new { Message = "Cannot delete an inventory item that is currently in use. Please check it in first." });
         }
 
+        var itemName = item.Name;
+        var itemId = item.Id.ToString();
         _context.InventoryItems.Remove(item);
         await _context.SaveChangesAsync();
+
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Inventory",
+            EntityId = itemId,
+            EntityName = itemName,
+            Action = "Item deleted",
+            UserId = userId
+        });
 
         return new OkObjectResult(new { Message = "Inventory item deleted successfully." });
     }
@@ -266,6 +342,15 @@ public class InventoryService : IInventoryService
 
         await _context.SaveChangesAsync();
 
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Inventory",
+            EntityId = item.Id.ToString(),
+            EntityName = item.Name,
+            Action = "Checked out",
+            UserId = userId
+        });
+
         // Reload with includes
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
         return new OkObjectResult(new { Message = "Inventory item checked out successfully.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
@@ -298,12 +383,21 @@ public class InventoryService : IInventoryService
 
         await _context.SaveChangesAsync();
 
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Inventory",
+            EntityId = item.Id.ToString(),
+            EntityName = item.Name,
+            Action = "Checked in",
+            UserId = userId
+        });
+
         // Reload with includes
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
         return new OkObjectResult(new { Message = "Inventory item checked in successfully.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
-    public async Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId)
+    public async Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId, string userId)
     {
         var item = await _context.InventoryItems.FindAsync(id);
         if (item == null)
@@ -336,10 +430,20 @@ public class InventoryService : IInventoryService
         _context.InventoryItemImages.Add(image);
         await _context.SaveChangesAsync();
 
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Inventory",
+            EntityId = id.ToString(),
+            EntityName = item.Name,
+            Action = "Image added",
+            Detail = "/uploads/" + file.FileName,
+            UserId = userId
+        });
+
         return new OkObjectResult(new { Message = "Image added successfully." });
     }
 
-    public async Task<IActionResult> RemoveImageFromInventoryItemAsync(Guid id, Guid imageId)
+    public async Task<IActionResult> RemoveImageFromInventoryItemAsync(Guid id, Guid imageId, string userId)
     {
         var item = await _context.InventoryItems.FindAsync(id);
         if (item == null)
@@ -348,6 +452,7 @@ public class InventoryService : IInventoryService
         }
 
         var image = await _context.InventoryItemImages
+            .Include(img => img.UploadedFile)
             .FirstOrDefaultAsync(img => img.InventoryItemId == id && img.Id == imageId);
 
         if (image == null)
@@ -355,8 +460,19 @@ public class InventoryService : IInventoryService
             return new NotFoundObjectResult(new { Message = "Image not found for this inventory item." });
         }
 
+        var fileName = image.UploadedFile?.FileName;
         _context.InventoryItemImages.Remove(image);
         await _context.SaveChangesAsync();
+
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Inventory",
+            EntityId = id.ToString(),
+            EntityName = item.Name,
+            Action = "Image removed",
+            Detail = fileName != null ? "/uploads/" + fileName : null,
+            UserId = userId
+        });
 
         return new OkObjectResult(new { Message = "Image removed successfully." });
     }
@@ -532,7 +648,8 @@ public class InventoryService : IInventoryService
             .Include(i => i.CreatedByUser!)
                 .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
-                .ThenInclude(img => img.UploadedFile).AsSplitQuery()
+                .ThenInclude(img => img.UploadedFile)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(i => i.Id == id);
     }
 

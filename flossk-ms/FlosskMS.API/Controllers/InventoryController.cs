@@ -104,7 +104,12 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteInventoryItem(Guid id)
     {
-        return await _inventoryService.DeleteInventoryItemAsync(id);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _inventoryService.DeleteInventoryItemAsync(id, userId);
     }
 
     /// <summary>
@@ -177,7 +182,12 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpPost("{id:guid}/images/{fileId:guid}")]
     public async Task<IActionResult> AddImageToInventoryItem(Guid id, Guid fileId)
     {
-        return await _inventoryService.AddImageToInventoryItemAsync(id, fileId);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _inventoryService.AddImageToInventoryItemAsync(id, fileId, userId);
     }
 
     /// <summary>
@@ -189,7 +199,12 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpDelete("{id:guid}/images/{imageId:guid}")]
     public async Task<IActionResult> RemoveImageFromInventoryItem(Guid id, Guid imageId)
     {
-        return await _inventoryService.RemoveImageFromInventoryItemAsync(id, imageId);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _inventoryService.RemoveImageFromInventoryItemAsync(id, imageId, userId);
     }
 
     #endregion

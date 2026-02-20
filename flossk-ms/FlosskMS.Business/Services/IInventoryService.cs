@@ -10,11 +10,11 @@ public interface IInventoryService
     Task<IActionResult> GetInventoryItemsByUserAsync(string userId);
     Task<IActionResult> CreateInventoryItemAsync(CreateInventoryItemDto dto, string createdByUserId);
     Task<IActionResult> UpdateInventoryItemAsync(Guid id, UpdateInventoryItemDto dto, string userId);
-    Task<IActionResult> DeleteInventoryItemAsync(Guid id);
+    Task<IActionResult> DeleteInventoryItemAsync(Guid id, string userId);
     Task<IActionResult> CheckOutInventoryItemAsync(Guid id, string userId, CheckOutInventoryItemDto? dto = null);
     Task<IActionResult> CheckInInventoryItemAsync(Guid id, string userId);
-    Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId);
-    Task<IActionResult> RemoveImageFromInventoryItemAsync(Guid id, Guid imageId);
+    Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId, string userId);
+    Task<IActionResult> RemoveImageFromInventoryItemAsync(Guid id, Guid imageId, string userId);
     Task<IActionResult> SeedInventoryItemsAsync(string createdByUserId);
     Task<IActionResult> DeleteAllInventoryItemsAsync();
 }

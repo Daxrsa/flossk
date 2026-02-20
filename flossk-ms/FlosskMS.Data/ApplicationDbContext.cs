@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CalendarEvent> CalendarEvents { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
     public DbSet<InventoryItemImage> InventoryItemImages { get; set; }
+    public DbSet<Log> Logs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -417,6 +418,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.InventoryItemId);
             entity.HasIndex(e => e.UploadedFileId);
             entity.HasIndex(e => new { e.InventoryItemId, e.UploadedFileId }).IsUnique();
+        });
+
+        // Log configuration
+        builder.Entity<Log>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.EntityType).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.EntityId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.EntityName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Action).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Detail).HasMaxLength(1000);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.EntityType);
+            entity.HasIndex(e => e.EntityId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Timestamp);
         });
     }
 }
