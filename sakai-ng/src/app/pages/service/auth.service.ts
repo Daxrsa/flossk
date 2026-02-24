@@ -174,6 +174,32 @@ export class AuthService {
         return !!this.getToken();
     }
 
+    forgotPassword(email: string): Observable<any> {
+        this.isLoading.set(true);
+        this.error.set(null);
+        return this.http.post<any>(`${this.API_URL}/forgot-password`, { email }).pipe(
+            tap(() => this.isLoading.set(false)),
+            catchError(err => {
+                this.isLoading.set(false);
+                this.error.set(err.error?.message || 'Something went wrong. Please try again.');
+                throw err;
+            })
+        );
+    }
+
+    resetPassword(data: { email: string; token: string; newPassword: string; confirmPassword: string }): Observable<any> {
+        this.isLoading.set(true);
+        this.error.set(null);
+        return this.http.post<any>(`${this.API_URL}/reset-password`, data).pipe(
+            tap(() => this.isLoading.set(false)),
+            catchError(err => {
+                this.isLoading.set(false);
+                this.error.set(err.error?.message || 'Password reset failed. The link may have expired.');
+                throw err;
+            })
+        );
+    }
+
     updateCurrentUser(userData: Partial<User>): void {
         const current = this.currentUser();
         if (current) {
@@ -181,8 +207,7 @@ export class AuthService {
         }
     }
 
-    updateThemePreference(darkTheme: boolean): Observable<any> {
-        // Save to localStorage immediately
+    updateThemePreference(darkTheme: boolean): Observable<any> {        // Save to localStorage immediately
         this.saveThemeToLocalStorage(darkTheme);
         
         return this.http.patch<any>(`${this.API_URL}/me/theme`, { darkTheme }).pipe(

@@ -24,7 +24,9 @@ import { CommonModule } from '@angular/common';
                     <div class="w-full bg-surface-0 dark:bg-surface-900 py-20 px-8 sm:px-20" style="border-radius: 53px">
                         <div class="text-center mb-8 flex flex-col items-center">  
                             <img class="h-45" [src]="layoutService.isDarkTheme() ? 'assets/images/sorra_logo_dark_mode.png' : 'assets/images/sorra_logo.png'" alt="Sorra">
-                            <span class="text-muted-color font-medium">{{ isLoginMode ? 'Log in to continue' : 'Create your account' }}</span>
+                            <span class="text-muted-color font-medium">
+                                {{ isLoginMode ? 'Log in to continue' : isForgotMode ? 'Reset your password' : 'Create your account' }}
+                            </span>
                         </div>
 
                         <div>
@@ -47,7 +49,7 @@ import { CommonModule } from '@angular/common';
                                         <p-checkbox [(ngModel)]="checked" id="rememberme1" binary class="mr-2"></p-checkbox>
                                         <label for="rememberme1">Remember me</label>
                                     </div>
-                                    <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
+                                    <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary" (click)="setMode('forgot')">Forgot password?</span>
                                 </div>
                                 <p-button label="Log In" styleClass="w-full" [loading]="authService.isLoading()" (onClick)="onLogin()"></p-button>
                                 
@@ -55,7 +57,7 @@ import { CommonModule } from '@angular/common';
                                     <span class="text-muted-color">Don't have an account yet? </span>
                                     <span class="font-medium cursor-pointer text-primary" (click)="toggleMode()">Sign up</span>
                                 </div>
-                            } @else {
+                            } @else if (!isForgotMode) {
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                     <div>
                                         <label for="firstName" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">First Name</label>
@@ -85,8 +87,20 @@ import { CommonModule } from '@angular/common';
                                 
                                 <div class="text-center mt-6">
                                     <span class="text-muted-color">Already have an account? </span>
-                                    <span class="font-medium cursor-pointer text-primary" (click)="toggleMode()">Log in</span>
+                                    <span class="font-medium cursor-pointer text-primary" (click)="setMode('login')">Log in</span>
                                 </div>
+                            } @else {
+                                @if (forgotPasswordSent) {
+                                    <p-message severity="success" text="If that email is registered, a reset link has been sent. Please check your inbox." styleClass="w-full mb-6"></p-message>
+                                    <p-button label="Back to Log In" styleClass="w-full" severity="secondary" (onClick)="setMode('login')"></p-button>
+                                } @else {
+                                    <label for="forgotEmail" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
+                                    <input pInputText id="forgotEmail" type="text" placeholder="Enter your email address" class="w-full mb-8" [(ngModel)]="email" />
+                                    <p-button label="Send Reset Link" styleClass="w-full" [loading]="authService.isLoading()" (onClick)="onForgotPassword()"></p-button>
+                                    <div class="text-center mt-6">
+                                        <span class="font-medium cursor-pointer text-primary" (click)="setMode('login')">Back to Log In</span>
+                                    </div>
+                                }
                             }
                             
                             <!-- Rent Hackerspace Link -->
@@ -104,7 +118,9 @@ import { CommonModule } from '@angular/common';
 })
 export class Login {
     isLoginMode: boolean = true;
+    isForgotMode: boolean = false;
     registerSuccess: boolean = false;
+    forgotPasswordSent: boolean = false;
     
     email: string = '';
 
@@ -126,8 +142,29 @@ export class Login {
 
     toggleMode() {
         this.isLoginMode = !this.isLoginMode;
+        this.isForgotMode = false;
         this.registerSuccess = false;
+        this.forgotPasswordSent = false;
         this.authService.error.set(null);
+    }
+
+    setMode(mode: 'login' | 'register' | 'forgot') {
+        this.isLoginMode = mode === 'login';
+        this.isForgotMode = mode === 'forgot';
+        this.registerSuccess = false;
+        this.forgotPasswordSent = false;
+        this.authService.error.set(null);
+    }
+
+    onForgotPassword() {
+        if (!this.email) {
+            this.authService.error.set('Please enter your email address.');
+            return;
+        }
+        this.authService.forgotPassword(this.email).subscribe({
+            next: () => { this.forgotPasswordSent = true; },
+            error: () => {}
+        });
     }
 
     onLogin() {

@@ -28,4 +28,6 @@ public interface IAuthService
     Task<IActionResult> DeleteUserByIdAsync(string userId);
     Task<IActionResult> PromoteToFullMemberAsync(string userId);
     Task<IActionResult> DemoteFromFullMemberAsync(string userId);
+    Task<IActionResult> ForgotPasswordAsync(ForgotPasswordDto request);
+    Task<IActionResult> ResetPasswordAsync(ResetPasswordDto request);
 }

@@ -171,4 +171,18 @@ public class AuthController(IAuthService authService) : ControllerBase
     [HttpPost("approve-email")]
     public async Task<IActionResult> ApproveEmail([FromBody] ApproveEmailRequestDto request)
         => await _authService.ApproveEmail(request);
+
+    /// <summary>
+    /// Send a password reset link to the user's email
+    /// </summary>
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto request)
+        => await _authService.ForgotPasswordAsync(request);
+
+    /// <summary>
+    /// Reset the user's password using a token received by email
+    /// </summary>
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto request)
+        => await _authService.ResetPasswordAsync(request);
 }

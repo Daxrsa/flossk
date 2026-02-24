@@ -8,6 +8,7 @@ using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -20,14 +21,18 @@ public class AuthService(
     SignInManager<ApplicationUser> signInManager,
     ApplicationDbContext dbContext,
     IFileService fileService,
-    IOptions<JwtSettings> jwtSettings) : IAuthService
+    IEmailService emailService,
+    IOptions<JwtSettings> jwtSettings,
+    IOptions<ResendSettings> resendSettings) : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly RoleManager<IdentityRole> _roleManager = roleManager;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
     private readonly ApplicationDbContext _dbContext = dbContext;
     private readonly IFileService _fileService = fileService;
+    private readonly IEmailService _emailService = emailService;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly ResendSettings _resendSettings = resendSettings.Value;
 
     public async Task<IActionResult> RegisterAsync(RegisterRequestDto request)
     {
@@ -1028,5 +1033,80 @@ public class AuthService(
             CVUrl = cvUrl,
             BannerUrl = bannerUrl
         };
+    }
+
+    public async Task<IActionResult> ForgotPasswordAsync(ForgotPasswordDto request)
+    {
+        // Always return the same response to avoid leaking whether an email exists
+        var generic = new OkObjectResult(new { Message = "If that email is registered, a password reset link has been sent." });
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return generic;
+
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user == null)
+            return generic;
+
+        var rawToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+        // URL-safe base64 encode because the token contains special characters
+        var encodedToken = WebEncoders.Base64UrlEncode(System.Text.Encoding.UTF8.GetBytes(rawToken));
+
+        // Store issue time so we can enforce 30-minute expiry on reset
+        await _userManager.SetAuthenticationTokenAsync(user, "PasswordReset", "IssuedAt", DateTime.UtcNow.ToString("O"));
+
+        var frontendBaseUrl = _resendSettings.FrontendBaseUrl;
+        var resetLink = $"{frontendBaseUrl}/auth/reset-password?token={encodedToken}&email={Uri.EscapeDataString(request.Email)}";
+
+        var displayName = $"{user.FirstName} {user.LastName}".Trim();
+        if (string.IsNullOrWhiteSpace(displayName)) displayName = request.Email;
+
+        await _emailService.SendPasswordResetEmailAsync(request.Email, displayName, resetLink);
+
+        return generic;
+    }
+
+    public async Task<IActionResult> ResetPasswordAsync(ResetPasswordDto request)
+    {
+        if (request.NewPassword != request.ConfirmPassword)
+            return new BadRequestObjectResult(new { Message = "Passwords do not match." });
+
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user == null)
+            return new BadRequestObjectResult(new { Message = "Invalid request." });
+
+        // Enforce 30-minute expiry
+        var issuedAtStr = await _userManager.GetAuthenticationTokenAsync(user, "PasswordReset", "IssuedAt");
+        if (issuedAtStr == null ||
+            !DateTime.TryParse(issuedAtStr, null, System.Globalization.DateTimeStyles.RoundtripKind, out var issuedAt) ||
+            DateTime.UtcNow - issuedAt > TimeSpan.FromMinutes(30))
+        {
+            return new BadRequestObjectResult(new { Message = "This password reset link has expired. Please request a new one." });
+        }
+
+        string rawToken;
+        try
+        {
+            rawToken = System.Text.Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+        }
+        catch
+        {
+            return new BadRequestObjectResult(new { Message = "Invalid or malformed token." });
+        }
+
+        var result = await _userManager.ResetPasswordAsync(user, rawToken, request.NewPassword);
+
+        if (!result.Succeeded)
+        {
+            return new BadRequestObjectResult(new
+            {
+                Message = "Password reset failed.",
+                Errors = result.Errors.Select(e => e.Description).ToList()
+            });
+        }
+
+        // Remove the IssuedAt record so the link cannot be reused
+        await _userManager.RemoveAuthenticationTokenAsync(user, "PasswordReset", "IssuedAt");
+
+        return new OkObjectResult(new { Message = "Password has been reset successfully. You can now log in." });
     }
 }

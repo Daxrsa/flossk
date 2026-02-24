@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Resend;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -129,6 +130,26 @@ builder.Services.AddScoped<IElectionService, ElectionService>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));
+builder.Services.Configure<ResendSettings>(builder.Configuration.GetSection("ResendSettings"));
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+
+// Email: Gmail SMTP in Development, Resend in everything else
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+}
+else
+{
+    // Resend (production)
+    builder.Services.AddOptions();
+    builder.Services.AddHttpClient<ResendClient>();
+    builder.Services.Configure<ResendClientOptions>(options =>
+    {
+        options.ApiToken = builder.Configuration["ResendSettings:ApiKey"] ?? string.Empty;
+    });
+    builder.Services.AddTransient<IResend, ResendClient>();
+    builder.Services.AddScoped<IEmailService, ResendEmailService>();
+}
 
 var app = builder.Build();
 
