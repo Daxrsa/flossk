@@ -2,7 +2,7 @@ namespace FlosskMS.Data.Entities;
 
 /// <summary>
 /// A single vote cast by a member in an election.
-/// Each member may cast at most one vote per election.
+/// Each member casts exactly 3 votes per election (one row per selected candidate).
 /// </summary>
 public class ElectionVote
 {

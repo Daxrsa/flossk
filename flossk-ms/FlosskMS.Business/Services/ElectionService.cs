@@ -79,8 +79,8 @@ public class ElectionService : IElectionService
         if (request.StartDate >= request.EndDate)
             return new BadRequestObjectResult(new { Error = "End date must be after start date." });
 
-        if (request.CandidateIds == null || request.CandidateIds.Count < 2)
-            return new BadRequestObjectResult(new { Error = "At least 2 candidates are required." });
+        if (request.CandidateIds == null || request.CandidateIds.Count < 4)
+            return new BadRequestObjectResult(new { Error = "At least 4 candidates are required." });
 
         // Verify every candidate user exists
         var candidateUsers = await _dbContext.Users
@@ -149,37 +149,46 @@ public class ElectionService : IElectionService
         if (election.IsFinalized)
             return new BadRequestObjectResult(new { Error = "Finalized elections cannot be edited." });
 
-        if (election.Votes.Count > 0)
-            return new BadRequestObjectResult(new { Error = "Elections with recorded votes cannot be edited." });
+        bool votingStarted = election.Votes.Count > 0;
 
-        if (request.StartDate >= request.EndDate)
-            return new BadRequestObjectResult(new { Error = "End date must be after start date." });
-
-        if (request.CandidateIds == null || request.CandidateIds.Count < 2)
-            return new BadRequestObjectResult(new { Error = "At least 2 candidates are required." });
-
-        // Verify every candidate user exists
-        var candidateUsers = await _dbContext.Users
-            .Where(u => request.CandidateIds.Contains(u.Id))
-            .ToListAsync();
-
-        var missing = request.CandidateIds.Except(candidateUsers.Select(u => u.Id)).ToList();
-        if (missing.Count > 0)
-            return new BadRequestObjectResult(new { Error = $"Users not found: {string.Join(", ", missing)}" });
-
-        // Update dates
-        election.StartDate = request.StartDate.ToUniversalTime();
-        election.EndDate = request.EndDate.ToUniversalTime();
-
-        // Replace candidates
-        _dbContext.ElectionCandidates.RemoveRange(election.Candidates);
-        election.Candidates = candidateUsers.Select(u => new ElectionCandidate
+        if (votingStarted)
         {
-            Id = Guid.NewGuid(),
-            ElectionId = election.Id,
-            UserId = u.Id,
-            User = u
-        }).ToList();
+            // Once voting has started only the end date may change
+            if (request.EndDate.ToUniversalTime() <= election.StartDate)
+                return new BadRequestObjectResult(new { Error = "End date must be after the election's start date." });
+
+            election.EndDate = request.EndDate.ToUniversalTime();
+        }
+        else
+        {
+            if (request.StartDate >= request.EndDate)
+                return new BadRequestObjectResult(new { Error = "End date must be after start date." });
+
+            if (request.CandidateIds == null || request.CandidateIds.Count < 4)
+                return new BadRequestObjectResult(new { Error = "At least 4 candidates are required." });
+
+            // Verify every candidate user exists
+            var candidateUsers = await _dbContext.Users
+                .Where(u => request.CandidateIds.Contains(u.Id))
+                .ToListAsync();
+
+            var missing = request.CandidateIds.Except(candidateUsers.Select(u => u.Id)).ToList();
+            if (missing.Count > 0)
+                return new BadRequestObjectResult(new { Error = $"Users not found: {string.Join(", ", missing)}" });
+
+            // Update dates and candidates
+            election.StartDate = request.StartDate.ToUniversalTime();
+            election.EndDate = request.EndDate.ToUniversalTime();
+
+            _dbContext.ElectionCandidates.RemoveRange(election.Candidates);
+            election.Candidates = candidateUsers.Select(u => new ElectionCandidate
+            {
+                Id = Guid.NewGuid(),
+                ElectionId = election.Id,
+                UserId = u.Id,
+                User = u
+            }).ToList();
+        }
 
         await SyncStatusAsync(election);
         await _dbContext.SaveChangesAsync();
@@ -238,25 +247,36 @@ public class ElectionService : IElectionService
         if (election.Votes.Any(v => v.VoterUserId == userId))
             return new BadRequestObjectResult(new { Error = "You have already voted in this election." });
 
-        var isValidCandidate = election.Candidates.Any(c => c.UserId == request.CandidateUserId);
-        if (!isValidCandidate)
-            return new BadRequestObjectResult(new { Error = "The selected candidate is not in this election." });
+        if (request.CandidateUserIds == null || request.CandidateUserIds.Count != 3)
+            return new BadRequestObjectResult(new { Error = "You must vote for exactly 3 candidates." });
 
-        var vote = new ElectionVote
+        if (request.CandidateUserIds.Distinct().Count() != 3)
+            return new BadRequestObjectResult(new { Error = "Duplicate candidates are not allowed." });
+
+        if (request.CandidateUserIds.Contains(userId))
+            return new BadRequestObjectResult(new { Error = "You cannot vote for yourself." });
+
+        var validCandidateIds = election.Candidates.Select(c => c.UserId).ToHashSet();
+        var invalid = request.CandidateUserIds.Where(cid => !validCandidateIds.Contains(cid)).ToList();
+        if (invalid.Count > 0)
+            return new BadRequestObjectResult(new { Error = "One or more selected candidates are not in this election." });
+
+        var now = DateTime.UtcNow;
+        var votes = request.CandidateUserIds.Select(candidateId => new ElectionVote
         {
             Id = Guid.NewGuid(),
             ElectionId = election.Id,
             VoterUserId = userId,
-            CandidateUserId = request.CandidateUserId,
-            VotedAt = DateTime.UtcNow
-        };
+            CandidateUserId = candidateId,
+            VotedAt = now
+        }).ToList();
 
-        _dbContext.ElectionVotes.Add(vote);
+        _dbContext.ElectionVotes.AddRange(votes);
         await _dbContext.SaveChangesAsync();
 
-        _logger.LogInformation("User {UserId} voted in election {ElectionId}", userId, id);
+        _logger.LogInformation("User {UserId} voted in election {ElectionId} for {Count} candidates", userId, id, votes.Count);
 
-        return new OkObjectResult(new { Message = "Vote recorded successfully." });
+        return new OkObjectResult(new { Message = "Votes recorded successfully." });
     }
 
     // -------------------------------------------------------------------------

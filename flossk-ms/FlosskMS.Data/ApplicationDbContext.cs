@@ -487,8 +487,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.CandidateUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // A voter can only vote once per election
-            entity.HasIndex(e => new { e.ElectionId, e.VoterUserId }).IsUnique();
+            // A voter can vote for exactly 3 distinct candidates per election
+            entity.HasIndex(e => new { e.ElectionId, e.VoterUserId, e.CandidateUserId }).IsUnique();
             entity.HasIndex(e => e.CandidateUserId);
         });
 
