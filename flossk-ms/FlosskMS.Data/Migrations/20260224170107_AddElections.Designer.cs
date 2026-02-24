@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using FlosskMS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlosskMS.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260224170107_AddElections")]
+    partial class AddElections
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -354,15 +357,6 @@ namespace FlosskMS.Data.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("FinalizedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FinalizedByUserId")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsFinalized")
-                        .HasColumnType("boolean");
-
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -381,10 +375,6 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("EndDate");
-
-                    b.HasIndex("FinalizedByUserId");
-
-                    b.HasIndex("IsFinalized");
 
                     b.HasIndex("StartDate");
 
@@ -1242,14 +1232,7 @@ namespace FlosskMS.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "FinalizedByUser")
-                        .WithMany()
-                        .HasForeignKey("FinalizedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("CreatedByUser");
-
-                    b.Navigation("FinalizedByUser");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.ElectionCandidate", b =>

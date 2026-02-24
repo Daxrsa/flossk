@@ -29,6 +29,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<InventoryItem> InventoryItems { get; set; }
     public DbSet<InventoryItemImage> InventoryItemImages { get; set; }
     public DbSet<Log> Logs { get; set; }
+    public DbSet<Election> Elections { get; set; }
+    public DbSet<ElectionCandidate> ElectionCandidates { get; set; }
+    public DbSet<ElectionVote> ElectionVotes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -418,6 +421,75 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.InventoryItemId);
             entity.HasIndex(e => e.UploadedFileId);
             entity.HasIndex(e => new { e.InventoryItemId, e.UploadedFileId }).IsUnique();
+        });
+
+        // Election configuration
+        builder.Entity<Election>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.FinalizedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.FinalizedByUserId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.StartDate);
+            entity.HasIndex(e => e.EndDate);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsFinalized);
+        });
+
+        builder.Entity<ElectionCandidate>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Election)
+                .WithMany(e => e.Candidates)
+                .HasForeignKey(e => e.ElectionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // A user can only be a candidate once per election
+            entity.HasIndex(e => new { e.ElectionId, e.UserId }).IsUnique();
+        });
+
+        builder.Entity<ElectionVote>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Election)
+                .WithMany(e => e.Votes)
+                .HasForeignKey(e => e.ElectionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.VoterUser)
+                .WithMany()
+                .HasForeignKey(e => e.VoterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.CandidateUser)
+                .WithMany()
+                .HasForeignKey(e => e.CandidateUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // A voter can only vote once per election
+            entity.HasIndex(e => new { e.ElectionId, e.VoterUserId }).IsUnique();
+            entity.HasIndex(e => e.CandidateUserId);
         });
 
         // Log configuration
