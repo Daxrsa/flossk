@@ -68,6 +68,136 @@ import { environment } from '@environments/environment.prod';
                 <p-skeleton height="1rem" width="60%" />
             </div>
 
+            <!-- Past Elections -->
+            <div class="card" *ngIf="!loading && pastElections.length > 0">
+                <h2 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-4">Past Elections</h2>
+                <div class="flex flex-col gap-3">
+                    <div
+                        *ngFor="let election of pastElections"
+                        class="flex justify-between items-center p-4 bg-surface-50 dark:bg-surface-800 rounded-lg"
+                    >
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="font-medium text-surface-900 dark:text-surface-0 m-0">{{ election.title }}</h4>
+                                <p-tag *ngIf="election.isFinalized" value="Finalized" severity="secondary" />
+                            </div>
+                            <div class="flex items-center gap-4 text-sm text-surface-600 dark:text-surface-400">
+                                <span>{{ election.endDate | date:'mediumDate' }}</span>
+                                <span>{{ election.totalVotes }} votes</span>
+                                <span>{{ election.candidateCount }} candidates</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <p-button
+                                [label]="viewingPastElectionId === election.id ? 'Close Results' : 'View Results'"
+                                [icon]="viewingPastElectionId === election.id ? 'pi pi-times' : 'pi pi-chart-bar'"
+                                [outlined]="true"
+                                size="small"
+                                [loading]="loadingPastResults && viewingPastElectionId === election.id"
+                                (onClick)="viewElectionResults(election)"
+                            />
+                            <p-button
+                                *ngIf="isAdmin && !election.isFinalized"
+                                icon="pi pi-trash"
+                                [outlined]="true"
+                                size="small"
+                                severity="danger"
+                                (onClick)="confirmDeleteElectionById(election.id)"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Past Election Inline Results -->
+            <div class="card" *ngIf="viewingPastElection">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-xl font-semibold text-surface-900 dark:text-surface-0 m-0">{{ viewingPastElection.title }}</h2>
+                        <p-tag *ngIf="viewingPastElection.isFinalized" value="Finalized" severity="secondary" />
+                    </div>
+                    <span class="text-surface-600 dark:text-surface-400 text-sm">{{ viewingPastElection.totalVotes }} total votes &bull; Ended {{ viewingPastElection.endDate | date:'mediumDate' }}</span>
+                </div>
+
+                <div class="flex flex-wrap gap-3 mb-5">
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="inline-flex items-center justify-center bg-yellow-400 text-white rounded-full w-6 h-6 font-bold text-xs">1</span>
+                        <span class="text-surface-700 dark:text-surface-300">Leader</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="inline-flex items-center justify-center bg-primary text-white rounded-full w-6 h-6 font-bold text-xs">2</span>
+                        <span class="text-surface-700 dark:text-surface-300">Admin</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="inline-flex items-center justify-center bg-primary text-white rounded-full w-6 h-6 font-bold text-xs">3</span>
+                        <span class="text-surface-700 dark:text-surface-300">Admin</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <ng-container *ngFor="let notice of getTieNotices(viewingPastElection)">
+                        <div
+                            class="flex items-center gap-3 rounded-lg px-4 py-3 border mb-1"
+                            [class.bg-yellow-50]="notice.severity === 'warn'"
+                            [class.dark:bg-yellow-900\/10]="notice.severity === 'warn'"
+                            [class.border-yellow-300]="notice.severity === 'warn'"
+                            [class.bg-blue-50]="notice.severity === 'info'"
+                            [class.dark:bg-blue-900\/10]="notice.severity === 'info'"
+                            [class.border-blue-200]="notice.severity === 'info'"
+                        >
+                            <i class="pi text-lg"
+                                [class.pi-exclamation-triangle]="notice.severity === 'warn'"
+                                [class.text-yellow-500]="notice.severity === 'warn'"
+                                [class.pi-info-circle]="notice.severity === 'info'"
+                                [class.text-blue-500]="notice.severity === 'info'"
+                            ></i>
+                            <span class="text-sm font-medium"
+                                [class.text-yellow-800]="notice.severity === 'warn'"
+                                [class.text-blue-800]="notice.severity === 'info'"
+                            >{{ notice.message }}</span>
+                        </div>
+                    </ng-container>
+                    <div
+                        *ngFor="let candidate of viewingPastElection.candidates; let i = index"
+                        class="flex items-center gap-4 rounded-xl p-4"
+                        [class.bg-yellow-50]="i === 0"
+                        [class.dark:bg-yellow-900\/10]="i === 0"
+                        [class.border]="i < 3"
+                        [class.border-yellow-300]="i === 0"
+                        [class.border-primary-200]="i === 1 || i === 2"
+                        [class.bg-primary-50]="i === 1 || i === 2"
+                        [class.dark:bg-primary-900\/10]="i === 1 || i === 2"
+                        [class.bg-surface-50]="i >= 3"
+                        [class.dark:bg-surface-800]="i >= 3"
+                    >
+                        <div class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
+                            [class.bg-yellow-400]="i === 0"
+                            [class.text-white]="i < 3"
+                            [class.bg-primary]="i === 1 || i === 2"
+                            [class.bg-surface-200]="i >= 3"
+                            [class.dark:bg-surface-700]="i >= 3"
+                            [class.text-surface-600]="i >= 3"
+                        >{{ i + 1 }}</div>
+                        <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary font-bold text-sm shrink-0 select-none">
+                            {{ getInitials(candidate.fullName) }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-surface-900 dark:text-surface-0">{{ candidate.fullName }}</span>
+                                    <p-tag *ngIf="i === 0 && viewingPastElection.isFinalized" value="Leader" severity="warn" />
+                                    <p-tag *ngIf="(i === 1 || i === 2) && viewingPastElection.isFinalized" value="Admin" severity="info" />
+                                </div>
+                                <span class="font-semibold text-primary text-sm whitespace-nowrap">
+                                    {{ candidate.votes }} votes ({{ getVotePercentage(candidate.votes, viewingPastElection) }}%)
+                                </span>
+                            </div>
+                            <p-progressbar [value]="getVotePercentage(candidate.votes, viewingPastElection)" [showValue]="false" styleClass="h-2" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Active / Upcoming Election -->
             <div *ngIf="!loading && activeElection" class="card">
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
@@ -310,39 +440,6 @@ import { environment } from '@environments/environment.prod';
                 <p-button *ngIf="isAdmin" label="Create Election" icon="pi pi-plus" (onClick)="openCreateElectionDialog()" />
             </div>
 
-            <!-- Past Elections -->
-            <div class="card" *ngIf="!loading && pastElections.length > 0">
-                <h2 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-4">Past Elections</h2>
-                <div class="flex flex-col gap-3">
-                    <div
-                        *ngFor="let election of pastElections"
-                        class="flex justify-between items-center p-4 bg-surface-50 dark:bg-surface-800 rounded-lg"
-                    >
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <h4 class="font-medium text-surface-900 dark:text-surface-0 m-0">{{ election.title }}</h4>
-                                <p-tag *ngIf="election.isFinalized" value="Finalized" severity="secondary" />
-                            </div>
-                            <div class="flex items-center gap-4 text-sm text-surface-600 dark:text-surface-400">
-                                <span>{{ election.endDate | date:'mediumDate' }}</span>
-                                <span>{{ election.totalVotes }} votes</span>
-                                <span>{{ election.candidateCount }} candidates</span>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <p-button label="View Results" [outlined]="true" size="small" (onClick)="viewElectionResults(election)" />
-                            <p-button
-                                *ngIf="isAdmin && !election.isFinalized"
-                                icon="pi pi-trash"
-                                [outlined]="true"
-                                size="small"
-                                severity="danger"
-                                (onClick)="confirmDeleteElectionById(election.id)"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Create Election Dialog -->
@@ -505,6 +602,9 @@ export class Voting implements OnInit {
     submittingVote = false;
     savingElection = false;
     showResults = false;
+    viewingPastElectionId = '';
+    viewingPastElection: Election | null = null;
+    loadingPastResults = false;
     selectedCandidates: string[] = [];
     currentUserId = '';
     today = new Date();
@@ -718,16 +818,23 @@ export class Voting implements OnInit {
     // -------------------------------------------------------------------------
 
     viewElectionResults(summary: ElectionSummary) {
-        this.loading = true;
+        if (this.viewingPastElectionId === summary.id) {
+            this.viewingPastElectionId = '';
+            this.viewingPastElection = null;
+            return;
+        }
+        this.loadingPastResults = true;
+        this.viewingPastElectionId = summary.id;
+        this.viewingPastElection = null;
         this.electionService.getById(summary.id).subscribe({
             next: (election) => {
-                this.activeElection = election;
-                this.loading = false;
-                // Scroll to top
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                election.candidates = [...election.candidates].sort((a, b) => b.votes - a.votes);
+                this.viewingPastElection = election;
+                this.loadingPastResults = false;
             },
             error: () => {
-                this.loading = false;
+                this.loadingPastResults = false;
+                this.viewingPastElectionId = '';
                 this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load results.', life: 4000 });
             }
         });
@@ -807,13 +914,14 @@ export class Voting implements OnInit {
         }
     }
 
-    getVotePercentage(votes: number): number {
-        if (!this.activeElection || this.activeElection.totalVotes === 0) return 0;
-        return Math.round((votes / this.activeElection.totalVotes) * 100);
+    getVotePercentage(votes: number, election?: Election | null): number {
+        const el = election ?? this.activeElection;
+        if (!el || el.totalVotes === 0) return 0;
+        return Math.round((votes / el.totalVotes) * 100);
     }
 
-    getTieNotices(): { message: string; severity: 'warn' | 'info' }[] {
-        const candidates = this.activeElection?.candidates;
+    getTieNotices(election?: Election | null): { message: string; severity: 'warn' | 'info' }[] {
+        const candidates = (election ?? this.activeElection)?.candidates;
         if (!candidates || candidates.length < 2) return [];
 
         const notices: { message: string; severity: 'warn' | 'info' }[] = [];
