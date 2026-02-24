@@ -5,7 +5,7 @@ namespace FlosskMS.Business.Services;
 
 public interface IInventoryService
 {
-    Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? search = null);
+    Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? condition = null, string? search = null, int? minQuantity = null, int? maxQuantity = null, string? currentUserId = null);
     Task<IActionResult> GetInventoryItemByIdAsync(Guid id);
     Task<IActionResult> GetInventoryItemsByUserAsync(string userId);
     Task<IActionResult> CreateInventoryItemAsync(CreateInventoryItemDto dto, string createdByUserId);

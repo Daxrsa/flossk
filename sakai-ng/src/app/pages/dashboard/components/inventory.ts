@@ -141,33 +141,129 @@ interface PaginatedInventoryResponse {
         <p-confirmDialog />
         
         <div class="card">
-            <p-toolbar class="mb-6">
-               
-                     <ng-template #center>
-                        <p-iconfield>
-                            <p-inputicon>
-                                <i class="pi pi-search"></i>
-                            </p-inputicon>
-                            <input pInputText placeholder="Search" />
-                        </p-iconfield>
-                    </ng-template>
-                <div class="flex justify-content-center">
-                    <p-button 
-                        label="New Item" 
-                        icon="pi pi-plus" 
-                        severity="success" 
-                        class="mr-2"
-                        (onClick)="openAddDialog()"
-                    />
-                    <p-button 
-                        label="Export" 
-                        icon="pi pi-upload" 
-                        severity="help" 
-                        (onClick)="exportData()"
+            <p-toolbar class="mb-4">
+                <ng-template #start>
+                    <span class="font-semibold text-lg">Inventory</span>
+                </ng-template>
+                <ng-template #end>
+                    <div class="flex gap-2">
+                        <p-button
+                            label="New Item"
+                            icon="pi pi-plus"
+                            severity="success"
+                            (onClick)="openAddDialog()"
+                        />
+                        <p-button
+                            label="Export"
+                            icon="pi pi-upload"
+                            severity="help"
+                            (onClick)="exportData()"
+                        />
+                    </div>
+                </ng-template>
+            </p-toolbar>
+
+            <!-- Filter Panel -->
+            <div class="flex flex-wrap gap-3 mb-4 p-4 border border-surface-200 dark:border-surface-700 rounded-lg">
+                <!-- Search -->
+                <div class="flex flex-col gap-1 flex-1" style="min-width:14rem">
+                    <label class="text-sm font-medium text-muted-color">Search</label>
+                    <p-iconfield>
+                        <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+                        <input
+                            pInputText
+                            placeholder="Name or description…"
+                            [(ngModel)]="filterSearch"
+                            (ngModelChange)="onSearchChange()"
+                            class="w-full"
+                        />
+                    </p-iconfield>
+                </div>
+                <!-- Category -->
+                <div class="flex flex-col gap-1" style="min-width:12rem">
+                    <label class="text-sm font-medium text-muted-color">Category</label>
+                    <p-select
+                        [(ngModel)]="filterCategory"
+                        [options]="filterCategoryOptions"
+                        placeholder="All categories"
+                        (ngModelChange)="applyFilters()"
+                        [showClear]="true"
+                        appendTo="body"
+                        class="w-full"
                     />
                 </div>
-               
-            </p-toolbar>
+                <!-- Status -->
+                <div class="flex flex-col gap-1" style="min-width:10rem">
+                    <label class="text-sm font-medium text-muted-color">Status</label>
+                    <p-select
+                        [(ngModel)]="filterStatus"
+                        [options]="filterStatusOptions"
+                        placeholder="All statuses"
+                        (ngModelChange)="applyFilters()"
+                        [showClear]="true"
+                        appendTo="body"
+                        class="w-full"
+                    />
+                </div>
+                <!-- Condition -->
+                <div class="flex flex-col gap-1" style="min-width:10rem">
+                    <label class="text-sm font-medium text-muted-color">Condition</label>
+                    <p-select
+                        [(ngModel)]="filterCondition"
+                        [options]="filterConditionOptions"
+                        placeholder="All conditions"
+                        (ngModelChange)="applyFilters()"
+                        [showClear]="true"
+                        appendTo="body"
+                        class="w-full"
+                    />
+                </div>
+                <!-- Quantity range -->
+                <div class="flex flex-col gap-1" style="min-width:9rem">
+                    <label class="text-sm font-medium text-muted-color">Min Quantity</label>
+                    <p-inputNumber
+                        [(ngModel)]="filterMinQty"
+                        [min]="0"
+                        placeholder="0"
+                        (ngModelChange)="applyFilters()"
+                        class="w-full"
+                    />
+                </div>
+                <div class="flex flex-col gap-1" style="min-width:9rem">
+                    <label class="text-sm font-medium text-muted-color">Max Quantity</label>
+                    <p-inputNumber
+                        [(ngModel)]="filterMaxQty"
+                        [min]="0"
+                        placeholder="∞"
+                        (ngModelChange)="applyFilters()"
+                        class="w-full"
+                    />
+                </div>
+                <!-- Usage / Only mine -->
+                <div class="flex flex-col gap-1" style="min-width:10rem">
+                    <label class="text-sm font-medium text-muted-color">Usage</label>
+                    <p-select
+                        [(ngModel)]="filterUsage"
+                        [options]="filterUsageOptions"
+                        placeholder="All"
+                        (ngModelChange)="applyFilters()"
+                        [showClear]="true"
+                        appendTo="body"
+                        class="w-full"
+                    />
+                </div>
+                <!-- Reset -->
+                <div class="flex flex-col justify-end" style="min-width:6rem">
+                    <p-button
+                        label="Reset"
+                        icon="pi pi-filter-slash"
+                        severity="secondary"
+                        [outlined]="true"
+                        (onClick)="resetFilters()"
+                        class="w-full"
+                    />
+                </div>
+            </div>
 
             <p-table 
                 [value]="inventoryItems" 
@@ -604,8 +700,22 @@ export class Inventory implements OnInit {
     }
 
     loadInventoryItems() {
+        const params: string[] = [
+            `page=${this.currentPage}`,
+            `pageSize=${this.pageSize}`
+        ];
+        if (this.filterSearch)       params.push(`search=${encodeURIComponent(this.filterSearch)}`);
+        if (this.filterCategory)     params.push(`category=${encodeURIComponent(this.filterCategory)}`);
+        if (this.filterStatus)       params.push(`status=${encodeURIComponent(this.filterStatus)}`);
+        if (this.filterCondition)    params.push(`condition=${encodeURIComponent(this.filterCondition)}`);
+        if (this.filterMinQty != null) params.push(`minQuantity=${this.filterMinQty}`);
+        if (this.filterMaxQty != null) params.push(`maxQuantity=${this.filterMaxQty}`);
+        if (this.filterUsage === 'mine') {
+            const uid = this.authService.currentUser()?.id;
+            if (uid) params.push(`currentUserId=${encodeURIComponent(uid)}`);
+        }
         this.http.get<PaginatedInventoryResponse>(
-            `${this.apiUrl}?page=${this.currentPage}&pageSize=${this.pageSize}`
+            `${this.apiUrl}?${params.join('&')}`
         ).subscribe({
             next: (response) => {
                 console.log('Inventory API response:', response);
@@ -655,6 +765,36 @@ export class Inventory implements OnInit {
     currentPage = 1;
     pageSize = 20;
 
+    // Filters
+    filterSearch = '';
+    filterCategory = '';
+    filterStatus = '';
+    filterCondition = '';
+    filterMinQty: number | null = null;
+    filterMaxQty: number | null = null;
+    filterUsage = '';
+    private searchTimer: any = null;
+
+    filterCategoryOptions = [
+        { label: 'Electronic', value: 'Electronic' },
+        { label: 'Tool', value: 'Tool' },
+        { label: 'Components', value: 'Components' },
+        { label: 'Furniture', value: 'Furniture' },
+        { label: 'Hardware', value: 'Hardware' },
+        { label: 'Office Supplies', value: 'OfficeSupplies' }
+    ];
+    filterStatusOptions = [
+        { label: 'Free', value: 'Free' },
+        { label: 'In Use', value: 'InUse' }
+    ];
+    filterConditionOptions = [
+        { label: 'Good', value: 'Good' },
+        { label: 'Damaged', value: 'Damaged' }
+    ];
+    filterUsageOptions = [
+        { label: 'Checked out by me', value: 'mine' }
+    ];
+
     responsiveOptions = [
         {
             breakpoint: '1024px',
@@ -683,6 +823,27 @@ export class Inventory implements OnInit {
         { label: 'Free', value: 'Free' },
         { label: 'In Use', value: 'InUse' }
     ];
+
+    applyFilters() {
+        this.currentPage = 1;
+        this.loadInventoryItems();
+    }
+
+    onSearchChange() {
+        clearTimeout(this.searchTimer);
+        this.searchTimer = setTimeout(() => this.applyFilters(), 350);
+    }
+
+    resetFilters() {
+        this.filterSearch = '';
+        this.filterCategory = '';
+        this.filterStatus = '';
+        this.filterCondition = '';
+        this.filterMinQty = null;
+        this.filterMaxQty = null;
+        this.filterUsage = '';
+        this.applyFilters();
+    }
 
     showGallery(item: InventoryItem) {
         // Check if item has images

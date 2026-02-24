@@ -22,7 +22,7 @@ public class InventoryService : IInventoryService
         _logService = logService;
     }
 
-    public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? search = null)
+    public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? condition = null, string? search = null, int? minQuantity = null, int? maxQuantity = null, string? currentUserId = null)
     {
         var query = _context.InventoryItems
             .Include(i => i.CurrentUser!)
@@ -43,6 +43,28 @@ public class InventoryService : IInventoryService
         if (!string.IsNullOrEmpty(status) && Enum.TryParse<InventoryStatus>(status, true, out var statusEnum))
         {
             query = query.Where(i => i.Status == statusEnum);
+        }
+
+        // Filter by condition
+        if (!string.IsNullOrEmpty(condition) && Enum.TryParse<InventoryCondition>(condition, true, out var conditionEnum))
+        {
+            query = query.Where(i => i.Condition == conditionEnum);
+        }
+
+        // Filter by quantity range
+        if (minQuantity.HasValue)
+        {
+            query = query.Where(i => i.Quantity >= minQuantity.Value);
+        }
+        if (maxQuantity.HasValue)
+        {
+            query = query.Where(i => i.Quantity <= maxQuantity.Value);
+        }
+
+        // Filter by current user (usage)
+        if (!string.IsNullOrEmpty(currentUserId))
+        {
+            query = query.Where(i => i.CurrentUserId == currentUserId);
         }
 
         // Search by name or description

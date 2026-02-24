@@ -41,7 +41,7 @@ export const appRoutes: Routes = [
             { path: 'voting', component: Voting, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'inventory', component: Inventory },
             { path: 'hackerspace-presence', component: HackerspacePresence },
-            { path: 'rfid-configurer', component: RfidConfigurer },
+            // { path: 'rfid-configurer', component: RfidConfigurer },
             { path: 'events', component: Events },
             { path: 'projects', component: Projects },
             { path: 'statistics', component: Statistics },

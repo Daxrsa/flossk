@@ -31,6 +31,9 @@ import { CommonModule } from '@angular/common';
                             @if (authService.error()) {
                                 <p-message severity="error" [text]="authService.error()!" styleClass="w-full mb-4"></p-message>
                             }
+                            @if (registerSuccess) {
+                                <p-message severity="success" text="Registration successful! Please log in." styleClass="w-full mb-4"></p-message>
+                            }
                             
                             @if (isLoginMode) {
                                 <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
@@ -101,6 +104,7 @@ import { CommonModule } from '@angular/common';
 })
 export class Login {
     isLoginMode: boolean = true;
+    registerSuccess: boolean = false;
     
     email: string = '';
 
@@ -122,6 +126,7 @@ export class Login {
 
     toggleMode() {
         this.isLoginMode = !this.isLoginMode;
+        this.registerSuccess = false;
         this.authService.error.set(null);
     }
 
@@ -151,8 +156,13 @@ export class Login {
             confirmPassword: this.confirmPassword 
         }).subscribe({
             next: () => {
-                this.authService.loadCurrentUser();
-                this.router.navigate(['/dashboard']);
+                this.password = '';
+                this.confirmPassword = '';
+                this.firstName = '';
+                this.lastName = '';
+                this.authService.error.set(null);
+                this.registerSuccess = true;
+                this.isLoginMode = true;
             },
             error: (err) => {
                 console.error('Registration failed:', err);

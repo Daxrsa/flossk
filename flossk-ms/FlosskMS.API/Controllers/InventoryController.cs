@@ -25,13 +25,17 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     /// <param name="search">Search by name or description</param>
     [HttpGet]
     public async Task<IActionResult> GetAllInventoryItems(
-        [FromQuery] int page = 1, 
+        [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? category = null,
         [FromQuery] string? status = null,
-        [FromQuery] string? search = null)
+        [FromQuery] string? condition = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int? minQuantity = null,
+        [FromQuery] int? maxQuantity = null,
+        [FromQuery] string? currentUserId = null)
     {
-        return await _inventoryService.GetAllInventoryItemsAsync(page, pageSize, category, status, search);
+        return await _inventoryService.GetAllInventoryItemsAsync(page, pageSize, category, status, condition, search, minQuantity, maxQuantity, currentUserId);
     }
 
     /// <summary>
