@@ -27,3 +27,24 @@ export const authGuard: CanActivateFn = (route, state) => {
     router.navigate(['/auth/error']);
     return false;
 };
+
+export const roleGuard = (allowedRoles: string[]): CanActivateFn => (route, state) => {
+    const authService = inject(AuthService);
+    const router = inject(Router);
+
+    if (!authService.isAuthenticated()) {
+        router.navigate(['/auth/error']);
+        return false;
+    }
+
+    const user = authService.currentUser();
+    const userRoles: string[] = user?.roles ?? (user?.role ? [user.role] : []);
+    const hasRole = allowedRoles.some(r => userRoles.includes(r));
+
+    if (!hasRole) {
+        router.navigate(['/notfound']);
+        return false;
+    }
+
+    return true;
+};

@@ -222,7 +222,7 @@ interface User {
             <div class="col-span-12">
                 <div class="card !p-0 overflow-hidden">
                     <!-- Banner -->
-                    <div class="relative h-52 bg-gradient-to-r from-primary-300 via-primary-500 to-primary-700 overflow-hidden group">
+                    <div class="relative h-72 bg-gradient-to-r from-primary-300 via-primary-500 to-primary-700 overflow-hidden group">
                         <img
                             *ngIf="userProfile.bannerUrl"
                             [src]="userProfile.bannerUrl"

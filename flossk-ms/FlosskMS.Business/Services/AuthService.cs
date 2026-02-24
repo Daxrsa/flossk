@@ -514,6 +514,92 @@ public class AuthService(
         return new OkObjectResult(await MapToUserDtoAsync(user));
     }
 
+    public async Task<IActionResult> PromoteToFullMemberAsync(string userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return new BadRequestObjectResult(new { Error = "User ID is required." });
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return new NotFoundObjectResult(new { Error = "User not found." });
+        }
+
+        var userRoles = await _userManager.GetRolesAsync(user);
+        if (userRoles.Contains("Admin"))
+        {
+            return new BadRequestObjectResult(new { Error = "Admin users cannot be promoted to Full Member." });
+        }
+
+        if (userRoles.Contains("Full Member"))
+        {
+            return new BadRequestObjectResult(new { Error = "User is already a Full Member." });
+        }
+
+        if (!await _roleManager.RoleExistsAsync("Full Member"))
+        {
+            await _roleManager.CreateAsync(new IdentityRole("Full Member"));
+        }
+
+        var result = await _userManager.AddToRoleAsync(user, "Full Member");
+        if (!result.Succeeded)
+        {
+            return new BadRequestObjectResult(new { Errors = result.Errors.Select(e => e.Description) });
+        }
+
+        if (userRoles.Contains("User"))
+        {
+            await _userManager.RemoveFromRoleAsync(user, "User");
+        }
+
+        return new OkObjectResult(new
+        {
+            Success = true,
+            Message = $"User {user.Email} has been promoted to Full Member.",
+            User = await MapToUserDtoAsync(user)
+        });
+    }
+
+    public async Task<IActionResult> DemoteFromFullMemberAsync(string userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return new BadRequestObjectResult(new { Error = "User ID is required." });
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return new NotFoundObjectResult(new { Error = "User not found." });
+        }
+
+        var userRoles = await _userManager.GetRolesAsync(user);
+        if (!userRoles.Contains("Full Member"))
+        {
+            return new BadRequestObjectResult(new { Error = "User is not a Full Member." });
+        }
+
+        var result = await _userManager.RemoveFromRoleAsync(user, "Full Member");
+        if (!result.Succeeded)
+        {
+            return new BadRequestObjectResult(new { Errors = result.Errors.Select(e => e.Description) });
+        }
+
+        if (!userRoles.Contains("User"))
+        {
+            await _userManager.AddToRoleAsync(user, "User");
+        }
+
+        return new OkObjectResult(new
+        {
+            Success = true,
+            Message = $"User {user.Email} has been demoted to User.",
+            User = await MapToUserDtoAsync(user)
+        });
+    }
+
     public async Task<IActionResult> ToggleRFIDAsync(string userId)
     {
         if (string.IsNullOrEmpty(userId))

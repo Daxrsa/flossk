@@ -144,6 +144,22 @@ public class AuthController(IAuthService authService) : ControllerBase
         => await _authService.UpdateThemePreferenceAsync(User.FindFirstValue(ClaimTypes.NameIdentifier), request);
 
     /// <summary>
+    /// Promote a user to Full Member (Admin only). Admins cannot be promoted.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("users/{id}/promote-full-member")]
+    public async Task<IActionResult> PromoteToFullMember(string id)
+        => await _authService.PromoteToFullMemberAsync(id);
+
+    /// <summary>
+    /// Demote a Full Member back to a normal User (Admin only).
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("users/{id}/demote-full-member")]
+    public async Task<IActionResult> DemoteFromFullMember(string id)
+        => await _authService.DemoteFromFullMemberAsync(id);
+
+    /// <summary>
     /// Delete a user by ID (Admin only)
     /// </summary>
     [Authorize(Roles = "Admin")]

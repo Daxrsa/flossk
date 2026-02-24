@@ -26,4 +26,6 @@ public interface IAuthService
     Task<IActionResult> ToggleRFIDAsync(string userId);
     Task<IActionResult> UpdateThemePreferenceAsync(string? userId, UpdateThemePreferenceDto request);
     Task<IActionResult> DeleteUserByIdAsync(string userId);
+    Task<IActionResult> PromoteToFullMemberAsync(string userId);
+    Task<IActionResult> DemoteFromFullMemberAsync(string userId);
 }

@@ -15,7 +15,7 @@ import { Notifications } from '@/pages/dashboard/components/notifications';
 import { Statistics } from '@/pages/dashboard/components/statistics';
 import { Leaderboard } from '@/pages/dashboard/components/leaderboard';
 import { MembershipApplicationForm } from '@/pages/dashboard/components/membership-application-form';
-import { authGuard } from '@/pages/service/auth.guard';
+import { authGuard, roleGuard } from '@/pages/service/auth.guard';
 import { ExternalMessages } from '@/pages/dashboard/components/external-messages';
 import { Payments } from '@/pages/dashboard/components/payments';
 import { Rent } from '@/pages/dashboard/components/rent';
@@ -38,7 +38,7 @@ export const appRoutes: Routes = [
             { path: 'notifications', component: Notifications },
             { path: 'announcements', component: Announcements },
             { path: 'users', component: Users },
-            { path: 'voting', component: Voting },
+            { path: 'voting', component: Voting, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'inventory', component: Inventory },
             { path: 'hackerspace-presence', component: HackerspacePresence },
             { path: 'rfid-configurer', component: RfidConfigurer },

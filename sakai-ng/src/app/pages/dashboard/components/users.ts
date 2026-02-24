@@ -10,6 +10,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService } from 'primeng/api';
 import { environment } from '@environments/environment.prod';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
@@ -26,7 +27,7 @@ interface User {
 
 @Component({
     selector: 'app-users',
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, AvatarModule, ConfirmDialogModule, CheckboxModule, SkeletonModule, TagModule],
+    imports: [CommonModule, FormsModule, TableModule, ButtonModule, AvatarModule, ConfirmDialogModule, CheckboxModule, SkeletonModule, TagModule, TooltipModule],
     providers: [ConfirmationService],
     template: `
     <p-confirmdialog></p-confirmdialog>
@@ -110,7 +111,27 @@ interface User {
                             }
                         </td>
                         @if (isAdmin()) {
-                            <td (click)="$event.stopPropagation()">
+                            <td (click)="$event.stopPropagation()" class="flex gap-1 items-center">
+                                @if (!user.roles.includes('Admin') && !user.roles.includes('Full Member')) {
+                                    <p-button
+                                        icon="pi pi-arrow-up"
+                                        [text]="true"
+                                        severity="success"
+                                        pTooltip="Promote to Full Member"
+                                        tooltipPosition="top"
+                                        (onClick)="confirmPromote(user)">
+                                    </p-button>
+                                }
+                                @if (user.roles.includes('Full Member')) {
+                                    <p-button
+                                        icon="pi pi-arrow-down"
+                                        [text]="true"
+                                        severity="warn"
+                                        pTooltip="Demote to User"
+                                        tooltipPosition="top"
+                                        (onClick)="confirmDemote(user)">
+                                    </p-button>
+                                }
                                 <p-button icon="pi pi-trash" [text]="true" severity="danger" (onClick)="confirmDelete(user)"></p-button>
                             </td>
                         }
@@ -155,6 +176,48 @@ export class Users implements OnInit {
             error: (err) => {
                 console.error('Error loading users:', err);
                 this.loading = false;
+            }
+        });
+    }
+
+    confirmPromote(user: User) {
+        this.confirmationService.confirm({
+            message: `Promote ${user.firstName} ${user.lastName} to Full Member?`,
+            header: 'Promote to Full Member',
+            icon: 'pi pi-arrow-up',
+            acceptButtonStyleClass: 'p-button-success',
+            accept: () => this.promoteToFullMember(user)
+        });
+    }
+
+    promoteToFullMember(user: User) {
+        this.http.post(`${environment.apiUrl}/Auth/users/${user.id}/promote-full-member`, {}).subscribe({
+            next: () => {
+                user.roles = [...user.roles.filter(r => r !== 'Full Member'), 'Full Member'];
+            },
+            error: (err) => {
+                console.error('Error promoting user:', err);
+            }
+        });
+    }
+
+    confirmDemote(user: User) {
+        this.confirmationService.confirm({
+            message: `Demote ${user.firstName} ${user.lastName} from Full Member back to User?`,
+            header: 'Demote to User',
+            icon: 'pi pi-arrow-down',
+            acceptButtonStyleClass: 'p-button-warning',
+            accept: () => this.demoteFromFullMember(user)
+        });
+    }
+
+    demoteFromFullMember(user: User) {
+        this.http.post(`${environment.apiUrl}/Auth/users/${user.id}/demote-full-member`, {}).subscribe({
+            next: () => {
+                user.roles = user.roles.filter(r => r !== 'Full Member');
+            },
+            error: (err) => {
+                console.error('Error demoting user:', err);
             }
         });
     }
