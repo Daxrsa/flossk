@@ -1,32 +1,27 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { RadioButtonModule } from 'primeng/radiobutton';
-import { CheckboxModule } from 'primeng/checkbox';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
-import { TextareaModule } from 'primeng/textarea';
-import { StepperModule } from 'primeng/stepper';
-import { AvatarModule } from 'primeng/avatar';
 import { TagModule } from 'primeng/tag';
 import { ProgressBarModule } from 'primeng/progressbar';
-import { TabsModule } from 'primeng/tabs';
-import { ChipModule } from 'primeng/chip';
 import { DividerModule } from 'primeng/divider';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { AuthService } from '@/pages/service/auth.service';
+import { environment } from '@environments/environment.prod';
 
 interface Candidate {
     id: string;
     name: string;
     photo: string;
     biography: string;
-    position: 'leader' | 'board';
     votes: number;
 }
 
@@ -49,28 +44,22 @@ interface Election {
         FormsModule,
         ButtonModule,
         CardModule,
-        RadioButtonModule,
-        CheckboxModule,
         DialogModule,
         InputTextModule,
-        TextareaModule,
-        StepperModule,
-        AvatarModule,
         TagModule,
         ProgressBarModule,
-        TabsModule,
-        ChipModule,
         DividerModule,
         ConfirmDialogModule,
         ToastModule,
-        DatePickerModule
+        DatePickerModule,
+        MultiSelectModule
     ],
     providers: [ConfirmationService, MessageService],
     template: `
         <p-toast />
         <p-confirmDialog />
-        
-        <div class="flex flex-col">
+
+        <div class="flex flex-col gap-4">
             <!-- Page Header -->
             <div class="card">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -79,20 +68,14 @@ interface Election {
                             Board Elections
                         </h3>
                         <p class="text-surface-600 dark:text-surface-400 m-0">
-                            Vote for the next FLOSSK leadership — 1 Leader and 2 Board Members
+                            Cast your vote for one candidate. The top 3 most voted members will be promoted to Admin — the most voted will become the Leader.
                         </p>
                     </div>
                     <div class="flex gap-2" *ngIf="isAdmin">
-                        <p-button 
-                            label="New Election" 
-                            icon="pi pi-plus" 
+                        <p-button
+                            label="New Election"
+                            icon="pi pi-plus"
                             (onClick)="openCreateElectionDialog()"
-                        />
-                        <p-button 
-                            label="Manage Candidates" 
-                            icon="pi pi-users" 
-                            [outlined]="true"
-                            (onClick)="openManageCandidatesDialog()"
                         />
                     </div>
                 </div>
@@ -106,14 +89,12 @@ interface Election {
                             <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">
                                 {{ activeElection.title }}
                             </h2>
-                            <p-tag 
-                                [value]="activeElection.status" 
+                            <p-tag
+                                [value]="activeElection.status"
                                 [severity]="getStatusSeverity(activeElection.status)"
                             />
                         </div>
-                        <p class="text-surface-600 dark:text-surface-400 m-0">
-                            {{ activeElection.description }}
-                        </p>
+                        <p class="text-surface-600 dark:text-surface-400 m-0">{{ activeElection.description }}</p>
                     </div>
                     <div class="flex items-center gap-6 text-sm text-surface-600 dark:text-surface-400">
                         <div class="flex items-center gap-2">
@@ -122,354 +103,148 @@ interface Election {
                         </div>
                         <div class="flex items-center gap-2">
                             <i class="pi pi-users"></i>
-                            <span>{{ activeElection.totalVotes }} votes</span>
+                            <span>{{ activeElection.totalVotes }} votes cast</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Voting Interface -->
                 <div *ngIf="activeElection.status === 'active' && !hasVoted">
-                    <p-tabs [(value)]="activeTab">
-                        <p-tablist>
-                            <p-tab [value]="0">
-                                <span class="flex items-center gap-2">
-                                    <i class="pi pi-crown"></i>
-                                    <span>Vote for Leader</span>
-                                    <p-tag *ngIf="selectedLeader" value="1" severity="success" [rounded]="true" />
-                                </span>
-                            </p-tab>
-                            <p-tab [value]="1">
-                                <span class="flex items-center gap-2">
-                                    <i class="pi pi-users"></i>
-                                    <span>Vote for Board Members</span>
-                                    <p-tag *ngIf="selectedBoardMembers.length > 0" [value]="selectedBoardMembers.length + '/2'" severity="success" [rounded]="true" />
-                                </span>
-                            </p-tab>
-                            <p-tab [value]="2">
-                                <span class="flex items-center gap-2">
-                                    <i class="pi pi-check-circle"></i>
-                                    <span>Review & Submit</span>
-                                </span>
-                            </p-tab>
-                        </p-tablist>
-                        
-                        <p-tabpanels>
-                            <!-- Leader Selection -->
-                            <p-tabpanel [value]="0">
-                                <div class="py-4">
-                                    <p class="text-surface-600 dark:text-surface-400 mb-6">
-                                        Select one candidate to lead FLOSSK for the upcoming year.
-                                    </p>
-                                    
-                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        <div 
-                                            *ngFor="let candidate of getLeaderCandidates()"
-                                            class="border rounded-lg p-5 cursor-pointer transition-all duration-200"
-                                            [class.border-primary]="selectedLeader === candidate.id"
-                                            [class.border-2]="selectedLeader === candidate.id"
-                                            [class.bg-primary-50]="selectedLeader === candidate.id"
-                                            [class.dark:bg-primary-900/20]="selectedLeader === candidate.id"
-                                            [class.border-surface-200]="selectedLeader !== candidate.id"
-                                            [class.dark:border-surface-700]="selectedLeader !== candidate.id"
-                                            [class.hover:border-primary]="selectedLeader !== candidate.id"
-                                            (click)="selectedLeader = candidate.id"
-                                        >
-                                            <div class="flex items-start gap-4">
-                                                <div class="relative">
-                                                    <img 
-                                                        [src]="candidate.photo" 
-                                                        [alt]="candidate.name"
-                                                        class="w-16 h-16 rounded-full object-cover"
-                                                    >
-                                                    <div 
-                                                        *ngIf="selectedLeader === candidate.id"
-                                                        class="absolute -top-1 -right-1 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center"
-                                                    >
-                                                        <i class="pi pi-check text-xs"></i>
-                                                    </div>
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <h4 class="font-semibold text-surface-900 dark:text-surface-0 mb-1">
-                                                        {{ candidate.name }}
-                                                    </h4>
-                                                    <p class="text-sm text-surface-600 dark:text-surface-400 line-clamp-3">
-                                                        {{ candidate.biography }}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex justify-end mt-6">
-                                        <p-button 
-                                            label="Continue to Board Members" 
-                                            icon="pi pi-arrow-right" 
-                                            iconPos="right"
-                                            [disabled]="!selectedLeader"
-                                            (onClick)="activeTab = 1"
-                                        />
+                    <p class="text-surface-600 dark:text-surface-400 mb-5">
+                        Select one candidate you want to support.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div
+                            *ngFor="let candidate of activeElection.candidates"
+                            class="border rounded-xl p-5 cursor-pointer transition-all duration-200"
+                            [class.border-primary]="selectedCandidate === candidate.id"
+                            [class.border-2]="selectedCandidate === candidate.id"
+                            [class.bg-primary-50]="selectedCandidate === candidate.id"
+                            [class.dark:bg-primary-900\/20]="selectedCandidate === candidate.id"
+                            [class.border-surface-200]="selectedCandidate !== candidate.id"
+                            [class.dark:border-surface-700]="selectedCandidate !== candidate.id"
+                            (click)="selectedCandidate = candidate.id"
+                        >
+                            <div class="flex items-start gap-4">
+                                <div class="relative shrink-0">
+                                    <img
+                                        [src]="candidate.photo"
+                                        [alt]="candidate.name"
+                                        class="w-16 h-16 rounded-full object-cover"
+                                    >
+                                    <div
+                                        *ngIf="selectedCandidate === candidate.id"
+                                        class="absolute -top-1 -right-1 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center"
+                                    >
+                                        <i class="pi pi-check text-xs"></i>
                                     </div>
                                 </div>
-                            </p-tabpanel>
-
-                            <!-- Board Members Selection -->
-                            <p-tabpanel [value]="1">
-                                <div class="py-4">
-                                    <p class="text-surface-600 dark:text-surface-400 mb-6">
-                                        Select exactly 2 candidates for board member positions.
-                                    </p>
-                                    
-                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        <div 
-                                            *ngFor="let candidate of getBoardCandidates()"
-                                            class="border rounded-lg p-5 cursor-pointer transition-all duration-200"
-                                            [class.border-primary]="isSelectedBoardMember(candidate.id)"
-                                            [class.border-2]="isSelectedBoardMember(candidate.id)"
-                                            [class.bg-primary-50]="isSelectedBoardMember(candidate.id)"
-                                            [class.dark:bg-primary-900/20]="isSelectedBoardMember(candidate.id)"
-                                            [class.border-surface-200]="!isSelectedBoardMember(candidate.id)"
-                                            [class.dark:border-surface-700]="!isSelectedBoardMember(candidate.id)"
-                                            [class.hover:border-primary]="!isSelectedBoardMember(candidate.id) && selectedBoardMembers.length < 2"
-                                            [class.opacity-50]="selectedBoardMembers.length === 2 && !isSelectedBoardMember(candidate.id)"
-                                            [class.cursor-not-allowed]="selectedBoardMembers.length === 2 && !isSelectedBoardMember(candidate.id)"
-                                            (click)="toggleBoardMember(candidate.id)"
-                                        >
-                                            <div class="flex items-start gap-4">
-                                                <div class="relative">
-                                                    <img 
-                                                        [src]="candidate.photo" 
-                                                        [alt]="candidate.name"
-                                                        class="w-16 h-16 rounded-full object-cover"
-                                                    >
-                                                    <div 
-                                                        *ngIf="isSelectedBoardMember(candidate.id)"
-                                                        class="absolute -top-1 -right-1 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center"
-                                                    >
-                                                        <i class="pi pi-check text-xs"></i>
-                                                    </div>
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <h4 class="font-semibold text-surface-900 dark:text-surface-0 mb-1">
-                                                        {{ candidate.name }}
-                                                    </h4>
-                                                    <p class="text-sm text-surface-600 dark:text-surface-400 line-clamp-3">
-                                                        {{ candidate.biography }}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex justify-between items-center mt-6">
-                                        <p-button 
-                                            label="Back" 
-                                            icon="pi pi-arrow-left" 
-                                            [outlined]="true"
-                                            (onClick)="activeTab = 0"
-                                        />
-                                        <span class="text-surface-600 dark:text-surface-400">
-                                            {{ selectedBoardMembers.length }}/2 selected
-                                        </span>
-                                        <p-button 
-                                            label="Review Selection" 
-                                            icon="pi pi-arrow-right" 
-                                            iconPos="right"
-                                            [disabled]="selectedBoardMembers.length !== 2"
-                                            (onClick)="activeTab = 2"
-                                        />
-                                    </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-semibold text-surface-900 dark:text-surface-0 mb-1">{{ candidate.name }}</h4>
+                                    <p class="text-sm text-surface-600 dark:text-surface-400 line-clamp-3">{{ candidate.biography }}</p>
                                 </div>
-                            </p-tabpanel>
+                            </div>
+                        </div>
+                    </div>
 
-                            <!-- Review & Submit -->
-                            <p-tabpanel [value]="2">
-                                <div class="py-4">
-                                    <div class="max-w-2xl mx-auto">
-                                        <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-6 text-center">
-                                            Review Your Selections
-                                        </h3>
-                                        
-                                        <!-- Leader Review -->
-                                        <div class="mb-6">
-                                            <div class="flex items-center gap-2 mb-3">
-                                                <i class="pi pi-crown text-primary"></i>
-                                                <span class="font-medium text-surface-900 dark:text-surface-0">Leader</span>
-                                            </div>
-                                            <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4">
-                                                <div class="flex items-center gap-4" *ngIf="getSelectedLeaderCandidate()">
-                                                    <img 
-                                                        [src]="getSelectedLeaderCandidate()?.photo" 
-                                                        [alt]="getSelectedLeaderCandidate()?.name"
-                                                        class="w-14 h-14 rounded-full object-cover"
-                                                    >
-                                                    <div>
-                                                        <h4 class="font-semibold text-surface-900 dark:text-surface-0">
-                                                            {{ getSelectedLeaderCandidate()?.name }}
-                                                        </h4>
-                                                        <p class="text-sm text-surface-600 dark:text-surface-400">
-                                                            {{ getSelectedLeaderCandidate()?.biography }}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Board Members Review -->
-                                        <div class="mb-8">
-                                            <div class="flex items-center gap-2 mb-3">
-                                                <i class="pi pi-users text-primary"></i>
-                                                <span class="font-medium text-surface-900 dark:text-surface-0">Board Members</span>
-                                            </div>
-                                            <div class="flex flex-col gap-3">
-                                                <div 
-                                                    *ngFor="let memberId of selectedBoardMembers"
-                                                    class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4"
-                                                >
-                                                    <div class="flex items-center gap-4">
-                                                        <img 
-                                                            [src]="getCandidateById(memberId)?.photo" 
-                                                            [alt]="getCandidateById(memberId)?.name"
-                                                            class="w-14 h-14 rounded-full object-cover"
-                                                        >
-                                                        <div>
-                                                            <h4 class="font-semibold text-surface-900 dark:text-surface-0">
-                                                                {{ getCandidateById(memberId)?.name }}
-                                                            </h4>
-                                                            <p class="text-sm text-surface-600 dark:text-surface-400">
-                                                                {{ getCandidateById(memberId)?.biography }}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <p-divider />
-
-                                        <p class="text-center text-surface-600 dark:text-surface-400 my-6">
-                                            Your vote is final and cannot be changed once submitted.
-                                        </p>
-
-                                        <div class="flex justify-between">
-                                            <p-button 
-                                                label="Back" 
-                                                icon="pi pi-arrow-left" 
-                                                [outlined]="true"
-                                                (onClick)="activeTab = 1"
-                                            />
-                                            <p-button 
-                                                label="Submit Vote" 
-                                                icon="pi pi-check" 
-                                                severity="success"
-                                                [disabled]="!selectedLeader || selectedBoardMembers.length !== 2"
-                                                (onClick)="submitVote()"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </p-tabpanel>
-                        </p-tabpanels>
-                    </p-tabs>
+                    <div class="flex justify-end mt-6">
+                        <p-button
+                            label="Submit Vote"
+                            icon="pi pi-check"
+                            severity="success"
+                            [disabled]="!selectedCandidate"
+                            (onClick)="submitVote()"
+                        />
+                    </div>
                 </div>
 
                 <!-- Already Voted -->
-                <div *ngIf="hasVoted" class="text-center py-10">
-                    <i class="pi pi-check-circle text-green-500 text-5xl mb-4"></i>
-                    <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-2">
-                        Thank You for Voting!
-                    </h3>
+                <div *ngIf="activeElection.status === 'active' && hasVoted" class="text-center py-10">
+                    <i class="pi pi-check-circle text-green-500 text-5xl mb-4 block"></i>
+                    <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-2">Thank You for Voting!</h3>
                     <p class="text-surface-600 dark:text-surface-400">
-                        Your vote has been recorded. Results will be announced when voting ends.
+                        Your vote has been recorded. Results will be announced when the election period ends.
                     </p>
                 </div>
 
-                <!-- Results (Completed or Admin) -->
+                <!-- Results -->
                 <div *ngIf="activeElection.status === 'completed' || (isAdmin && showResults)">
                     <p-divider *ngIf="hasVoted" />
-                    
-                    <div class="mt-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 m-0">
-                                Results
-                            </h3>
-                            <span class="text-surface-600 dark:text-surface-400">
-                                {{ activeElection.totalVotes }} total votes
-                            </span>
+                    <div class="mt-4">
+                        <div class="flex justify-between items-center mb-5">
+                            <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 m-0">Results</h3>
+                            <span class="text-surface-600 dark:text-surface-400 text-sm">{{ activeElection.totalVotes }} total votes</span>
                         </div>
 
-                        <!-- Leader Results -->
-                        <div class="mb-6">
-                            <div class="flex items-center gap-2 mb-4">
-                                <i class="pi pi-crown text-primary"></i>
-                                <span class="font-medium text-surface-900 dark:text-surface-0">Leader</span>
+                        <!-- Outcome legend -->
+                        <div class="flex flex-wrap gap-3 mb-6">
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="inline-flex items-center justify-center bg-yellow-400 text-white rounded-full w-6 h-6 font-bold text-xs">1</span>
+                                <span class="text-surface-700 dark:text-surface-300">Leader</span>
                             </div>
-                            <div class="flex flex-col gap-3">
-                                <div 
-                                    *ngFor="let candidate of getLeaderCandidates()"
-                                    class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4"
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="inline-flex items-center justify-center bg-primary text-white rounded-full w-6 h-6 font-bold text-xs">2</span>
+                                <span class="text-surface-700 dark:text-surface-300">Admin</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="inline-flex items-center justify-center bg-primary text-white rounded-full w-6 h-6 font-bold text-xs">3</span>
+                                <span class="text-surface-700 dark:text-surface-300">Admin</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                            <div
+                                *ngFor="let candidate of getSortedCandidates(); let i = index"
+                                class="flex items-center gap-4 rounded-xl p-4"
+                                [class.bg-yellow-50]="i === 0"
+                                [class.dark:bg-yellow-900\/10]="i === 0"
+                                [class.border]="i < 3"
+                                [class.border-yellow-300]="i === 0"
+                                [class.border-primary-200]="i === 1 || i === 2"
+                                [class.bg-primary-50]="i === 1 || i === 2"
+                                [class.dark:bg-primary-900\/10]="i === 1 || i === 2"
+                                [class.bg-surface-50]="i >= 3"
+                                [class.dark:bg-surface-800]="i >= 3"
+                            >
+                                <!-- Rank badge -->
+                                <div class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
+                                    [class.bg-yellow-400]="i === 0"
+                                    [class.text-white]="i < 3"
+                                    [class.bg-primary]="i === 1 || i === 2"
+                                    [class.bg-surface-200]="i >= 3"
+                                    [class.dark:bg-surface-700]="i >= 3"
+                                    [class.text-surface-600]="i >= 3"
                                 >
-                                    <div class="flex items-center gap-4 mb-3">
-                                        <img 
-                                            [src]="candidate.photo" 
-                                            [alt]="candidate.name"
-                                            class="w-12 h-12 rounded-full object-cover"
-                                        >
-                                        <div class="flex-1 min-w-0">
-                                            <div class="flex justify-between items-center mb-1">
-                                                <span class="font-medium text-surface-900 dark:text-surface-0">{{ candidate.name }}</span>
-                                                <span class="font-semibold text-primary">{{ getVotePercentage(candidate.votes) }}%</span>
-                                            </div>
-                                            <p-progressbar 
-                                                [value]="getVotePercentage(candidate.votes)"
-                                                [showValue]="false"
-                                                styleClass="h-2"
-                                            />
-                                        </div>
-                                    </div>
+                                    {{ i + 1 }}
                                 </div>
-                            </div>
-                        </div>
 
-                        <!-- Board Results -->
-                        <div>
-                            <div class="flex items-center gap-2 mb-4">
-                                <i class="pi pi-users text-primary"></i>
-                                <span class="font-medium text-surface-900 dark:text-surface-0">Board Members</span>
-                            </div>
-                            <div class="flex flex-col gap-3">
-                                <div 
-                                    *ngFor="let candidate of getBoardCandidates()"
-                                    class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4"
-                                >
-                                    <div class="flex items-center gap-4 mb-3">
-                                        <img 
-                                            [src]="candidate.photo" 
-                                            [alt]="candidate.name"
-                                            class="w-12 h-12 rounded-full object-cover"
-                                        >
-                                        <div class="flex-1 min-w-0">
-                                            <div class="flex justify-between items-center mb-1">
-                                                <span class="font-medium text-surface-900 dark:text-surface-0">{{ candidate.name }}</span>
-                                                <span class="font-semibold text-primary">{{ getVotePercentage(candidate.votes) }}%</span>
-                                            </div>
-                                            <p-progressbar 
-                                                [value]="getVotePercentage(candidate.votes)"
-                                                [showValue]="false"
-                                                styleClass="h-2"
-                                            />
+                                <img [src]="candidate.photo" [alt]="candidate.name" class="w-10 h-10 rounded-full object-cover shrink-0">
+
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium text-surface-900 dark:text-surface-0">{{ candidate.name }}</span>
+                                            <p-tag *ngIf="i === 0" value="Leader" severity="warn" />
+                                            <p-tag *ngIf="i === 1 || i === 2" value="Admin" severity="info" />
                                         </div>
+                                        <span class="font-semibold text-primary text-sm">{{ candidate.votes }} votes ({{ getVotePercentage(candidate.votes) }}%)</span>
                                     </div>
+                                    <p-progressbar
+                                        [value]="getVotePercentage(candidate.votes)"
+                                        [showValue]="false"
+                                        styleClass="h-2"
+                                    />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Admin Results Toggle -->
+                <!-- Admin live results toggle -->
                 <div *ngIf="isAdmin && activeElection.status === 'active'" class="mt-6 text-center">
-                    <p-button 
-                        [label]="showResults ? 'Hide Results' : 'View Live Results'" 
-                        icon="pi pi-chart-bar" 
+                    <p-button
+                        [label]="showResults ? 'Hide Live Results' : 'View Live Results'"
+                        icon="pi pi-chart-bar"
                         [outlined]="true"
                         size="small"
                         (onClick)="showResults = !showResults"
@@ -479,42 +254,34 @@ interface Election {
 
             <!-- No Active Election -->
             <div *ngIf="!activeElection" class="card text-center py-12">
-                <i class="pi pi-inbox text-surface-400 text-5xl mb-4"></i>
-                <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-2">
-                    No Active Elections
-                </h3>
-                <p class="text-surface-600 dark:text-surface-400 mb-6">
-                    There are currently no elections in progress.
-                </p>
-                <p-button 
+                <i class="pi pi-inbox text-surface-400 text-5xl mb-4 block"></i>
+                <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-2">No Active Elections</h3>
+                <p class="text-surface-600 dark:text-surface-400 mb-6">There are currently no elections in progress.</p>
+                <p-button
                     *ngIf="isAdmin"
-                    label="Create Election" 
-                    icon="pi pi-plus" 
+                    label="Create Election"
+                    icon="pi pi-plus"
                     (onClick)="openCreateElectionDialog()"
                 />
             </div>
 
             <!-- Past Elections -->
             <div class="card" *ngIf="pastElections.length > 0">
-                <h2 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-4">
-                    Past Elections
-                </h2>
+                <h2 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-4">Past Elections</h2>
                 <div class="flex flex-col gap-3">
-                    <div 
+                    <div
                         *ngFor="let election of pastElections"
                         class="flex justify-between items-center p-4 bg-surface-50 dark:bg-surface-800 rounded-lg"
                     >
                         <div>
-                            <h4 class="font-medium text-surface-900 dark:text-surface-0 mb-1">
-                                {{ election.title }}
-                            </h4>
+                            <h4 class="font-medium text-surface-900 dark:text-surface-0 mb-1">{{ election.title }}</h4>
                             <div class="flex items-center gap-4 text-sm text-surface-600 dark:text-surface-400">
                                 <span>{{ election.endDate | date:'mediumDate' }}</span>
                                 <span>{{ election.totalVotes }} votes</span>
                             </div>
                         </div>
-                        <p-button 
-                            label="View Results" 
+                        <p-button
+                            label="View Results"
                             [outlined]="true"
                             size="small"
                             (onClick)="viewElectionResults(election)"
@@ -525,27 +292,25 @@ interface Election {
         </div>
 
         <!-- Create Election Dialog -->
-        <p-dialog 
-            [(visible)]="createElectionDialog" 
-            header="Create Election" 
-            [modal]="true" 
+        <p-dialog
+            [(visible)]="createElectionDialog"
+            header="Create Election"
+            [modal]="true"
             [style]="{width: '32rem'}"
         >
             <div class="flex flex-col gap-4">
                 <div>
                     <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Title</label>
-                    <input pInputText [(ngModel)]="newElection.title" [placeholder]="'e.g., ' + currentYear + ' Board Elections'" class="w-full" />
-                </div>
-                <div>
-                    <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Description</label>
-                    <textarea pInputTextarea [(ngModel)]="newElection.description" [rows]="3" class="w-full"></textarea>
+                    <div class="w-full px-3 py-2 border border-surface-300 dark:border-surface-600 rounded-md bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 font-semibold">
+                        {{ newElection.title }}
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Start Date</label>
-                        <p-datepicker 
-                            [(ngModel)]="newElection.startDate" 
-                            [showTime]="true" 
+                        <p-datepicker
+                            [(ngModel)]="newElection.startDate"
+                            [showTime]="true"
                             [showIcon]="true"
                             [showButtonBar]="true"
                             dateFormat="dd/mm/yy"
@@ -553,14 +318,14 @@ interface Election {
                             [minDate]="today"
                             placeholder="Select start date"
                             appendTo="body"
-                            styleClass="w-full" 
+                            styleClass="w-full"
                         />
                     </div>
                     <div>
                         <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">End Date</label>
-                        <p-datepicker 
-                            [(ngModel)]="newElection.endDate" 
-                            [showTime]="true" 
+                        <p-datepicker
+                            [(ngModel)]="newElection.endDate"
+                            [showTime]="true"
                             [showIcon]="true"
                             [showButtonBar]="true"
                             dateFormat="dd/mm/yy"
@@ -568,77 +333,29 @@ interface Election {
                             [minDate]="newElection.startDate"
                             placeholder="Select end date"
                             appendTo="body"
-                            styleClass="w-full" 
+                            styleClass="w-full"
                         />
                     </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Candidates</label>
+                    <p-multiselect
+                        [(ngModel)]="selectedCandidateIds"
+                        [options]="fullMemberOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Select Full Members as candidates"
+                        [loading]="loadingFullMembers"
+                        [filter]="true"
+                        filterPlaceholder="Search members..."
+                        appendTo="body"
+                        styleClass="w-full"
+                    />
                 </div>
             </div>
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" [outlined]="true" (onClick)="createElectionDialog = false" />
                 <p-button label="Create" (onClick)="createElection()" />
-            </div>
-        </p-dialog>
-
-        <!-- Manage Candidates Dialog -->
-        <p-dialog 
-            [(visible)]="manageCandidatesDialog" 
-            header="Manage Candidates" 
-            [modal]="true" 
-            [style]="{width: '48rem'}"
-        >
-            <div class="mb-6">
-                <h4 class="font-semibold text-surface-900 dark:text-surface-0 mb-4">Add Candidate</h4>
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Name</label>
-                        <input pInputText [(ngModel)]="newCandidate.name" class="w-full" />
-                    </div>
-                    <div>
-                        <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Position</label>
-                        <div class="flex gap-4 mt-3">
-                            <div class="flex items-center">
-                                <p-radiobutton value="leader" [(ngModel)]="newCandidate.position" inputId="posLeader" />
-                                <label for="posLeader" class="ml-2">Leader</label>
-                            </div>
-                            <div class="flex items-center">
-                                <p-radiobutton value="board" [(ngModel)]="newCandidate.position" inputId="posBoard" />
-                                <label for="posBoard" class="ml-2">Board</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Photo URL</label>
-                        <input pInputText [(ngModel)]="newCandidate.photo" class="w-full" />
-                    </div>
-                    <div>
-                        <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Biography</label>
-                        <input pInputText [(ngModel)]="newCandidate.biography" class="w-full" />
-                    </div>
-                </div>
-                <p-button label="Add Candidate" icon="pi pi-plus" (onClick)="addCandidate()" />
-            </div>
-
-            <p-divider />
-
-            <div>
-                <h4 class="font-semibold text-surface-900 dark:text-surface-0 mb-4">Current Candidates</h4>
-                <div class="flex flex-col gap-3">
-                    <div 
-                        *ngFor="let candidate of allCandidates"
-                        class="flex items-center justify-between p-3 border border-surface-200 dark:border-surface-700 rounded-lg"
-                    >
-                        <div class="flex items-center gap-3">
-                            <img [src]="candidate.photo" [alt]="candidate.name" class="w-10 h-10 rounded-full object-cover">
-                            <div>
-                                <span class="font-medium text-surface-900 dark:text-surface-0">{{ candidate.name }}</span>
-                                <p-tag [value]="candidate.position" size="small" />
-                            </div>
-                        </div>
-                        <p-button icon="pi pi-trash" severity="danger" [text]="true" (onClick)="deleteCandidate(candidate.id)" />
-                    </div>
-                </div>
             </div>
         </p-dialog>
     `
@@ -647,25 +364,25 @@ export class Voting implements OnInit {
     private authService = inject(AuthService);
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
+    private http = inject(HttpClient);
 
     isAdmin = false;
-    activeTab = 0;
-    selectedLeader = '';
-    selectedBoardMembers: string[] = [];
+    selectedCandidate = '';
     hasVoted = false;
     showResults = false;
     today = new Date();
     currentYear = new Date().getFullYear();
-    
+
     createElectionDialog = false;
-    manageCandidatesDialog = false;
 
     activeElection: Election | null = null;
     pastElections: Election[] = [];
-    allCandidates: Candidate[] = [];
 
-    newElection = { title: '', description: '', startDate: new Date(), endDate: new Date() };
-    newCandidate = { name: '', photo: '', biography: '', position: 'leader' as 'leader' | 'board' };
+    newElection = { title: '', startDate: new Date(), endDate: new Date() };
+
+    fullMemberOptions: { label: string; value: string }[] = [];
+    selectedCandidateIds: string[] = [];
+    loadingFullMembers = false;
 
     ngOnInit() {
         const currentUser = this.authService.currentUser();
@@ -674,23 +391,23 @@ export class Voting implements OnInit {
     }
 
     loadMockData() {
-        this.allCandidates = [
-            { id: '1', name: 'Arben Krasniqi', photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png', biography: 'Passionate about open source. 5 years in tech leadership.', position: 'leader', votes: 45 },
-            { id: '2', name: 'Blerta Morina', photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/annafali.png', biography: 'Dedicated to innovation. Former CTO with 8 years experience.', position: 'leader', votes: 38 },
-            { id: '3', name: 'Driton Gashi', photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png', biography: 'Experienced project manager and community advocate.', position: 'board', votes: 42 },
-            { id: '4', name: 'Eda Berisha', photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png', biography: 'Software engineer passionate about education.', position: 'board', votes: 39 },
-            { id: '5', name: 'Fatos Hoxha', photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png', biography: 'Community organizer and event coordinator.', position: 'board', votes: 35 },
-            { id: '6', name: 'Genta Shala', photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png', biography: 'Design thinking expert and UX advocate.', position: 'board', votes: 31 }
+        const candidates: Candidate[] = [
+            { id: '1', name: 'Arben Krasniqi',  photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png',       biography: 'Passionate about open source. 5 years in tech leadership.',       votes: 45 },
+            { id: '2', name: 'Blerta Morina',   photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/annafali.png',         biography: 'Dedicated to innovation. Former CTO with 8 years experience.',    votes: 42 },
+            { id: '3', name: 'Driton Gashi',    photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/bernardodominic.png',  biography: 'Experienced project manager and community advocate.',              votes: 38 },
+            { id: '4', name: 'Eda Berisha',     photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/elwinsharvill.png',    biography: 'Software engineer passionate about education.',                   votes: 31 },
+            { id: '5', name: 'Fatos Hoxha',     photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png',     biography: 'Community organizer and event coordinator.',                      votes: 27 },
+            { id: '6', name: 'Genta Shala',     photo: 'https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png',   biography: 'Design thinking expert and UX advocate.',                         votes: 19 }
         ];
 
         this.activeElection = {
             id: 'e1',
             title: '2026 Annual Board Elections',
-            description: 'Vote for the next FLOSSK leadership team.',
+            description: 'Vote for one candidate. The top 3 will be promoted to Admin — the most voted becomes Leader.',
             startDate: new Date('2026-02-01'),
             endDate: new Date('2026-02-28'),
             status: 'active',
-            candidates: this.allCandidates,
+            candidates,
             totalVotes: 125
         };
 
@@ -700,33 +417,8 @@ export class Voting implements OnInit {
         ];
     }
 
-    getLeaderCandidates(): Candidate[] {
-        return this.activeElection?.candidates.filter(c => c.position === 'leader') || [];
-    }
-
-    getBoardCandidates(): Candidate[] {
-        return this.activeElection?.candidates.filter(c => c.position === 'board') || [];
-    }
-
-    isSelectedBoardMember(id: string): boolean {
-        return this.selectedBoardMembers.includes(id);
-    }
-
-    toggleBoardMember(id: string) {
-        const index = this.selectedBoardMembers.indexOf(id);
-        if (index > -1) {
-            this.selectedBoardMembers.splice(index, 1);
-        } else if (this.selectedBoardMembers.length < 2) {
-            this.selectedBoardMembers.push(id);
-        }
-    }
-
-    getSelectedLeaderCandidate(): Candidate | undefined {
-        return this.activeElection?.candidates.find(c => c.id === this.selectedLeader);
-    }
-
-    getCandidateById(id: string): Candidate | undefined {
-        return this.activeElection?.candidates.find(c => c.id === id);
+    getSortedCandidates(): Candidate[] {
+        return [...(this.activeElection?.candidates ?? [])].sort((a, b) => b.votes - a.votes);
     }
 
     submitVote() {
@@ -738,15 +430,10 @@ export class Voting implements OnInit {
                 this.hasVoted = true;
                 if (this.activeElection) {
                     this.activeElection.totalVotes++;
-                    const leader = this.activeElection.candidates.find(c => c.id === this.selectedLeader);
-                    if (leader) leader.votes++;
-                    this.selectedBoardMembers.forEach(id => {
-                        const candidate = this.activeElection!.candidates.find(c => c.id === id);
-                        if (candidate) candidate.votes++;
-                    });
+                    const candidate = this.activeElection.candidates.find(c => c.id === this.selectedCandidate);
+                    if (candidate) candidate.votes++;
                 }
                 this.messageService.add({ severity: 'success', summary: 'Vote Submitted', detail: 'Your vote has been recorded.', life: 3000 });
-                this.activeTab = 0;
             }
         });
     }
@@ -766,46 +453,33 @@ export class Voting implements OnInit {
     }
 
     openCreateElectionDialog() {
-        this.newElection = { title: '', description: '', startDate: new Date(), endDate: new Date() };
+        this.newElection = {
+            title: `Annual Board Elections ${this.currentYear}`,
+            startDate: new Date(),
+            endDate: new Date()
+        };
+        this.selectedCandidateIds = [];
         this.createElectionDialog = true;
+        this.loadFullMembers();
+    }
+
+    loadFullMembers() {
+        this.loadingFullMembers = true;
+        this.http.get<any>(`${environment.apiUrl}/Auth/users?page=1&pageSize=200`).subscribe({
+            next: (response) => {
+                const users: any[] = response.users ?? [];
+                this.fullMemberOptions = users
+                    .filter((u: any) => (u.roles as string[]).includes('Full Member'))
+                    .map((u: any) => ({ label: `${u.firstName} ${u.lastName}`, value: u.id }));
+                this.loadingFullMembers = false;
+            },
+            error: () => { this.loadingFullMembers = false; }
+        });
     }
 
     createElection() {
         this.messageService.add({ severity: 'success', summary: 'Election Created', detail: 'New election has been created.', life: 3000 });
         this.createElectionDialog = false;
-    }
-
-    openManageCandidatesDialog() {
-        this.newCandidate = { name: '', photo: '', biography: '', position: 'leader' };
-        this.manageCandidatesDialog = true;
-    }
-
-    addCandidate() {
-        const candidate: Candidate = {
-            id: String(this.allCandidates.length + 1),
-            name: this.newCandidate.name,
-            photo: this.newCandidate.photo,
-            biography: this.newCandidate.biography,
-            position: this.newCandidate.position,
-            votes: 0
-        };
-        this.allCandidates.push(candidate);
-        if (this.activeElection) this.activeElection.candidates.push(candidate);
-        this.messageService.add({ severity: 'success', summary: 'Candidate Added', detail: `${candidate.name} added.`, life: 3000 });
-        this.newCandidate = { name: '', photo: '', biography: '', position: 'leader' };
-    }
-
-    deleteCandidate(id: string) {
-        this.confirmationService.confirm({
-            message: 'Delete this candidate?',
-            header: 'Confirm',
-            icon: 'pi pi-exclamation-triangle',
-            accept: () => {
-                this.allCandidates = this.allCandidates.filter(c => c.id !== id);
-                if (this.activeElection) this.activeElection.candidates = this.activeElection.candidates.filter(c => c.id !== id);
-                this.messageService.add({ severity: 'info', summary: 'Deleted', detail: 'Candidate removed.', life: 3000 });
-            }
-        });
     }
 
     viewElectionResults(election: Election) {
