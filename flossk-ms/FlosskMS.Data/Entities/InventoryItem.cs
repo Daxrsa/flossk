@@ -7,6 +7,7 @@ public class InventoryItem
     public InventoryCategory Category { get; set; }
     public int Quantity { get; set; }
     public InventoryStatus Status { get; set; } = InventoryStatus.Free;
+    public InventoryCondition Condition { get; set; } = InventoryCondition.Good;
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

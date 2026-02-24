@@ -78,6 +78,7 @@ interface InventoryItem {
     currentUserFullName?: string;
     currentUserProfilePictureUrl?: string;
     checkedOutAt?: string;
+    condition: 'Good' | 'Damaged';
     createdByUserId?: string;
     createdByUserFullName?: string;
     createdByUserProfilePictureUrl?: string;
@@ -183,6 +184,7 @@ interface PaginatedInventoryResponse {
                         <th>Category</th>
                         <th>Quantity</th>
                         <th>Status</th>
+                        <th>Condition</th>
                         <th>Usage</th>
                         <th>Actions</th>
                     </tr>
@@ -232,6 +234,12 @@ interface PaginatedInventoryResponse {
                             </div>
                         </td>
                         <td>
+                            <p-tag
+                                [value]="getConditionLabel(item.condition)"
+                                [severity]="getConditionSeverity(item.condition)"
+                            />
+                        </td>
+                        <td>
                                 <p-button 
                                     *ngIf="item.status === 'Free'"
                                     icon="pi pi-sign-in" 
@@ -274,6 +282,15 @@ interface PaginatedInventoryResponse {
                                     severity="info"
                                     pTooltip="History"
                                     (onClick)="openHistoryDialog(item)"
+                                />
+                                <p-button
+                                    *ngIf="item.condition !== 'Damaged'"
+                                    icon="pi pi-exclamation-triangle"
+                                    [rounded]="true"
+                                    [text]="true"
+                                    severity="danger"
+                                    pTooltip="Report Damage"
+                                    (onClick)="confirmReportDamage(item)"
                                 />
                                 </td>
                     </tr>
@@ -505,6 +522,46 @@ interface PaginatedInventoryResponse {
             </div>
         </p-dialog>
 
+        <!-- Damage Report Dialog -->
+        <p-dialog
+            [(visible)]="damageReportVisible"
+            header="Report Damage"
+            [modal]="true"
+            [style]="{ width: '30rem' }"
+            [breakpoints]="{ '575px': '95vw' }"
+        >
+            <div class="flex flex-col gap-4">
+                <p class="text-sm text-muted-color">
+                    Are you sure you want to report <strong>{{ damageReportItem?.name }}</strong> as damaged?
+                </p>
+                <div class="flex flex-col gap-2">
+                    <label for="damageNotes" class="font-semibold">Notes (optional)</label>
+                    <textarea
+                        pTextarea
+                        id="damageNotes"
+                        [(ngModel)]="damageReportNotes"
+                        rows="3"
+                        placeholder="Describe the damage…"
+                        class="w-full"
+                    ></textarea>
+                </div>
+            </div>
+            <ng-template #footer>
+                <div class="flex justify-end gap-2 mt-4">
+                    <p-button
+                        label="Cancel"
+                        severity="secondary"
+                        (onClick)="damageReportVisible = false"
+                    />
+                    <p-button
+                        label="Report Damage"
+                        severity="danger"
+                        (onClick)="submitDamageReport()"
+                    />
+                </div>
+            </ng-template>
+        </p-dialog>
+
         <!-- Gallery Dialog -->
         <p-dialog 
             [(visible)]="galleryVisible" 
@@ -590,6 +647,9 @@ export class Inventory implements OnInit {
     galleryItem: InventoryItem | null = null;
     singleImageVisible = false;
     selectedItem: InventoryItem | null = null;
+    damageReportVisible = false;
+    damageReportItem: InventoryItem | null = null;
+    damageReportNotes = '';
     inventoryItems: InventoryItem[] = [];
     totalRecords = 0;
     currentPage = 1;
@@ -695,6 +755,7 @@ export class Inventory implements OnInit {
             'Checked in': { icon: 'pi pi-sign-out', color: '#22c55e' },
             'Image added': { icon: 'pi pi-image', color: '#3b82f6' },
             'Image removed': { icon: 'pi pi-times', color: '#f97316' },
+            'Damage reported': { icon: 'pi pi-exclamation-triangle', color: '#ef4444' },
         };
         const meta = iconMap[log.action] ?? { icon: 'pi pi-info-circle', color: '#94a3b8' };
 
@@ -906,6 +967,42 @@ export class Inventory implements OnInit {
             'InUse': 'In Use'
         };
         return labels[status] || status;
+    }
+
+    getConditionLabel(condition: string): string {
+        return condition === 'Damaged' ? 'Damaged' : 'Good';
+    }
+
+    getConditionSeverity(condition: string): 'success' | 'danger' {
+        return condition === 'Damaged' ? 'danger' : 'success';
+    }
+
+    confirmReportDamage(item: InventoryItem) {
+        this.damageReportItem = item;
+        this.damageReportNotes = '';
+        this.damageReportVisible = true;
+    }
+
+    submitDamageReport() {
+        if (!this.damageReportItem) return;
+        this.http.post(`${this.apiUrl}/${this.damageReportItem.id}/report-damage`, { notes: this.damageReportNotes }).subscribe({
+            next: () => {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Damage Reported',
+                    detail: `${this.damageReportItem!.name} has been marked as damaged`
+                });
+                this.damageReportVisible = false;
+                this.loadInventoryItems();
+            },
+            error: (error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error.error?.message || 'Failed to submit damage report'
+                });
+            }
+        });
     }
 
     getStatusSeverity(status: string): 'success' | 'warn' | 'danger' {

@@ -8,6 +8,7 @@ public class InventoryItemListDto
     public string Category { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string Condition { get; set; } = "Good";
     public DateTime CreatedAt { get; set; }
     
     // Current user (abbreviated)

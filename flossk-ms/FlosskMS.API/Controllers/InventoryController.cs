@@ -169,6 +169,20 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
         return await _inventoryService.CheckInInventoryItemAsync(id, userId);
     }
 
+    /// <summary>
+    /// Submit a damage report for an inventory item, marking it as damaged
+    /// </summary>
+    [HttpPost("{id:guid}/report-damage")]
+    public async Task<IActionResult> ReportDamage(Guid id, [FromBody] SubmitDamageReportDto? request = null)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _inventoryService.ReportDamageAsync(id, userId, request);
+    }
+
     #endregion
 
     #region Image Management Endpoints
