@@ -14,17 +14,20 @@ public class ProjectService : IProjectService
     private readonly IMapper _mapper;
     private readonly ILogger<ProjectService> _logger;
     private readonly IContributionService _contributionService;
+    private readonly ILogService _logService;
 
     public ProjectService(
         ApplicationDbContext dbContext,
         IMapper mapper,
         ILogger<ProjectService> logger,
-        IContributionService contributionService)
+        IContributionService contributionService,
+        ILogService logService)
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
         _contributionService = contributionService;
+        _logService = logService;
     }
 
     #region Project Operations
@@ -72,6 +75,15 @@ public class ProjectService : IProjectService
         project.CreatedByUser = user;
 
         _logger.LogInformation("Project {ProjectId} created by user {UserId}", project.Id, userId);
+
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = project.Id.ToString(),
+            EntityName = project.Title,
+            Action = "Project created",
+            UserId = userId
+        });
 
         return new OkObjectResult(_mapper.Map<ProjectDto>(project));
     }
@@ -161,7 +173,7 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<ProjectDto>(project));
     }
 
-    public async Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request)
+    public async Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request, string? userId = null)
     {
         var project = await _dbContext.Projects
             .Include(p => p.Objectives)
@@ -220,6 +232,14 @@ public class ProjectService : IProjectService
             }
         }
 
+        // Snapshot old values for field-level logging
+        var oldTitle      = project.Title;
+        var oldDescription = project.Description;
+        var oldStatus     = project.Status.ToString();
+        var oldStartDate  = project.StartDate;
+        var oldEndDate    = project.EndDate;
+        var oldTypesStr   = project.Types != ProjectType.None ? project.Types.ToString() : "(none)";
+
         _mapper.Map(request, project);
         project.Types = ParseProjectTypes(request.Types);
         project.UpdatedAt = DateTime.UtcNow;
@@ -234,11 +254,60 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("Project {ProjectId} updated", project.Id);
 
+        // Write per-field audit logs
+        if (userId != null)
+        {
+            var fieldChanges = new List<(string Field, string OldValue, string NewValue)>();
+
+            if (!string.Equals(project.Title, oldTitle))
+                fieldChanges.Add(("Title", oldTitle, project.Title));
+            if (!string.Equals(project.Description, oldDescription))
+                fieldChanges.Add(("Description",
+                    string.IsNullOrWhiteSpace(oldDescription) ? "(empty)" : oldDescription,
+                    string.IsNullOrWhiteSpace(project.Description) ? "(empty)" : project.Description));
+            if (!string.Equals(project.Status.ToString(), oldStatus, StringComparison.OrdinalIgnoreCase))
+                fieldChanges.Add(("Status", oldStatus, project.Status.ToString()));
+            if (project.StartDate != oldStartDate)
+                fieldChanges.Add(("Start Date", oldStartDate.ToString("MMM d, yyyy"), project.StartDate.ToString("MMM d, yyyy")));
+            if (project.EndDate != oldEndDate)
+                fieldChanges.Add(("End Date", oldEndDate.ToString("MMM d, yyyy"), project.EndDate.ToString("MMM d, yyyy")));
+            var newTypesStr = project.Types != ProjectType.None ? project.Types.ToString() : "(none)";
+            if (!string.Equals(newTypesStr, oldTypesStr))
+                fieldChanges.Add(("Types", oldTypesStr, newTypesStr));
+
+            if (fieldChanges.Count > 0)
+            {
+                foreach (var (field, oldValue, newValue) in fieldChanges)
+                {
+                    await _logService.CreateAsync(new CreateLogDto
+                    {
+                        EntityType = "Project",
+                        EntityId = project.Id.ToString(),
+                        EntityName = project.Title,
+                        Action = "Field updated",
+                        Detail = $"{field}: \"{oldValue}\" → \"{newValue}\"",
+                        UserId = userId
+                    });
+                }
+            }
+            else
+            {
+                await _logService.CreateAsync(new CreateLogDto
+                {
+                    EntityType = "Project",
+                    EntityId = project.Id.ToString(),
+                    EntityName = project.Title,
+                    Action = "Project updated",
+                    UserId = userId
+                });
+            }
+        }
+
         // Reload with related data
         return await GetProjectByIdAsync(id);
     }
 
-    public async Task<IActionResult> DeleteProjectAsync(Guid id)
+    public async Task<IActionResult> DeleteProjectAsync(Guid id, string? userId = null)
     {
         var project = await _dbContext.Projects.FindAsync(id);
         if (project == null)
@@ -251,15 +320,28 @@ public class ProjectService : IProjectService
             return new BadRequestObjectResult(new { Error = "Cannot delete a completed project." });
         }
 
+        var projectName = project.Title;
         _dbContext.Projects.Remove(project);
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("Project {ProjectId} deleted", id);
 
+        if (userId != null)
+        {
+            await _logService.CreateAsync(new CreateLogDto
+            {
+                EntityType = "Project",
+                EntityId = id.ToString(),
+                EntityName = projectName,
+                Action = "Project deleted",
+                UserId = userId
+            });
+        }
+
         return new OkObjectResult(new { Message = "Project deleted successfully." });
     }
 
-    public async Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status)
+    public async Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status, string? userId = null)
     {
         var project = await _dbContext.Projects
             .Include(p => p.Objectives)
@@ -285,6 +367,7 @@ public class ProjectService : IProjectService
             }
         }
 
+        var oldProjectStatus = project.Status.ToString();
         project.Status = projectStatus;
         project.UpdatedAt = DateTime.UtcNow;
 
@@ -298,6 +381,19 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("Project {ProjectId} status updated to {Status}", id, status);
 
+        if (userId != null)
+        {
+            await _logService.CreateAsync(new CreateLogDto
+            {
+                EntityType = "Project",
+                EntityId = project.Id.ToString(),
+                EntityName = project.Title,
+                Action = "Status updated",
+                Detail = $"\"{oldProjectStatus}\" → \"{projectStatus}\"",
+                UserId = userId
+            });
+        }
+
         return new OkObjectResult(new { Message = $"Project status updated to {projectStatus}." });
     }
 
@@ -305,7 +401,7 @@ public class ProjectService : IProjectService
 
     #region Project Team Member Operations
 
-    public async Task<IActionResult> AddTeamMemberToProjectAsync(Guid projectId, AddTeamMemberDto request)
+    public async Task<IActionResult> AddTeamMemberToProjectAsync(Guid projectId, AddTeamMemberDto request, string? addedByUserId = null)
     {
         var project = await _dbContext.Projects.FindAsync(projectId);
         if (project == null)
@@ -348,6 +444,19 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} added to project {ProjectId}", request.UserId, projectId);
 
+        if (addedByUserId != null)
+        {
+            await _logService.CreateAsync(new CreateLogDto
+            {
+                EntityType = "Project",
+                EntityId = projectId.ToString(),
+                EntityName = project.Title,
+                Action = "Team member added",
+                Detail = $"{user.FirstName} {user.LastName}",
+                UserId = addedByUserId
+            });
+        }
+
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
 
@@ -366,12 +475,15 @@ public class ProjectService : IProjectService
         }
 
         var teamMember = await _dbContext.ProjectTeamMembers
+            .Include(tm => tm.User)
             .FirstOrDefaultAsync(tm => tm.ProjectId == projectId && tm.UserId == userId);
 
         if (teamMember == null)
         {
             return new NotFoundObjectResult(new { Error = "Team member not found in this project." });
         }
+
+        var removedUserName = $"{teamMember.User?.FirstName} {teamMember.User?.LastName}".Trim();
 
         // Also remove user from all objectives in this project
         var objectiveTeamMembers = await _dbContext.ObjectiveTeamMembers
@@ -384,6 +496,16 @@ public class ProjectService : IProjectService
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("User {UserId} removed from project {ProjectId}", userId, projectId);
+
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = projectId.ToString(),
+            EntityName = project.Title,
+            Action = "Team member removed",
+            Detail = string.IsNullOrWhiteSpace(removedUserName) ? null : removedUserName,
+            UserId = currentUserId
+        });
 
         return new OkObjectResult(new { Message = "Team member removed from project successfully." });
     }
@@ -410,6 +532,7 @@ public class ProjectService : IProjectService
 
         // Get all team members to remove
         var teamMembers = await _dbContext.ProjectTeamMembers
+            .Include(tm => tm.User)
             .Where(tm => tm.ProjectId == projectId && request.UserIds.Contains(tm.UserId))
             .ToListAsync();
 
@@ -432,6 +555,20 @@ public class ProjectService : IProjectService
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("Removed {Count} team members from project {ProjectId}", teamMembers.Count, projectId);
+
+        var removedNames = teamMembers
+            .Select(tm => $"{tm.User?.FirstName} {tm.User?.LastName}".Trim())
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToList();
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = projectId.ToString(),
+            EntityName = project.Title,
+            Action = "Team members removed",
+            Detail = removedNames.Count > 0 ? string.Join(", ", removedNames) : null,
+            UserId = currentUserId
+        });
 
         var response = new
         {
@@ -502,6 +639,16 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} joined project {ProjectId}", userId, projectId);
 
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = projectId.ToString(),
+            EntityName = project.Title,
+            Action = "Member joined",
+            Detail = $"{user.FirstName} {user.LastName}",
+            UserId = userId
+        });
+
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
 
@@ -537,6 +684,15 @@ public class ProjectService : IProjectService
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("User {UserId} left project {ProjectId}", userId, projectId);
+
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = projectId.ToString(),
+            EntityName = project.Title,
+            Action = "Member left",
+            UserId = userId
+        });
 
         return new OkObjectResult(new { Message = "You have left the project successfully." });
     }
@@ -587,6 +743,16 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("Objective {ObjectiveId} created for project {ProjectId} by user {UserId}", objective.Id, request.ProjectId, userId);
 
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = project.Id.ToString(),
+            EntityName = project.Title,
+            Action = "Objective created",
+            Detail = objective.Title,
+            UserId = userId
+        });
+
         return new OkObjectResult(_mapper.Map<ObjectiveDto>(objective));
     }
 
@@ -627,9 +793,11 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<List<ObjectiveDto>>(objectives));
     }
 
-    public async Task<IActionResult> UpdateObjectiveAsync(Guid id, UpdateObjectiveDto request)
+    public async Task<IActionResult> UpdateObjectiveAsync(Guid id, UpdateObjectiveDto request, string? userId = null)
     {
-        var objective = await _dbContext.Objectives.FindAsync(id);
+        var objective = await _dbContext.Objectives
+            .Include(o => o.Project)
+            .FirstOrDefaultAsync(o => o.Id == id);
         if (objective == null)
         {
             return new NotFoundObjectResult(new { Error = "Objective not found." });
@@ -645,6 +813,11 @@ public class ProjectService : IProjectService
             return new BadRequestObjectResult(new { Error = "Invalid status value. Valid values are: Todo, InProgress, Completed." });
         }
 
+        // Snapshot old values for field-level logging
+        var oldObjTitle       = objective.Title;
+        var oldObjDescription = objective.Description;
+        var oldObjStatus      = objective.Status.ToString();
+
         _mapper.Map(request, objective);
         objective.UpdatedAt = DateTime.UtcNow;
 
@@ -652,28 +825,89 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("Objective {ObjectiveId} updated", objective.Id);
 
+        if (userId != null)
+        {
+            var objFieldChanges = new List<(string Field, string OldValue, string NewValue)>();
+            if (!string.Equals(objective.Title, oldObjTitle))
+                objFieldChanges.Add(("Title", oldObjTitle, objective.Title));
+            if (!string.Equals(objective.Description, oldObjDescription))
+                objFieldChanges.Add(("Description",
+                    string.IsNullOrWhiteSpace(oldObjDescription) ? "(empty)" : oldObjDescription,
+                    string.IsNullOrWhiteSpace(objective.Description) ? "(empty)" : objective.Description));
+            if (!string.Equals(objective.Status.ToString(), oldObjStatus, StringComparison.OrdinalIgnoreCase))
+                objFieldChanges.Add(("Status", oldObjStatus, objective.Status.ToString()));
+
+            if (objFieldChanges.Count > 0)
+            {
+                foreach (var (field, oldValue, newValue) in objFieldChanges)
+                {
+                    await _logService.CreateAsync(new CreateLogDto
+                    {
+                        EntityType = "Project",
+                        EntityId = objective.ProjectId.ToString(),
+                        EntityName = objective.Project?.Title,
+                        Action = "Field updated",
+                        Detail = $"{field}: \"{oldValue}\" → \"{newValue}\" (Objective: {objective.Title})",
+                        UserId = userId
+                    });
+                }
+            }
+            else
+            {
+                await _logService.CreateAsync(new CreateLogDto
+                {
+                    EntityType = "Project",
+                    EntityId = objective.ProjectId.ToString(),
+                    EntityName = objective.Project?.Title,
+                    Action = "Objective updated",
+                    Detail = objective.Title,
+                    UserId = userId
+                });
+            }
+        }
+
         return await GetObjectiveByIdAsync(id);
     }
 
-    public async Task<IActionResult> DeleteObjectiveAsync(Guid id)
+    public async Task<IActionResult> DeleteObjectiveAsync(Guid id, string? userId = null)
     {
-        var objective = await _dbContext.Objectives.FindAsync(id);
+        var objective = await _dbContext.Objectives
+            .Include(o => o.Project)
+            .FirstOrDefaultAsync(o => o.Id == id);
         if (objective == null)
         {
             return new NotFoundObjectResult(new { Error = "Objective not found." });
         }
 
+        var objectiveTitle = objective.Title;
+        var projectId = objective.ProjectId;
+        var projectName = objective.Project?.Title;
         _dbContext.Objectives.Remove(objective);
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("Objective {ObjectiveId} deleted", id);
 
+        if (userId != null)
+        {
+            await _logService.CreateAsync(new CreateLogDto
+            {
+                EntityType = "Project",
+                EntityId = projectId.ToString(),
+                EntityName = projectName,
+                Action = "Objective deleted",
+                Detail = objectiveTitle,
+                UserId = userId
+            });
+        }
+
         return new OkObjectResult(new { Message = "Objective deleted successfully." });
     }
 
-    public async Task<IActionResult> UpdateObjectiveStatusAsync(Guid id, string status)
+    public async Task<IActionResult> UpdateObjectiveStatusAsync(Guid id, string status, string? userId = null)
     {
-        var objective = await _dbContext.Objectives.FindAsync(id);
+        var objective = await _dbContext.Objectives
+            .Include(o => o.Project)
+            .FirstOrDefaultAsync(o => o.Id == id);
         if (objective == null)
         {
             return new NotFoundObjectResult(new { Error = "Objective not found." });
@@ -685,12 +919,26 @@ public class ProjectService : IProjectService
             return new BadRequestObjectResult(new { Error = $"Invalid status '{status}'. Valid statuses are: {validStatuses}" });
         }
 
+        var oldObjectiveStatus = objective.Status.ToString();
         objective.Status = objectiveStatus;
         objective.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("Objective {ObjectiveId} status updated to {Status}", id, status);
+
+        if (userId != null)
+        {
+            await _logService.CreateAsync(new CreateLogDto
+            {
+                EntityType = "Project",
+                EntityId = objective.ProjectId.ToString(),
+                EntityName = objective.Project?.Title,
+                Action = "Objective status updated",
+                Detail = $"{objective.Title}: \"{oldObjectiveStatus}\" → \"{objectiveStatus}\"",
+                UserId = userId
+            });
+        }
 
         return new OkObjectResult(new { Message = $"Objective status updated to {objectiveStatus}." });
     }
@@ -768,6 +1016,16 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} assigned to objective {ObjectiveId}", request.UserId, objectiveId);
 
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = objective.ProjectId.ToString(),
+            EntityName = objective.Project?.Title,
+            Action = "Member assigned to objective",
+            Detail = $"{user.FirstName} {user.LastName} → {objective.Title}",
+            UserId = currentUserId
+        });
+
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
 
@@ -805,6 +1063,16 @@ public class ProjectService : IProjectService
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("User {UserId} removed from objective {ObjectiveId}", userId, objectiveId);
+
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = objective.ProjectId.ToString(),
+            EntityName = objective.Project?.Title,
+            Action = "Member removed from objective",
+            Detail = objective.Title,
+            UserId = currentUserId
+        });
 
         return new OkObjectResult(new { Message = "Team member removed from objective successfully." });
     }
@@ -888,12 +1156,24 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} joined objective {ObjectiveId}", userId, objectiveId);
 
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = objective.ProjectId.ToString(),
+            EntityName = objective.Project?.Title,
+            Action = "Objective member joined",
+            Detail = $"{user.FirstName} {user.LastName} → {objective.Title}",
+            UserId = userId
+        });
+
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
 
     public async Task<IActionResult> LeaveObjectiveAsync(Guid objectiveId, string userId)
     {
-        var objective = await _dbContext.Objectives.FindAsync(objectiveId);
+        var objective = await _dbContext.Objectives
+            .Include(o => o.Project)
+            .FirstOrDefaultAsync(o => o.Id == objectiveId);
         if (objective == null)
         {
             return new NotFoundObjectResult(new { Error = "Objective not found." });
@@ -916,6 +1196,16 @@ public class ProjectService : IProjectService
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("User {UserId} left objective {ObjectiveId}", userId, objectiveId);
+
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = objective.ProjectId.ToString(),
+            EntityName = objective.Project?.Title,
+            Action = "Objective member left",
+            Detail = objective.Title,
+            UserId = userId
+        });
 
         return new OkObjectResult(new { Message = "You have left the objective successfully." });
     }
@@ -955,6 +1245,8 @@ public class ProjectService : IProjectService
             return new BadRequestObjectResult(new { Error = "Resource cannot belong to both a project and an objective." });
         }
 
+        Project? logProject = null;
+
         if (request.ProjectId != null)
         {
             var project = await _dbContext.Projects.FindAsync(request.ProjectId);
@@ -967,15 +1259,19 @@ public class ProjectService : IProjectService
             {
                 return new BadRequestObjectResult(new { Error = "Cannot add resources to a completed project." });
             }
+            logProject = project;
         }
 
         if (request.ObjectiveId != null)
         {
-            var objective = await _dbContext.Objectives.FindAsync(request.ObjectiveId);
+            var objective = await _dbContext.Objectives
+                .Include(o => o.Project)
+                .FirstOrDefaultAsync(o => o.Id == request.ObjectiveId);
             if (objective == null)
             {
                 return new NotFoundObjectResult(new { Error = "Objective not found." });
             }
+            logProject = objective.Project;
         }
 
         // Validate file IDs if provided
@@ -1018,6 +1314,19 @@ public class ProjectService : IProjectService
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("Resource {ResourceId} created with {FileCount} files", resource.Id, request.FileIds?.Count ?? 0);
+
+        if (logProject != null)
+        {
+            await _logService.CreateAsync(new CreateLogDto
+            {
+                EntityType = "Project",
+                EntityId = logProject.Id.ToString(),
+                EntityName = logProject.Title,
+                Action = "Resource added",
+                Detail = resource.Title,
+                UserId = userId
+            });
+        }
 
         // Reload with files for response
         return await GetResourceByIdAsync(resource.Id);
@@ -1076,7 +1385,7 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<List<ResourceDto>>(resources));
     }
 
-    public async Task<IActionResult> UpdateResourceAsync(Guid id, UpdateResourceDto request)
+    public async Task<IActionResult> UpdateResourceAsync(Guid id, UpdateResourceDto request, string? userId = null)
     {
         var resource = await _dbContext.Resources
             .Include(r => r.Files)
@@ -1131,9 +1440,18 @@ public class ProjectService : IProjectService
             }
         }
 
+        // Collect file names before mutations (for logging)
+        List<string> removedFileNames = new();
+        List<string> addedFileNames = new();
+
         // Handle file removals
         if (request.FileIdsToRemove != null && request.FileIdsToRemove.Count > 0)
         {
+            removedFileNames = await _dbContext.UploadedFiles
+                .Where(f => request.FileIdsToRemove.Contains(f.Id))
+                .Select(f => f.OriginalFileName)
+                .ToListAsync();
+
             var filesToRemoveEntities = resource.Files
                 .Where(rf => request.FileIdsToRemove.Contains(rf.FileId))
                 .ToList();
@@ -1144,6 +1462,11 @@ public class ProjectService : IProjectService
         // Handle file additions
         if (request.FileIdsToAdd != null && request.FileIdsToAdd.Count > 0)
         {
+            addedFileNames = await _dbContext.UploadedFiles
+                .Where(f => request.FileIdsToAdd.Contains(f.Id))
+                .Select(f => f.OriginalFileName)
+                .ToListAsync();
+
             foreach (var fileId in request.FileIdsToAdd)
             {
                 _dbContext.ResourceFiles.Add(new ResourceFile
@@ -1156,6 +1479,12 @@ public class ProjectService : IProjectService
             }
         }
 
+        // Snapshot old values for field-level logging
+        var oldResTitle       = resource.Title;
+        var oldResUrl         = resource.Url;
+        var oldResDescription = resource.Description;
+        var oldResType        = resource.Type.ToString();
+
         _mapper.Map(request, resource);
         resource.UpdatedAt = DateTime.UtcNow;
 
@@ -1163,10 +1492,92 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("Resource {ResourceId} updated", resource.Id);
 
+        if (userId != null)
+        {
+            Project? logProjectUpdate = null;
+            if (resource.ProjectId != null)
+                logProjectUpdate = await _dbContext.Projects.FindAsync(resource.ProjectId);
+            else if (resource.ObjectiveId != null)
+            {
+                var obj = await _dbContext.Objectives.Include(o => o.Project).FirstOrDefaultAsync(o => o.Id == resource.ObjectiveId);
+                logProjectUpdate = obj?.Project;
+            }
+            if (logProjectUpdate != null)
+            {
+                var resFieldChanges = new List<(string Field, string OldValue, string NewValue)>();
+                if (!string.Equals(resource.Title, oldResTitle))
+                    resFieldChanges.Add(("Title", oldResTitle, resource.Title));
+                if (!string.Equals(resource.Url, oldResUrl))
+                    resFieldChanges.Add(("URL",
+                        string.IsNullOrWhiteSpace(oldResUrl) ? "(none)" : oldResUrl,
+                        string.IsNullOrWhiteSpace(resource.Url) ? "(none)" : resource.Url));
+                if (!string.Equals(resource.Description, oldResDescription))
+                    resFieldChanges.Add(("Description",
+                        string.IsNullOrWhiteSpace(oldResDescription) ? "(empty)" : oldResDescription,
+                        string.IsNullOrWhiteSpace(resource.Description) ? "(empty)" : resource.Description));
+                if (!string.Equals(resource.Type.ToString(), oldResType, StringComparison.OrdinalIgnoreCase))
+                    resFieldChanges.Add(("Type", oldResType, resource.Type.ToString()));
+
+                if (resFieldChanges.Count > 0)
+                {
+                    foreach (var (field, oldValue, newValue) in resFieldChanges)
+                    {
+                        await _logService.CreateAsync(new CreateLogDto
+                        {
+                            EntityType = "Project",
+                            EntityId = logProjectUpdate.Id.ToString(),
+                            EntityName = logProjectUpdate.Title,
+                            Action = "Field updated",
+                            Detail = $"{field}: \"{oldValue}\" → \"{newValue}\" (Resource: {resource.Title})",
+                            UserId = userId
+                        });
+                    }
+                }
+                else if (addedFileNames.Count == 0 && removedFileNames.Count == 0)
+                {
+                    await _logService.CreateAsync(new CreateLogDto
+                    {
+                        EntityType = "Project",
+                        EntityId = logProjectUpdate.Id.ToString(),
+                        EntityName = logProjectUpdate.Title,
+                        Action = "Resource updated",
+                        Detail = resource.Title,
+                        UserId = userId
+                    });
+                }
+
+                foreach (var name in addedFileNames)
+                {
+                    await _logService.CreateAsync(new CreateLogDto
+                    {
+                        EntityType = "Project",
+                        EntityId = logProjectUpdate.Id.ToString(),
+                        EntityName = logProjectUpdate.Title,
+                        Action = "File attached",
+                        Detail = $"\"{name}\" added to Resource: {resource.Title}",
+                        UserId = userId
+                    });
+                }
+
+                foreach (var name in removedFileNames)
+                {
+                    await _logService.CreateAsync(new CreateLogDto
+                    {
+                        EntityType = "Project",
+                        EntityId = logProjectUpdate.Id.ToString(),
+                        EntityName = logProjectUpdate.Title,
+                        Action = "File detached",
+                        Detail = $"\"{name}\" removed from Resource: {resource.Title}",
+                        UserId = userId
+                    });
+                }
+            }
+        }
+
         return await GetResourceByIdAsync(resource.Id);
     }
 
-    public async Task<IActionResult> DeleteResourceAsync(Guid id)
+    public async Task<IActionResult> DeleteResourceAsync(Guid id, string? userId = null)
     {
         var resource = await _dbContext.Resources.FindAsync(id);
         if (resource == null)
@@ -1174,10 +1585,37 @@ public class ProjectService : IProjectService
             return new NotFoundObjectResult(new { Error = "Resource not found." });
         }
 
+        var resourceTitle = resource.Title;
+        var resProjectId = resource.ProjectId;
+        var resObjectiveId = resource.ObjectiveId;
         _dbContext.Resources.Remove(resource);
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("Resource {ResourceId} deleted", id);
+
+        if (userId != null)
+        {
+            Project? logProjectDel = null;
+            if (resProjectId != null)
+                logProjectDel = await _dbContext.Projects.FindAsync(resProjectId);
+            else if (resObjectiveId != null)
+            {
+                var obj = await _dbContext.Objectives.Include(o => o.Project).FirstOrDefaultAsync(o => o.Id == resObjectiveId);
+                logProjectDel = obj?.Project;
+            }
+            if (logProjectDel != null)
+            {
+                await _logService.CreateAsync(new CreateLogDto
+                {
+                    EntityType = "Project",
+                    EntityId = logProjectDel.Id.ToString(),
+                    EntityName = logProjectDel.Title,
+                    Action = "Resource removed",
+                    Detail = resourceTitle,
+                    UserId = userId
+                });
+            }
+        }
 
         return new OkObjectResult(new { Message = "Resource deleted successfully." });
     }

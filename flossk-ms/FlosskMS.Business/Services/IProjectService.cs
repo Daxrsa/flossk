@@ -10,12 +10,12 @@ public interface IProjectService
     Task<IActionResult> GetProjectsAsync(string? status = null);
     Task<IActionResult> GetProjectsByUserIdAsync(string userId);
     Task<IActionResult> GetProjectByIdAsync(Guid id);
-    Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request);
-    Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status);
-    Task<IActionResult> DeleteProjectAsync(Guid id);
+    Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request, string? userId = null);
+    Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status, string? userId = null);
+    Task<IActionResult> DeleteProjectAsync(Guid id, string? userId = null);
 
     // Project team member operations
-    Task<IActionResult> AddTeamMemberToProjectAsync(Guid projectId, AddTeamMemberDto request);
+    Task<IActionResult> AddTeamMemberToProjectAsync(Guid projectId, AddTeamMemberDto request, string? addedByUserId = null);
     Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId, string currentUserId);
     Task<IActionResult> RemoveTeamMembersFromProjectAsync(Guid projectId, RemoveTeamMembersDto request, string currentUserId);
     Task<IActionResult> GetProjectTeamMembersAsync(Guid projectId);
@@ -26,9 +26,9 @@ public interface IProjectService
     Task<IActionResult> CreateObjectiveAsync(CreateObjectiveDto request, string userId);
     Task<IActionResult> GetObjectiveByIdAsync(Guid id);
     Task<IActionResult> GetObjectivesByProjectIdAsync(Guid projectId);
-    Task<IActionResult> UpdateObjectiveAsync(Guid id, UpdateObjectiveDto request);
-    Task<IActionResult> UpdateObjectiveStatusAsync(Guid id, string status);
-    Task<IActionResult> DeleteObjectiveAsync(Guid id);
+    Task<IActionResult> UpdateObjectiveAsync(Guid id, UpdateObjectiveDto request, string? userId = null);
+    Task<IActionResult> UpdateObjectiveStatusAsync(Guid id, string status, string? userId = null);
+    Task<IActionResult> DeleteObjectiveAsync(Guid id, string? userId = null);
 
     // Objective team member operations
     Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request, string currentUserId);
@@ -42,8 +42,8 @@ public interface IProjectService
     Task<IActionResult> GetResourceByIdAsync(Guid id);
     Task<IActionResult> GetResourcesByProjectIdAsync(Guid projectId);
     Task<IActionResult> GetResourcesByObjectiveIdAsync(Guid objectiveId);
-    Task<IActionResult> UpdateResourceAsync(Guid id, UpdateResourceDto request);
-    Task<IActionResult> DeleteResourceAsync(Guid id);
+    Task<IActionResult> UpdateResourceAsync(Guid id, UpdateResourceDto request, string? userId = null);
+    Task<IActionResult> DeleteResourceAsync(Guid id, string? userId = null);
 
     // Seed and cleanup operations
     Task<IActionResult> SeedProjectsAsync(string userId);

@@ -66,7 +66,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateProject(Guid id, [FromBody] UpdateProjectDto request)
     {
-        return await _projectService.UpdateProjectAsync(id, request);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _projectService.UpdateProjectAsync(id, request, userId);
     }
 
     /// <summary>
@@ -76,7 +77,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteProject(Guid id)
     {
-        return await _projectService.DeleteProjectAsync(id);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _projectService.DeleteProjectAsync(id, userId);
     }
 
     /// <summary>
@@ -88,7 +90,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [HttpPatch("{id:guid}/status")]
     public async Task<IActionResult> UpdateProjectStatus(Guid id, [FromQuery] string status)
     {
-        return await _projectService.UpdateProjectStatusAsync(id, status);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _projectService.UpdateProjectStatusAsync(id, status, userId);
     }
 
     #endregion
@@ -110,7 +113,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [HttpPost("{projectId:guid}/team-members")]
     public async Task<IActionResult> AddTeamMemberToProject(Guid projectId, [FromBody] AddTeamMemberDto request)
     {
-        return await _projectService.AddTeamMemberToProjectAsync(projectId, request);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _projectService.AddTeamMemberToProjectAsync(projectId, request, userId);
     }
 
     /// <summary>
@@ -215,7 +219,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [HttpPut("objectives/{id:guid}")]
     public async Task<IActionResult> UpdateObjective(Guid id, [FromBody] UpdateObjectiveDto request)
     {
-        return await _projectService.UpdateObjectiveAsync(id, request);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _projectService.UpdateObjectiveAsync(id, request, userId);
     }
 
     /// <summary>
@@ -225,7 +230,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [HttpDelete("objectives/{id:guid}")]
     public async Task<IActionResult> DeleteObjective(Guid id)
     {
-        return await _projectService.DeleteObjectiveAsync(id);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _projectService.DeleteObjectiveAsync(id, userId);
     }
 
     /// <summary>
@@ -237,7 +243,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [HttpPatch("objectives/{id:guid}/status")]
     public async Task<IActionResult> UpdateObjectiveStatus(Guid id, [FromQuery] string status)
     {
-        return await _projectService.UpdateObjectiveStatusAsync(id, status);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _projectService.UpdateObjectiveStatusAsync(id, status, userId);
     }
 
     #endregion
@@ -363,7 +370,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [HttpPut("resources/{id:guid}")]
     public async Task<IActionResult> UpdateResource(Guid id, [FromBody] UpdateResourceDto request)
     {
-        return await _projectService.UpdateResourceAsync(id, request);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _projectService.UpdateResourceAsync(id, request, userId);
     }
 
     /// <summary>
@@ -373,7 +381,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [HttpDelete("resources/{id:guid}")]
     public async Task<IActionResult> DeleteResource(Guid id)
     {
-        return await _projectService.DeleteResourceAsync(id);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _projectService.DeleteResourceAsync(id, userId);
     }
 
     #endregion

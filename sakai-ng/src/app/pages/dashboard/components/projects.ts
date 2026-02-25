@@ -108,6 +108,37 @@ interface GitHubRepo {
     updated_at: string;
 }
 
+interface HistoryLogEntry {
+    date: string;
+    action: string;
+    detail?: string;
+    userFullName?: string;
+    userProfilePictureUrl?: string;
+    icon: string;
+    color: string;
+}
+
+interface PaginatedLogsResponse {
+    data: LogDto[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+}
+
+interface LogDto {
+    id: string;
+    entityType: string;
+    entityId: string;
+    entityName: string;
+    action: string;
+    detail?: string;
+    userId: string;
+    userFullName: string;
+    userProfilePictureUrl?: string;
+    timestamp: string;
+}
+
 @Component({
     selector: 'app-projects',
     imports: [CommonModule, FormsModule, ButtonModule, TagModule, AvatarModule, AvatarGroupModule, DividerModule, ProgressBarModule, TabsModule, DragDropModule, DialogModule, InputTextModule, TextareaModule, SelectModule, DatePickerModule, ConfirmDialogModule, MultiSelectModule, TooltipModule, FileUploadModule],
@@ -620,6 +651,7 @@ interface GitHubRepo {
                                     <div class="flex justify-content-center align-content-end">
                                         <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
                                         <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
+                                        <p-button icon="pi pi-history" [text]="true" [rounded]="true" size="small" severity="info" pTooltip="History" (onClick)="openHistoryDialog(project); $event.stopPropagation()" />
                                     </div>
                                 </div>
 
@@ -710,6 +742,7 @@ interface GitHubRepo {
                                     <div class="flex justify-content-center align-content-end">
                                     <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
                                     <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
+                                    <p-button icon="pi pi-history" [text]="true" [rounded]="true" size="small" severity="info" pTooltip="History" (onClick)="openHistoryDialog(project); $event.stopPropagation()" />
                                     </div>
                                 </div>
 
@@ -803,6 +836,7 @@ interface GitHubRepo {
                                     <div class="flex justify-content-center align-content-end">
                                         <p-button *ngIf="isAdmin() && project.status !== 'completed'" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
                                         <p-button *ngIf="isAdmin() && project.status !== 'completed'" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
+                                        <p-button icon="pi pi-history" [text]="true" [rounded]="true" size="small" severity="info" pTooltip="History" (onClick)="openHistoryDialog(project); $event.stopPropagation()" />
                                     </div>
                                 </div>
 
@@ -867,6 +901,7 @@ interface GitHubRepo {
                     <div class="flex gap-2">
                         <p-button *ngIf="isAdmin() && selectedProject.status !== 'completed'" label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
                         <p-button *ngIf="isAdmin() && selectedProject.status !== 'completed'" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
+                        <p-button label="History" icon="pi pi-history" severity="info" [outlined]="true" (onClick)="openHistoryDialog(selectedProject)" />
                         <p-button icon="pi pi-times" [text]="true" [rounded]="true" (onClick)="selectedProject = null"></p-button>
                     </div>
                 </div>
@@ -1307,6 +1342,68 @@ interface GitHubRepo {
                 </div>
             </div>
         </div>
+
+        <!-- History Log Dialog -->
+        <p-dialog
+            [(visible)]="historyVisible"
+            [header]="'History \u2014 ' + (historyProject?.title || '')"
+            [modal]="true"
+            [style]="{ width: '38rem' }"
+            [breakpoints]="{ '575px': '95vw' }"
+            [contentStyle]="{ 'max-height': '70vh', 'overflow-y': 'auto' }"
+            appendTo="body"
+        >
+            <div *ngIf="historyLoading" class="flex justify-center items-center py-10">
+                <i class="pi pi-spin pi-spinner text-3xl text-muted-color"></i>
+            </div>
+            <div *ngIf="!historyLoading && historyLog.length === 0" class="text-center text-muted-color py-8">
+                <i class="pi pi-history text-5xl mb-3 block"></i>
+                <p>No history available</p>
+            </div>
+            <div *ngIf="!historyLoading && historyLog.length > 0" class="flex flex-col gap-2">
+                <div *ngFor="let entry of historyLog" class="flex flex-col gap-2 p-3 border border-surface-200 dark:border-surface-700 rounded-lg">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="flex items-center justify-center text-white rounded-full w-7 h-7 shrink-0"
+                            [style]="{ 'background-color': entry.color }"
+                        >
+                            <i [class]="entry.icon + ' text-xs'"></i>
+                        </span>
+                        <span class="font-semibold text-sm">{{ entry.action }}</span>
+                        <ng-container *ngIf="entry.userFullName">
+                            <span class="text-muted-color text-sm">·</span>
+                            <p-avatar
+                                *ngIf="entry.userProfilePictureUrl"
+                                [image]="getHistoryProfilePictureUrl(entry.userProfilePictureUrl)"
+                                shape="circle"
+                                size="normal"
+                            />
+                            <p-avatar
+                                *ngIf="!entry.userProfilePictureUrl"
+                                [label]="getInitials(entry.userFullName)"
+                                shape="circle"
+                                size="normal"
+                                [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                            />
+                            <span class="text-sm text-muted-color">{{ entry.userFullName }}</span>
+                        </ng-container>
+                    </div>
+                    <p *ngIf="entry.detail" class="text-sm text-muted-color mb-0">{{ entry.detail }}</p>
+                    <p class="text-xs text-muted-color mb-0">{{ entry.date | date:'MMM d, y, h:mm a' }}</p>
+                </div>
+                <div *ngIf="historyHasMore" class="flex justify-center pt-1">
+                    <p-button
+                        [label]="historyLoadingMore ? 'Loading...' : 'Load more'"
+                        [icon]="historyLoadingMore ? 'pi pi-spin pi-spinner' : 'pi pi-chevron-down'"
+                        [disabled]="historyLoadingMore"
+                        severity="secondary"
+                        [text]="true"
+                        size="small"
+                        (onClick)="loadMoreHistory()"
+                    />
+                </div>
+            </div>
+        </p-dialog>
     `
 })
 export class Projects {
@@ -1531,6 +1628,16 @@ export class Projects {
     selectedResourceFiles: File[] = [];
     filesToRemoveFromResource: string[] = [];
     savingResource = false;
+
+    historyVisible = false;
+    historyProject: Project | null = null;
+    historyLog: HistoryLogEntry[] = [];
+    historyLoading = false;
+    historyLoadingMore = false;
+    historyPage = 1;
+    historyPageSize = 5;
+    historyTotalCount = 0;
+    get historyHasMore(): boolean { return this.historyLog.length < this.historyTotalCount; }
     
     availableMembers: Member[] = [];
     
@@ -2570,7 +2677,94 @@ export class Projects {
     hasProfilePicture(member: Member): boolean {
         return !isDefaultAvatar(member.avatar);
     }
-    
+
+    getHistoryProfilePictureUrl(url?: string): string {
+        if (!url) return '';
+        return url.startsWith('http') ? url : `${environment.baseUrl}${url}`;
+    }
+
+    openHistoryDialog(project: Project) {
+        this.historyProject = project;
+        this.historyLog = [];
+        this.historyPage = 1;
+        this.historyTotalCount = 0;
+        this.historyLoading = true;
+        this.historyVisible = true;
+
+        this.http.get<PaginatedLogsResponse>(
+            `${environment.apiUrl}/logs?entityType=Project&entityId=${project.id}&page=1&pageSize=${this.historyPageSize}`
+        ).subscribe({
+            next: (res) => {
+                this.historyLog = res.data.map(log => this.mapLogToHistoryEntry(log));
+                this.historyTotalCount = res.totalCount;
+                this.historyLoading = false;
+            },
+            error: () => {
+                this.historyLog = [];
+                this.historyLoading = false;
+            }
+        });
+    }
+
+    loadMoreHistory() {
+        if (!this.historyProject || this.historyLoadingMore) return;
+        this.historyLoadingMore = true;
+        this.historyPage++;
+
+        this.http.get<PaginatedLogsResponse>(
+            `${environment.apiUrl}/logs?entityType=Project&entityId=${this.historyProject.id}&page=${this.historyPage}&pageSize=${this.historyPageSize}`
+        ).subscribe({
+            next: (res) => {
+                this.historyLog.push(...res.data.map(log => this.mapLogToHistoryEntry(log)));
+                this.historyTotalCount = res.totalCount;
+                this.historyLoadingMore = false;
+            },
+            error: () => {
+                this.historyPage--;
+                this.historyLoadingMore = false;
+            }
+        });
+    }
+
+    private mapLogToHistoryEntry(log: LogDto): HistoryLogEntry {
+        const iconMap: Record<string, { icon: string; color: string }> = {
+            'Project created':              { icon: 'pi pi-plus',             color: '#22c55e' },
+            'Project updated':             { icon: 'pi pi-pen-to-square',    color: '#f59e0b' },
+            'Field updated':               { icon: 'pi pi-pen-to-square',    color: '#f59e0b' },
+            'Project deleted':             { icon: 'pi pi-trash',            color: '#ef4444' },
+            'Status updated':              { icon: 'pi pi-refresh',          color: '#3b82f6' },
+            'Team member added':           { icon: 'pi pi-user-plus',        color: '#22c55e' },
+            'Team member removed':         { icon: 'pi pi-user-minus',       color: '#ef4444' },
+            'Team members removed':        { icon: 'pi pi-users',            color: '#ef4444' },
+            'Member joined':               { icon: 'pi pi-user-plus',        color: '#22c55e' },
+            'Member left':                 { icon: 'pi pi-user-minus',       color: '#ef4444' },
+            'Objective created':           { icon: 'pi pi-plus-circle',      color: '#22c55e' },
+            'Objective updated':           { icon: 'pi pi-pencil',           color: '#f59e0b' },
+            'Objective deleted':           { icon: 'pi pi-trash',            color: '#ef4444' },
+            'Objective status updated':    { icon: 'pi pi-refresh',          color: '#3b82f6' },
+            'Member assigned to objective':{ icon: 'pi pi-user-plus',        color: '#8b5cf6' },
+            'Member removed from objective':{ icon: 'pi pi-user-minus',      color: '#f97316' },
+            'Objective member joined':     { icon: 'pi pi-user-plus',        color: '#8b5cf6' },
+            'Objective member left':       { icon: 'pi pi-user-minus',       color: '#f97316' },
+            'Resource added':              { icon: 'pi pi-link',             color: '#22c55e' },
+            'Resource updated':            { icon: 'pi pi-pencil',           color: '#f59e0b' },
+            'Resource removed':            { icon: 'pi pi-link',             color: '#ef4444' },
+            'File attached':               { icon: 'pi pi-paperclip',        color: '#22c55e' },
+            'File detached':               { icon: 'pi pi-paperclip',        color: '#ef4444' },
+        };
+        const meta = iconMap[log.action] ?? { icon: 'pi pi-info-circle', color: '#94a3b8' };
+
+        return {
+            date: log.timestamp,
+            action: log.action,
+            detail: log.detail,
+            userFullName: log.userFullName || undefined,
+            userProfilePictureUrl: log.userProfilePictureUrl,
+            icon: meta.icon,
+            color: meta.color,
+        };
+    }
+
     saveObjectiveResource() {
         if (!this.viewingObjective) return;
         
