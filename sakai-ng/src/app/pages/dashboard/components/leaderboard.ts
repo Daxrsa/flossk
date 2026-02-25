@@ -35,7 +35,7 @@ import { environment } from '@environments/environment.prod';
                 <div class="card">
                     <div class="font-semibold text-xl mb-4">Contribution Breakdown</div>
                     <div class="grid grid-cols-12 gap-4">
-                        <div *ngFor="let _ of [1,2,3]" class="col-span-12 sm:col-span-4">
+                        <div *ngFor="let _ of [1,2,3,4,5,6]" class="col-span-12 sm:col-span-4">
                             <div class="p-4 border border-surface rounded-lg">
                                 <p-skeleton width="100%" height="8rem"></p-skeleton>
                             </div>
@@ -101,16 +101,16 @@ import { environment } from '@environments/environment.prod';
                 </div>
             </div>
 
-            <!-- Contribution Breakdown (top 3) -->
+            <!-- Contribution Breakdown -->
             <div class="col-span-12 lg:col-span-8">
                 <div class="card">
                     <div class="font-semibold text-xl mb-4">Contribution Breakdown</div>
                     <div class="grid grid-cols-12 gap-4">
-                        <div *ngFor="let entry of leaderboard.slice(0, 3); let i = index" class="col-span-12 sm:col-span-4">
+                        <div *ngFor="let entry of leaderboard; let i = index" class="col-span-12 sm:col-span-4">
                             <div class="p-4 border border-surface rounded-lg">
                                 <!-- Header with medal -->
                                 <div class="flex items-center gap-3 mb-4">
-                                    <span class="text-2xl">{{ i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉' }}</span>
+                                    <span class="text-2xl">{{ i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i + 1) }}</span>
                                     <p-avatar
                                         [image]="getAvatarUrl(entry)"
                                         [label]="!entry.profilePictureUrl ? getInitials(entry) : undefined"
@@ -178,7 +178,7 @@ export class Leaderboard implements OnInit {
 
     loadLeaderboard() {
         this.isLoading = true;
-        this.contributionsService.getLeaderboard(20).subscribe({
+        this.contributionsService.getLeaderboard().subscribe({
             next: (data) => {
                 this.leaderboard = data;
                 this.maxScore = data.length > 0 ? data[0].totalScore : 0;

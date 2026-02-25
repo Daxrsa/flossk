@@ -39,8 +39,8 @@ export class ContributionsService {
 
     constructor(private http: HttpClient) {}
 
-    getLeaderboard(top: number = 50): Observable<LeaderboardEntry[]> {
-        return this.http.get<LeaderboardEntry[]>(`${this.API_URL}/leaderboard`, { params: { top: top.toString() } });
+    getLeaderboard(): Observable<LeaderboardEntry[]> {
+        return this.http.get<LeaderboardEntry[]>(`${this.API_URL}/leaderboard`);
     }
 
     getProjectContributions(projectId: string): Observable<UserContribution[]> {

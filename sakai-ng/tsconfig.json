@@ -24,6 +24,9 @@
             ],
             "@environments/*": [
                 "src/environments/*"
+            ],
+            "@interfaces/*": [
+                "src/interfaces/*"
             ]
         }
     },

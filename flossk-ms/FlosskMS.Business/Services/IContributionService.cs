@@ -29,5 +29,5 @@ public interface IContributionService
     /// <summary>
     /// Get the overall leaderboard ranked by total score.
     /// </summary>
-    Task<IActionResult> GetLeaderboardAsync(int top = 50);
+    Task<IActionResult> GetLeaderboardAsync();
 }

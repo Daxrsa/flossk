@@ -1440,17 +1440,18 @@ public class ProjectService : IProjectService
             }
         }
 
-        // Collect file names before mutations (for logging)
-        List<string> removedFileNames = new();
-        List<string> addedFileNames = new();
+        // Collect file info before mutations (for logging)
+        var removedFilesInfo = new List<(string OriginalFileName, string FilePath, string ContentType)>();
+        var addedFilesInfo   = new List<(string OriginalFileName, string FilePath, string ContentType)>();
 
         // Handle file removals
         if (request.FileIdsToRemove != null && request.FileIdsToRemove.Count > 0)
         {
-            removedFileNames = await _dbContext.UploadedFiles
+            var rows = await _dbContext.UploadedFiles
                 .Where(f => request.FileIdsToRemove.Contains(f.Id))
-                .Select(f => f.OriginalFileName)
+                .Select(f => new { f.OriginalFileName, f.FilePath, f.ContentType })
                 .ToListAsync();
+            removedFilesInfo = rows.Select(r => (r.OriginalFileName, r.FilePath, r.ContentType)).ToList();
 
             var filesToRemoveEntities = resource.Files
                 .Where(rf => request.FileIdsToRemove.Contains(rf.FileId))
@@ -1462,10 +1463,11 @@ public class ProjectService : IProjectService
         // Handle file additions
         if (request.FileIdsToAdd != null && request.FileIdsToAdd.Count > 0)
         {
-            addedFileNames = await _dbContext.UploadedFiles
+            var rows = await _dbContext.UploadedFiles
                 .Where(f => request.FileIdsToAdd.Contains(f.Id))
-                .Select(f => f.OriginalFileName)
+                .Select(f => new { f.OriginalFileName, f.FilePath, f.ContentType })
                 .ToListAsync();
+            addedFilesInfo = rows.Select(r => (r.OriginalFileName, r.FilePath, r.ContentType)).ToList();
 
             foreach (var fileId in request.FileIdsToAdd)
             {
@@ -1533,7 +1535,7 @@ public class ProjectService : IProjectService
                         });
                     }
                 }
-                else if (addedFileNames.Count == 0 && removedFileNames.Count == 0)
+                else if (addedFilesInfo.Count == 0 && removedFilesInfo.Count == 0)
                 {
                     await _logService.CreateAsync(new CreateLogDto
                     {
@@ -1546,28 +1548,30 @@ public class ProjectService : IProjectService
                     });
                 }
 
-                foreach (var name in addedFileNames)
+                foreach (var file in addedFilesInfo)
                 {
+                    var isImage = file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
                     await _logService.CreateAsync(new CreateLogDto
                     {
                         EntityType = "Project",
                         EntityId = logProjectUpdate.Id.ToString(),
                         EntityName = logProjectUpdate.Title,
                         Action = "File attached",
-                        Detail = $"\"{name}\" added to Resource: {resource.Title}",
+                        Detail = isImage ? file.FilePath : $"\"{file.OriginalFileName}\" added to Resource: {resource.Title}",
                         UserId = userId
                     });
                 }
 
-                foreach (var name in removedFileNames)
+                foreach (var file in removedFilesInfo)
                 {
+                    var isImage = file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
                     await _logService.CreateAsync(new CreateLogDto
                     {
                         EntityType = "Project",
                         EntityId = logProjectUpdate.Id.ToString(),
                         EntityName = logProjectUpdate.Title,
                         Action = "File detached",
-                        Detail = $"\"{name}\" removed from Resource: {resource.Title}",
+                        Detail = isImage ? file.FilePath : $"\"{file.OriginalFileName}\" removed from Resource: {resource.Title}",
                         UserId = userId
                     });
                 }

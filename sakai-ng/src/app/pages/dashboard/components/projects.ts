@@ -108,36 +108,7 @@ interface GitHubRepo {
     updated_at: string;
 }
 
-interface HistoryLogEntry {
-    date: string;
-    action: string;
-    detail?: string;
-    userFullName?: string;
-    userProfilePictureUrl?: string;
-    icon: string;
-    color: string;
-}
-
-interface PaginatedLogsResponse {
-    data: LogDto[];
-    totalCount: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-}
-
-interface LogDto {
-    id: string;
-    entityType: string;
-    entityId: string;
-    entityName: string;
-    action: string;
-    detail?: string;
-    userId: string;
-    userFullName: string;
-    userProfilePictureUrl?: string;
-    timestamp: string;
-}
+import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/history-log';
 
 @Component({
     selector: 'app-projects',
@@ -1388,7 +1359,8 @@ interface LogDto {
                             <span class="text-sm text-muted-color">{{ entry.userFullName }}</span>
                         </ng-container>
                     </div>
-                    <p *ngIf="entry.detail" class="text-sm text-muted-color mb-0">{{ entry.detail }}</p>
+                    <img *ngIf="entry.detailImageUrl" [src]="entry.detailImageUrl" [alt]="entry.action" class="rounded-md max-h-32 object-cover border border-surface-200 dark:border-surface-700" />
+                    <p *ngIf="entry.detail && !entry.detailImageUrl" class="text-sm text-muted-color mb-0">{{ entry.detail }}</p>
                     <p class="text-xs text-muted-color mb-0">{{ entry.date | date:'MMM d, y, h:mm a' }}</p>
                 </div>
                 <div *ngIf="historyHasMore" class="flex justify-center pt-1">
@@ -2754,10 +2726,16 @@ export class Projects {
         };
         const meta = iconMap[log.action] ?? { icon: 'pi pi-info-circle', color: '#94a3b8' };
 
+        const isFileAction = log.action === 'File attached' || log.action === 'File detached';
+        const isImageUrl = log.detail?.startsWith('/uploads/') || log.detail?.startsWith('uploads/');
+
         return {
             date: log.timestamp,
             action: log.action,
-            detail: log.detail,
+            detail: (isFileAction && isImageUrl) ? undefined : log.detail,
+            detailImageUrl: (isFileAction && isImageUrl)
+                ? `${environment.baseUrl}/${log.detail?.replace(/^\//, '')}`
+                : undefined,
             userFullName: log.userFullName || undefined,
             userProfilePictureUrl: log.userProfilePictureUrl,
             icon: meta.icon,

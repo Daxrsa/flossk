@@ -22,44 +22,13 @@ import { InputIcon } from "primeng/inputicon";
 import { IconField } from "primeng/iconfield";
 import { AvatarModule } from 'primeng/avatar';
 import { AuthService } from '@/pages/service/auth.service';
+import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/history-log';
 
 interface User {
     id: number;
     name: string;
     avatar: string;
     email: string;
-}
-
-interface HistoryLogEntry {
-    date: string;
-    action: string;
-    detail?: string;
-    detailImageUrl?: string;
-    userFullName?: string;
-    userProfilePictureUrl?: string;
-    icon: string;
-    color: string;
-}
-
-interface PaginatedLogsResponse {
-    data: LogDto[];
-    totalCount: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-}
-
-interface LogDto {
-    id: string;
-    entityType: string;
-    entityId: string;
-    entityName: string;
-    action: string;
-    detail?: string;
-    userId: string;
-    userFullName: string;
-    userProfilePictureUrl?: string;
-    timestamp: string;
 }
 
 interface InventoryItem {

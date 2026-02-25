@@ -131,7 +131,7 @@ public class ContributionService : IContributionService
         return new OkObjectResult(contributions.Select(c => MapToDto(c, c.Project.Title)));
     }
 
-    public async Task<IActionResult> GetLeaderboardAsync(int top = 50)
+    public async Task<IActionResult> GetLeaderboardAsync()
     {
         var leaderboard = await _dbContext.UserContributions
             .AsNoTracking()
@@ -147,7 +147,6 @@ public class ContributionService : IContributionService
                 TotalResourcesCreated = g.Sum(c => c.ResourcesCreated),
             })
             .OrderByDescending(x => x.TotalScore)
-            .Take(top)
             .ToListAsync();
 
         // Fetch user details for leaderboard entries

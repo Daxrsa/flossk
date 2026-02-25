@@ -16,9 +16,9 @@ public class ContributionsController(IContributionService contributionService) :
     /// </summary>
     /// <param name="top">Number of top users to return (default: 50)</param>
     [HttpGet("leaderboard")]
-    public async Task<IActionResult> GetLeaderboard([FromQuery] int top = 50)
+    public async Task<IActionResult> GetLeaderboard()
     {
-        return await _contributionService.GetLeaderboardAsync(top);
+        return await _contributionService.GetLeaderboardAsync();
     }
 
     /// <summary>
