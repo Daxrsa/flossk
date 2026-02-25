@@ -45,7 +45,7 @@ import { environment } from '@environments/environment.prod';
         <p-toast />
         <p-confirmDialog />
 
-        <div class="flex flex-col gap-4">
+        <div class="flex flex-col">
             <!-- Page Header -->
             <div class="card">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

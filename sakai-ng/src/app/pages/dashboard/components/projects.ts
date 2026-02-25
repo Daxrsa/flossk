@@ -343,7 +343,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     </div>
                     <div *ngIf="!viewingObjective.members || viewingObjective.members.length === 0" class="text-center text-muted-color py-4 bg-surface-50 dark:bg-surface-800 rounded-lg">
                         <i class="pi pi-users text-2xl mb-2"></i>
-                        <p class="m-0">No team members assigned yet</p>
+                        <p class="m-0">{{ viewingObjective.status === 'completed' ? 'No team members were added' : 'No team members assigned yet' }}</p>
                     </div>
                 </div>
                 
@@ -353,7 +353,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 <div>
                     <div class="flex justify-between items-center mb-3">
                         <h6 class="text-sm font-semibold text-muted-color m-0 tracking-wide">Resources</h6>
-                        <p-button *ngIf="selectedProject?.status !== 'completed'" icon="pi pi-plus" label="Add Resource" size="small" [text]="true" (onClick)="openAddObjectiveResourceDialog()" />
+                        <p-button *ngIf="selectedProject?.status !== 'completed' && viewingObjective?.status !== 'completed'" icon="pi pi-plus" label="Add Resource" size="small" [text]="true" (onClick)="openAddObjectiveResourceDialog()" />
                     </div>
                     <div *ngIf="viewingObjective.resources && viewingObjective.resources.length > 0" class="flex flex-col gap-2">
                         <div *ngFor="let resource of viewingObjective.resources" class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -370,7 +370,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                     </span>
                                     <p class="text-sm text-muted-color m-0 mt-1">{{ resource.description }}</p>
                                 </div>
-                                <div class="flex gap-1" *ngIf="canEditResource(resource)">
+                                <div class="flex gap-1" *ngIf="canEditResource(resource) && viewingObjective?.status !== 'completed'">
                                     <p-button icon="pi pi-pencil" size="small" [text]="true" severity="secondary" (onClick)="openEditObjectiveResourceDialog(resource)" />
                                     <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger" (onClick)="confirmDeleteObjectiveResource(resource)" />
                                 </div>
@@ -401,7 +401,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     </div>
                     <div *ngIf="!viewingObjective.resources || viewingObjective.resources.length === 0" class="text-center text-muted-color py-4 bg-surface-50 dark:bg-surface-800 rounded-lg">
                         <i class="pi pi-link text-2xl mb-2"></i>
-                        <p class="m-0">No resources added yet</p>
+                        <p class="m-0">{{ viewingObjective.status === 'completed' ? 'No resources were added' : 'No resources added yet' }}</p>
                     </div>
                 </div>
             </div>
@@ -415,7 +415,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     }
                 </div>
                 <div class="flex gap-2">
-                    <p-button label="Edit" icon="pi pi-pencil" severity="secondary" (onClick)="editObjectiveFromDetail()" />
+                    <p-button *ngIf="viewingObjective?.status !== 'completed'" label="Edit" icon="pi pi-pencil" severity="secondary" (onClick)="editObjectiveFromDetail()" />
                     <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="objectiveDetailDialogVisible = false" />
                 </div>
             </div>
@@ -1021,8 +1021,6 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                         <!-- <i class="pi pi-check-circle text-green-500 text-sm"></i> -->
                                                     </div>
                                                     <div class="flex gap-1">
-                                                        <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
-                                                        <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
                                                     </div>
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
@@ -1713,6 +1711,12 @@ export class Projects {
 
     onDropObjective(event: any, newStatus: 'todo' | 'in-progress' | 'completed') {
         if (this.draggedObjective && this.selectedProject) {
+            // Prevent modifying completed objectives via drag-drop
+            if (this.draggedObjective.status === 'completed') {
+                this.draggedObjective = null;
+                return;
+            }
+
             const oldStatus = this.draggedObjective.status;
             const objectiveId = this.draggedObjective.id;
             const objective = this.draggedObjective;
@@ -2159,6 +2163,7 @@ export class Projects {
     }
     
     openEditObjectiveDialog(objective: Objective) {
+        if (objective.status === 'completed') return;
         this.objectiveDialogMode = 'edit';
         this.currentObjective = { ...objective, assignedTo: { ...objective.assignedTo }, members: objective.members ? [...objective.members] : [] };
         this.selectedObjectiveMemberNames = objective.members ? objective.members.map(m => m.name) : [];
@@ -2247,6 +2252,7 @@ export class Projects {
     }
     
     confirmDeleteObjective(objective: Objective) {
+        if (objective.status === 'completed') return;
         this.confirmationService.confirm({
             message: `Are you sure you want to delete "${objective.title}"?`,
             header: 'Delete Confirmation',
@@ -2565,7 +2571,7 @@ export class Projects {
     }
     
     openAddObjectiveResourceDialog() {
-        if (!this.viewingObjective) return;
+        if (!this.viewingObjective || this.viewingObjective.status === 'completed') return;
         this.objectiveResourceDialogMode = 'add';
         this.currentObjectiveResource = this.getEmptyResource();
         this.selectedObjectiveResourceFiles = [];
@@ -2574,6 +2580,7 @@ export class Projects {
     }
     
     openEditObjectiveResourceDialog(resource: Resource) {
+        if (this.viewingObjective?.status === 'completed') return;
         this.objectiveResourceDialogMode = 'edit';
         this.currentObjectiveResource = { ...resource, files: [...(resource.files || [])] };
         this.selectedObjectiveResourceFiles = [];
@@ -2839,6 +2846,7 @@ export class Projects {
     }
     
     confirmDeleteObjectiveResource(resource: Resource) {
+        if (this.viewingObjective?.status === 'completed') return;
         this.confirmationService.confirm({
             message: `Are you sure you want to delete "${resource.title}"?`,
             header: 'Delete Confirmation',
@@ -2910,7 +2918,7 @@ export class Projects {
     }
     
     editObjectiveFromDetail() {
-        if (!this.viewingObjective) return;
+        if (!this.viewingObjective || this.viewingObjective.status === 'completed') return;
         this.objectiveDetailDialogVisible = false;
         this.openEditObjectiveDialog(this.viewingObjective);
     }
