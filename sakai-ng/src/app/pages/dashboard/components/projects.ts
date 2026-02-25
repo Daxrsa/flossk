@@ -2141,6 +2141,11 @@ export class Projects {
                 next: (response) => {
                     console.log('Successfully joined project:', response);
                     project.participants.push({ ...this.currentUser });
+
+                    // If the detail panel is showing this project, sync it too
+                    if (this.selectedProject?.id === project.id) {
+                        this.selectedProject.participants = [...project.participants];
+                    }
                 },
                 error: (err) => {
                     console.error('Error joining project:', err);
@@ -2155,6 +2160,11 @@ export class Projects {
             next: (response) => {
                 console.log('Successfully left project:', response);
                 project.participants = project.participants.filter(p => p.userId !== this.currentUser.userId);
+
+                // If the detail panel is showing this project, sync it too
+                if (this.selectedProject?.id === project.id) {
+                    this.selectedProject.participants = [...project.participants];
+                }
             },
             error: (err) => {
                 console.error('Error leaving project:', err);
@@ -2739,6 +2749,7 @@ export class Projects {
                         // Add member to local project participants
                         if (this.selectedProject && !this.selectedProject.participants.some(p => p.userId === member.userId)) {
                             this.selectedProject.participants.push(member);
+                            this.syncProjectInBoardArrays(this.selectedProject);
                         }
                         
                         completed++;
@@ -2903,6 +2914,18 @@ export class Projects {
         });
     }
 
+    // Sync a mutated selectedProject back into the board status arrays so cards update without a full refetch
+    private syncProjectInBoardArrays(project: Project) {
+        const arrays = [this.upcomingProjects, this.inProgressProjects, this.completedProjects];
+        for (const arr of arrays) {
+            const idx = arr.findIndex(p => p.id === project.id);
+            if (idx !== -1) {
+                arr[idx] = { ...arr[idx], participants: [...project.participants], objectives: [...project.objectives] };
+                break;
+            }
+        }
+    }
+
     // Remove Member Methods
     removeMemberFromProject(member: Member) {
         if (!this.selectedProject || !member.userId) {
@@ -2933,6 +2956,8 @@ export class Projects {
                                     objective.members = objective.members.filter(m => m.userId !== userId);
                                 }
                             });
+
+                            this.syncProjectInBoardArrays(this.selectedProject);
                         }
                     },
                     error: (err) => {
