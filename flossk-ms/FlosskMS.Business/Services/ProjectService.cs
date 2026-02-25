@@ -229,7 +229,7 @@ public class ProjectService : IProjectService
         // Auto-calculate contributions when project transitions to Completed
         if (newStatus == ProjectStatus.Completed)
         {
-            await _contributionService.CalculateProjectContributionsAsync(project.Id);
+            await _contributionService.RecalculateProjectContributionsAsync(project.Id);
         }
 
         _logger.LogInformation("Project {ProjectId} updated", project.Id);
@@ -293,7 +293,7 @@ public class ProjectService : IProjectService
         // Auto-calculate contributions when project transitions to Completed
         if (projectStatus == ProjectStatus.Completed)
         {
-            await _contributionService.CalculateProjectContributionsAsync(project.Id);
+            await _contributionService.RecalculateProjectContributionsAsync(project.Id);
         }
 
         _logger.LogInformation("Project {ProjectId} status updated to {Status}", id, status);

@@ -1395,6 +1395,7 @@ export class Projects {
                     createdByLastName: o.createdByLastName
                 })),
                 resources: p.resources || [],
+                types: p.types || [],
                 githubRepo: p.githubRepo,
                 createdByUserId: p.createdByUserId,
                 createdByFirstName: p.createdByFirstName,
