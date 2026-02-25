@@ -32,6 +32,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Election> Elections { get; set; }
     public DbSet<ElectionCandidate> ElectionCandidates { get; set; }
     public DbSet<ElectionVote> ElectionVotes { get; set; }
+    public DbSet<UserContribution> UserContributions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -511,6 +512,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.EntityId);
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.Timestamp);
+        });
+
+        // UserContribution configuration
+        builder.Entity<UserContribution>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Project)
+                .WithMany()
+                .HasForeignKey(e => e.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // One contribution record per user per project
+            entity.HasIndex(e => new { e.ProjectId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Score);
         });
     }
 }

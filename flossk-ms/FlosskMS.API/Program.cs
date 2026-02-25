@@ -127,6 +127,7 @@ builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddScoped<IElectionService, ElectionService>();
+builder.Services.AddScoped<IContributionService, ContributionService>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));

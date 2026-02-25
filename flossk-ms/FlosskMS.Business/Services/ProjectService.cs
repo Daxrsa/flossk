@@ -13,15 +13,18 @@ public class ProjectService : IProjectService
     private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
     private readonly ILogger<ProjectService> _logger;
+    private readonly IContributionService _contributionService;
 
     public ProjectService(
         ApplicationDbContext dbContext,
         IMapper mapper,
-        ILogger<ProjectService> logger)
+        ILogger<ProjectService> logger,
+        IContributionService contributionService)
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
+        _contributionService = contributionService;
     }
 
     #region Project Operations
@@ -223,6 +226,12 @@ public class ProjectService : IProjectService
 
         await _dbContext.SaveChangesAsync();
 
+        // Auto-calculate contributions when project transitions to Completed
+        if (newStatus == ProjectStatus.Completed)
+        {
+            await _contributionService.CalculateProjectContributionsAsync(project.Id);
+        }
+
         _logger.LogInformation("Project {ProjectId} updated", project.Id);
 
         // Reload with related data
@@ -280,6 +289,12 @@ public class ProjectService : IProjectService
         project.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
+
+        // Auto-calculate contributions when project transitions to Completed
+        if (projectStatus == ProjectStatus.Completed)
+        {
+            await _contributionService.CalculateProjectContributionsAsync(project.Id);
+        }
 
         _logger.LogInformation("Project {ProjectId} status updated to {Status}", id, status);
 
