@@ -8,6 +8,7 @@ public class Project
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public ProjectStatus Status { get; set; } = ProjectStatus.Upcoming;
+    public ProjectType Types { get; set; } = ProjectType.None;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 

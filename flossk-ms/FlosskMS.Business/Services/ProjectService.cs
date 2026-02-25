@@ -43,6 +43,14 @@ public class ProjectService : IProjectService
             return new BadRequestObjectResult(new { Error = "End date must be after start date." });
         }
 
+        var invalidTypes = request.Types
+            .Where(t => !Enum.TryParse<ProjectType>(t, true, out _))
+            .ToList();
+        if (invalidTypes.Count > 0)
+        {
+            return new BadRequestObjectResult(new { Error = $"Invalid project type(s): {string.Join(", ", invalidTypes)}. Valid values are: Software, Hardware, Event." });
+        }
+
         var user = await _dbContext.Users.FindAsync(userId);
         if (user == null)
         {
@@ -53,6 +61,7 @@ public class ProjectService : IProjectService
         project.Id = Guid.NewGuid();
         project.CreatedAt = DateTime.UtcNow;
         project.CreatedByUserId = userId;
+        project.Types = ParseProjectTypes(request.Types);
 
         _dbContext.Projects.Add(project);
         await _dbContext.SaveChangesAsync();
@@ -179,6 +188,15 @@ public class ProjectService : IProjectService
             return new BadRequestObjectResult(new { Error = "End date must be after start date." });
         }
 
+        // Validate types
+        var invalidTypes = request.Types
+            .Where(t => !Enum.TryParse<ProjectType>(t, true, out _))
+            .ToList();
+        if (invalidTypes.Count > 0)
+        {
+            return new BadRequestObjectResult(new { Error = $"Invalid project type(s): {string.Join(", ", invalidTypes)}. Valid values are: Software, Hardware, Event." });
+        }
+
         // Constraint: Cannot move from Upcoming to InProgress unless at least one objective is InProgress
         if (project.Status == ProjectStatus.Upcoming && newStatus == ProjectStatus.InProgress)
         {
@@ -200,6 +218,7 @@ public class ProjectService : IProjectService
         }
 
         _mapper.Map(request, project);
+        project.Types = ParseProjectTypes(request.Types);
         project.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
@@ -1402,6 +1421,12 @@ public class ProjectService : IProjectService
             ProjectTeamMembersDeleted = projectTeamMemberCount,
             ObjectiveTeamMembersDeleted = objectiveTeamMemberCount
         });
+    }
+
+    private static ProjectType ParseProjectTypes(List<string> types)
+    {
+        if (types == null || types.Count == 0) return ProjectType.None;
+        return types.Aggregate(ProjectType.None, (acc, t) => acc | Enum.Parse<ProjectType>(t, true));
     }
 
     #endregion

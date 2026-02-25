@@ -19,4 +19,6 @@ public class CreateProjectDto
 
     [Required]
     public string Status { get; set; } = "Upcoming";
+
+    public List<string> Types { get; set; } = [];
 }

@@ -74,6 +74,7 @@ interface Project {
     startDate: string;
     endDate: string;
     progress: number;
+    types?: string[];
     participants: Member[];
     objectives: Objective[];
     resources?: Resource[];
@@ -156,6 +157,19 @@ interface GitHubRepo {
                 <div>
                     <label for="status" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Status</label>
                     <p-select id="status" [(ngModel)]="currentProject.status" [options]="statusOptions" placeholder="Select Status" class="w-full" />
+                </div>
+
+                <div>
+                    <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Project Type(s)</label>
+                    <p-multiselect
+                        [(ngModel)]="currentProject.types"
+                        [options]="projectTypeOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Select type(s)"
+                        display="chip"
+                        class="w-full"
+                    />
                 </div>
 
                 <!-- Error message -->
@@ -592,9 +606,17 @@ interface GitHubRepo {
                         <div class="flex flex-col gap-3 min-h-32">
                             <div *ngFor="let project of getProjectsByStatus('upcoming')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
                                 <div class="flex justify-between items-start mb-3">
-                                    <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
-                                        {{ project.title }}
-                                    </h4>
+                                    <div class="flex items-center gap-2 flex-wrap flex-1">
+                                        <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
+                                            {{ project.title }}
+                                        </h4>
+                                        <ng-container *ngIf="project.types && project.types.length > 0; else noTypeUpcoming">
+                                            <p-tag *ngFor="let type of project.types" [value]="type" severity="secondary" styleClass="text-xs"></p-tag>
+                                        </ng-container>
+                                        <ng-template #noTypeUpcoming>
+                                            <span class="text-xs text-muted-color italic">No type selected</span>
+                                        </ng-template>
+                                    </div>
                                     <div class="flex justify-content-center align-content-end">
                                         <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
                                         <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
@@ -674,9 +696,17 @@ interface GitHubRepo {
                         <div class="flex flex-col gap-3 min-h-32">
                             <div *ngFor="let project of getProjectsByStatus('in-progress')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
                                 <div class="flex justify-between items-start mb-3">
-                                    <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
-                                        {{ project.title }}
-                                    </h4>
+                                    <div class="flex items-center gap-2 flex-wrap flex-1">
+                                        <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
+                                            {{ project.title }}
+                                        </h4>
+                                        <ng-container *ngIf="project.types && project.types.length > 0; else noTypeInProgress">
+                                            <p-tag *ngFor="let type of project.types" [value]="type" severity="secondary" styleClass="text-xs"></p-tag>
+                                        </ng-container>
+                                        <ng-template #noTypeInProgress>
+                                            <span class="text-xs text-muted-color italic">No type selected</span>
+                                        </ng-template>
+                                    </div>
                                     <div class="flex justify-content-center align-content-end">
                                     <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
                                     <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
@@ -759,11 +789,16 @@ interface GitHubRepo {
                         <div class="flex flex-col gap-3 min-h-32">
                             <div *ngFor="let project of getProjectsByStatus('completed')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
                                 <div class="flex justify-between items-start mb-3">
-                                    <div class="flex items-baseline gap-2 flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap flex-1">
                                         <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
                                             {{ project.title }}
                                         </h4>
-                                        <!-- <i class="pi pi-check-circle text-green-500 text-xl"></i> -->
+                                        <ng-container *ngIf="project.types && project.types.length > 0; else noTypeCompleted">
+                                            <p-tag *ngFor="let type of project.types" [value]="type" severity="secondary" styleClass="text-xs"></p-tag>
+                                        </ng-container>
+                                        <ng-template #noTypeCompleted>
+                                            <span class="text-xs text-muted-color italic">No type selected</span>
+                                        </ng-template>
                                     </div>
                                     <div class="flex justify-content-center align-content-end">
                                         <p-button *ngIf="isAdmin() && project.status !== 'completed'" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
@@ -826,6 +861,7 @@ interface GitHubRepo {
                                 [value]="selectedProject.status === 'in-progress' ? 'In Progress' : selectedProject.status === 'upcoming' ? 'Upcoming' : 'Completed'" 
                                 [severity]="selectedProject.status === 'in-progress' ? 'info' : selectedProject.status === 'upcoming' ? 'warn' : 'success'"
                             ></p-tag>
+                            <p-tag *ngFor="let type of selectedProject.types" [value]="type" severity="secondary"></p-tag>
                         </div>
                     </div>
                     <div class="flex gap-2">
@@ -1051,6 +1087,16 @@ interface GitHubRepo {
                                     <a [href]="getGithubRepoUrl(selectedProject.githubRepo)" target="_blank" class="text-primary hover:underline">
                                         {{ selectedProject.githubRepo }}
                                     </a>
+                                </div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <i class="pi pi-tag text-primary"></i>
+                                    <span class="font-semibold text-surface-600 dark:text-surface-400">Type:</span>
+                                    <ng-container *ngIf="selectedProject.types && selectedProject.types.length > 0; else noTypes">
+                                        <p-tag *ngFor="let type of selectedProject.types" [value]="type" severity="secondary" styleClass="text-xs"></p-tag>
+                                    </ng-container>
+                                    <ng-template #noTypes>
+                                        <span class="text-muted-color text-sm italic">No type assigned</span>
+                                    </ng-template>
                                 </div>
                             </div>
 
@@ -1515,6 +1561,12 @@ export class Projects {
         });
     }
     
+    projectTypeOptions = [
+        { label: 'Software', value: 'Software' },
+        { label: 'Hardware', value: 'Hardware' },
+        { label: 'Event', value: 'Event' }
+    ];
+
     statusOptions = [
         { label: 'Upcoming', value: 'upcoming' },
         { label: 'In Progress', value: 'in-progress' },
@@ -1812,6 +1864,7 @@ export class Projects {
             startDate: '',
             endDate: '',
             progress: 0,
+            types: [],
             participants: [],
             objectives: []
         };
@@ -1872,7 +1925,8 @@ export class Projects {
                 description: this.currentProject.description?.trim() || '',
                 startDate: this.startDate?.toISOString() || '',
                 endDate: this.endDate?.toISOString() || '',
-                status: this.mapStatusToApi(this.currentProject.status)
+                status: this.mapStatusToApi(this.currentProject.status),
+                types: this.currentProject.types || []
             };
 
             this.projectsService.createProject(payload).subscribe({
@@ -1912,7 +1966,8 @@ export class Projects {
                 description: this.currentProject.description?.trim() || '',
                 startDate: this.startDate?.toISOString() || '',
                 endDate: this.endDate?.toISOString() || '',
-                status: this.mapStatusToApi(this.currentProject.status)
+                status: this.mapStatusToApi(this.currentProject.status),
+                types: this.currentProject.types || []
             };
 
             this.projectsService.updateProject(this.currentProject.id, payload).subscribe({
@@ -3277,6 +3332,7 @@ export class Projects {
                 createdByUserName: r.createdByUserName || r.CreatedByUserName
             })),
             githubRepo: p.githubRepo,
+            types: p.types || [],
             createdByUserId: p.createdByUserId,
             createdByFirstName: p.createdByFirstName,
             createdByLastName: p.createdByLastName

@@ -8,6 +8,7 @@ public class ProjectListDto
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public string Status { get; set; } = string.Empty;
+    public List<string> Types { get; set; } = [];
     public double ProgressPercentage { get; set; }
     public int TeamMemberCount { get; set; }
     public int ObjectiveCount { get; set; }

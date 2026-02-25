@@ -52,11 +52,11 @@ export class ProjectsService {
         return this.http.get<any[]>(`${this.API_URL}/user/${userId}`);
     }
 
-    createProject(payload: { title: string; description: string; startDate: string; endDate: string; status: string }): Observable<any> {
+    createProject(payload: { title: string; description: string; startDate: string; endDate: string; status: string; types: string[] }): Observable<any> {
         return this.http.post<any>(this.API_URL, payload);
     }
 
-    updateProject(id: number | string, payload: { title: string; description: string; startDate: string; endDate: string; status: string }): Observable<any> {
+    updateProject(id: number | string, payload: { title: string; description: string; startDate: string; endDate: string; status: string; types: string[] }): Observable<any> {
         return this.http.put<any>(`${this.API_URL}/${id}`, payload);
     }
 

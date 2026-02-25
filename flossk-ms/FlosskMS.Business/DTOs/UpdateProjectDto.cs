@@ -19,4 +19,6 @@ public class UpdateProjectDto
 
     [Required]
     public string Status { get; set; } = string.Empty;
+
+    public List<string> Types { get; set; } = [];
 }
