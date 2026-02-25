@@ -337,7 +337,7 @@ interface GitHubRepo {
                 <div>
                     <div class="flex justify-between items-center mb-3">
                         <h6 class="text-sm font-semibold text-muted-color m-0 tracking-wide">Resources</h6>
-                        <p-button icon="pi pi-plus" label="Add Resource" size="small" [text]="true" (onClick)="openAddObjectiveResourceDialog()" />
+                        <p-button *ngIf="selectedProject?.status !== 'completed'" icon="pi pi-plus" label="Add Resource" size="small" [text]="true" (onClick)="openAddObjectiveResourceDialog()" />
                     </div>
                     <div *ngIf="viewingObjective.resources && viewingObjective.resources.length > 0" class="flex flex-col gap-2">
                         <div *ngFor="let resource of viewingObjective.resources" class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -590,7 +590,7 @@ interface GitHubRepo {
                             <p-tag [value]="getProjectsByStatus('upcoming').length.toString()" severity="warn"></p-tag>
                         </div>
                         <div class="flex flex-col gap-3 min-h-32">
-                            <div *ngFor="let project of getProjectsByStatus('upcoming')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" (click)="selectProject(project)">
+                            <div *ngFor="let project of getProjectsByStatus('upcoming')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
                                 <div class="flex justify-between items-start mb-3">
                                     <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
                                         {{ project.title }}
@@ -672,7 +672,7 @@ interface GitHubRepo {
                             <span class="text-sm text-orange-700 dark:text-orange-300">At least one objective must be in progress first</span>
                         </div>
                         <div class="flex flex-col gap-3 min-h-32">
-                            <div *ngFor="let project of getProjectsByStatus('in-progress')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" (click)="selectProject(project)">
+                            <div *ngFor="let project of getProjectsByStatus('in-progress')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
                                 <div class="flex justify-between items-start mb-3">
                                     <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
                                         {{ project.title }}
@@ -757,7 +757,7 @@ interface GitHubRepo {
                             <span class="text-sm text-orange-700 dark:text-orange-300">All project objectives must be completed first</span>
                         </div>
                         <div class="flex flex-col gap-3 min-h-32">
-                            <div *ngFor="let project of getProjectsByStatus('completed')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" (click)="selectProject(project)">
+                            <div *ngFor="let project of getProjectsByStatus('completed')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
                                 <div class="flex justify-between items-start mb-3">
                                     <div class="flex items-baseline gap-2 flex-1">
                                         <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
@@ -766,8 +766,8 @@ interface GitHubRepo {
                                         <!-- <i class="pi pi-check-circle text-green-500 text-xl"></i> -->
                                     </div>
                                     <div class="flex justify-content-center align-content-end">
-                                        <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
-                                        <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
+                                        <p-button *ngIf="isAdmin() && project.status !== 'completed'" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
+                                        <p-button *ngIf="isAdmin() && project.status !== 'completed'" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
                                     </div>
                                 </div>
 
@@ -829,8 +829,8 @@ interface GitHubRepo {
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <p-button *ngIf="isAdmin()" label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
-                        <p-button *ngIf="isAdmin()" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
+                        <p-button *ngIf="isAdmin() && selectedProject.status !== 'completed'" label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
+                        <p-button *ngIf="isAdmin() && selectedProject.status !== 'completed'" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
                         <p-button icon="pi pi-times" [text]="true" [rounded]="true" (onClick)="selectedProject = null"></p-button>
                     </div>
                 </div>
@@ -840,7 +840,7 @@ interface GitHubRepo {
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold m-0">Objectives</h3>
-                                <p-button label="Add Objective" icon="pi pi-plus" size="small" (onClick)="openAddObjectiveDialog()" />
+                                <p-button *ngIf="selectedProject.status !== 'completed'" label="Add Objective" icon="pi pi-plus" size="small" (onClick)="openAddObjectiveDialog()" />
                             </div>
                             
                             <!-- Kanban Board for Objectives -->
@@ -1090,7 +1090,7 @@ interface GitHubRepo {
                                 </div>
                                 <div *ngIf="!selectedProject.participants || selectedProject.participants.length === 0" class="text-center text-muted-color py-4">
                                     <i class="pi pi-users text-2xl mb-2"></i>
-                                    <p class="m-0">No team members assigned yet</p>
+                                    <p class="m-0">{{ selectedProject.status === 'completed' ? 'No team members were added' : 'No team members assigned yet' }}</p>
                                 </div>
                             </div>
                         </div>
@@ -1098,7 +1098,7 @@ interface GitHubRepo {
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold m-0">Resources</h3>
-                                <p-button icon="pi pi-plus" size="small" [text]="true" [rounded]="true" (onClick)="openAddResourceDialog()" />
+                                <p-button *ngIf="selectedProject.status !== 'completed'" icon="pi pi-plus" size="small" [text]="true" [rounded]="true" (onClick)="openAddResourceDialog()" />
                             </div>
                             <div class="flex flex-col gap-2">
                                 <div *ngFor="let resource of selectedProject.resources" class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -1140,7 +1140,7 @@ interface GitHubRepo {
                                     </div>
                                 </div>
                                 <div *ngIf="!selectedProject.resources || selectedProject.resources.length === 0" class="text-center text-muted-color text-sm py-4">
-                                    No resources added yet
+                                    {{ selectedProject.status === 'completed' ? 'No resources were added' : 'No resources added yet' }}
                                 </div>
                             </div>
                         </div>
@@ -1719,6 +1719,11 @@ export class Projects {
             
             // Update project status locally
             this.draggedProject.status = newStatus;
+
+            // If the detail panel is open for this project, sync its status too
+            if (this.selectedProject?.id === projectId) {
+                this.selectedProject.status = newStatus;
+            }
             
             // Add to new list
             switch (newStatus) {
@@ -1768,6 +1773,11 @@ export class Projects {
         
         // Restore old status
         project.status = oldStatus;
+
+        // If the detail panel is open for this project, revert its status too
+        if (this.selectedProject?.id === project.id) {
+            this.selectedProject.status = oldStatus;
+        }
         
         // Add back to old list
         switch (oldStatus) {

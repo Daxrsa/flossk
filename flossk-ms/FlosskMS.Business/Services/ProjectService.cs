@@ -159,6 +159,11 @@ public class ProjectService : IProjectService
             return new NotFoundObjectResult(new { Error = "Project not found." });
         }
 
+        if (project.Status == ProjectStatus.Completed)
+        {
+            return new BadRequestObjectResult(new { Error = "Cannot edit a completed project." });
+        }
+
         if (string.IsNullOrWhiteSpace(request.Title))
         {
             return new BadRequestObjectResult(new { Error = "Title is required." });
@@ -211,6 +216,11 @@ public class ProjectService : IProjectService
         if (project == null)
         {
             return new NotFoundObjectResult(new { Error = "Project not found." });
+        }
+
+        if (project.Status == ProjectStatus.Completed)
+        {
+            return new BadRequestObjectResult(new { Error = "Cannot delete a completed project." });
         }
 
         _dbContext.Projects.Remove(project);
@@ -267,6 +277,11 @@ public class ProjectService : IProjectService
         if (project == null)
         {
             return new NotFoundObjectResult(new { Error = "Project not found." });
+        }
+
+        if (project.Status == ProjectStatus.Completed)
+        {
+            return new BadRequestObjectResult(new { Error = "Cannot assign members to a completed project." });
         }
 
         var user = await _dbContext.Users.FindAsync(request.UserId);
@@ -502,6 +517,11 @@ public class ProjectService : IProjectService
         if (project == null)
         {
             return new NotFoundObjectResult(new { Error = "Project not found." });
+        }
+
+        if (project.Status == ProjectStatus.Completed)
+        {
+            return new BadRequestObjectResult(new { Error = "Cannot add objectives to a completed project." });
         }
 
         var user = await _dbContext.Users.FindAsync(userId);
@@ -907,6 +927,11 @@ public class ProjectService : IProjectService
             if (project == null)
             {
                 return new NotFoundObjectResult(new { Error = "Project not found." });
+            }
+
+            if (project.Status == ProjectStatus.Completed)
+            {
+                return new BadRequestObjectResult(new { Error = "Cannot add resources to a completed project." });
             }
         }
 
