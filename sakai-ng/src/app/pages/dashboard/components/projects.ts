@@ -888,7 +888,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                             <!-- Kanban Board for Objectives -->
                             <div class="grid grid-cols-12 gap-4">
                                 <!-- Todo Column -->
-                                <div class="col-span-12 md:col-span-4">
+                                <div *ngIf="selectedProject.status !== 'completed'" class="col-span-12 md:col-span-4">
                                     <div class="bg-surface-100 dark:bg-surface-800 rounded-lg p-3" pDroppable="objectives" (onDrop)="onDropObjective($event, 'todo')">
                                         <div class="flex items-center justify-between mb-3">
                                             <h4 class="font-semibold text-sm m-0 text-surface-600 dark:text-surface-400">To Do</h4>
@@ -942,7 +942,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 </div>
 
                                 <!-- In Progress Column -->
-                                <div class="col-span-12 md:col-span-4">
+                                <div *ngIf="selectedProject.status !== 'completed'" class="col-span-12 md:col-span-4">
                                     <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3" pDroppable="objectives" (onDrop)="onDropObjective($event, 'in-progress')">
                                         <div class="flex items-center justify-between mb-3">
                                             <h4 class="font-semibold text-sm m-0 text-blue-600 dark:text-blue-400">In Progress</h4>
@@ -1002,13 +1002,13 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 </div>
 
                                 <!-- Completed Column -->
-                                <div class="col-span-12 md:col-span-4">
+                                <div [ngClass]="selectedProject.status === 'completed' ? 'col-span-12' : 'col-span-12 md:col-span-4'">
                                     <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" pDroppable="objectives" (onDrop)="onDropObjective($event, 'completed')">
                                         <div class="flex items-center justify-between mb-3">
                                             <h4 class="font-semibold text-sm m-0 text-green-600 dark:text-green-400">Completed</h4>
                                             <p-tag [value]="getObjectivesByStatus('completed').length.toString()" severity="success" styleClass="text-xs"></p-tag>
                                         </div>
-                                        <div class="flex flex-col gap-2 min-h-24">
+                                        <div [ngClass]="selectedProject.status === 'completed' ? 'grid grid-cols-1 md:grid-cols-3 gap-2 min-h-24' : 'flex flex-col gap-2 min-h-24'">
                                             <div *ngFor="let objective of getObjectivesByStatus('completed')" 
                                                 pDraggable="objectives" 
                                                 (onDragStart)="dragStartObjective(objective)" 
@@ -1702,6 +1702,7 @@ export class Projects {
     }
 
     dragStartObjective(objective: Objective) {
+        console.log('Drag started for objective:', objective);
         this.draggedObjective = objective;
     }
 
@@ -1710,9 +1711,11 @@ export class Projects {
     }
 
     onDropObjective(event: any, newStatus: 'todo' | 'in-progress' | 'completed') {
+        console.log('onDropObjective called. Event:', event, '| Target status:', newStatus, '| Dragged objective:', this.draggedObjective);
         if (this.draggedObjective && this.selectedProject) {
             // Prevent modifying completed objectives via drag-drop
-            if (this.draggedObjective.status === 'completed') {
+            if (this.selectedProject.status === 'completed') {
+                console.log('Drop blocked: objective is already completed and cannot be moved.');
                 this.draggedObjective = null;
                 return;
             }
