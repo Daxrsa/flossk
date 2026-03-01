@@ -60,38 +60,55 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     }
 
     /// <summary>
-    /// Update a project (Admin only)
+    /// Update a project (Admin or project moderator)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateProject(Guid id, [FromBody] UpdateProjectDto request)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _projectService.UpdateProjectAsync(id, request, userId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.UpdateProjectAsync(id, request, userId, isAdmin);
     }
 
     /// <summary>
-    /// Delete a project (Admin only)
+    /// Delete a project (Admin or project moderator)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteProject(Guid id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _projectService.DeleteProjectAsync(id, userId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.DeleteProjectAsync(id, userId, isAdmin);
     }
 
     /// <summary>
-    /// Update project status (Admin only)
+    /// Update project status (Admin or project moderator)
     /// </summary>
     /// <param name="id">Project ID</param>
     /// <param name="status">New status: Upcoming, InProgress, or Completed</param>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPatch("{id:guid}/status")]
     public async Task<IActionResult> UpdateProjectStatus(Guid id, [FromQuery] string status)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _projectService.UpdateProjectStatusAsync(id, status, userId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.UpdateProjectStatusAsync(id, status, userId, isAdmin);
+    }
+
+    /// <summary>
+    /// Assign or remove a project moderator (Admin only).
+    /// Send null ModeratorUserId to remove the current moderator.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id:guid}/moderator")]
+    public async Task<IActionResult> AssignModerator(Guid id, [FromBody] AssignModeratorDto request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+        return await _projectService.AssignModeratorAsync(id, request, userId);
     }
 
     #endregion
@@ -189,9 +206,9 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     }
 
     /// <summary>
-    /// Create a new objective (Admin only)
+    /// Create a new objective (Admin or project moderator)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("objectives")]
     public async Task<IActionResult> CreateObjective([FromBody] CreateObjectiveDto request)
     {
@@ -200,7 +217,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         {
             return Unauthorized();
         }
-        return await _projectService.CreateObjectiveAsync(request, userId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.CreateObjectiveAsync(request, userId, isAdmin);
     }
 
     /// <summary>
@@ -213,38 +231,41 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     }
 
     /// <summary>
-    /// Update an objective (Admin only)
+    /// Update an objective (Admin or project moderator)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("objectives/{id:guid}")]
     public async Task<IActionResult> UpdateObjective(Guid id, [FromBody] UpdateObjectiveDto request)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _projectService.UpdateObjectiveAsync(id, request, userId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.UpdateObjectiveAsync(id, request, userId, isAdmin);
     }
 
     /// <summary>
-    /// Delete an objective (Admin only)
+    /// Delete an objective (Admin or project moderator)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("objectives/{id:guid}")]
     public async Task<IActionResult> DeleteObjective(Guid id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _projectService.DeleteObjectiveAsync(id, userId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.DeleteObjectiveAsync(id, userId, isAdmin);
     }
 
     /// <summary>
-    /// Update objective status (Admin only)
+    /// Update objective status (Admin or project moderator)
     /// </summary>
     /// <param name="id">Objective ID</param>
     /// <param name="status">New status: Todo, InProgress, or Completed</param>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPatch("objectives/{id:guid}/status")]
     public async Task<IActionResult> UpdateObjectiveStatus(Guid id, [FromQuery] string status)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _projectService.UpdateObjectiveStatusAsync(id, status, userId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.UpdateObjectiveStatusAsync(id, status, userId, isAdmin);
     }
 
     #endregion

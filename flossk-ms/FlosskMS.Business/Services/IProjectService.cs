@@ -10,9 +10,10 @@ public interface IProjectService
     Task<IActionResult> GetProjectsAsync(string? status = null);
     Task<IActionResult> GetProjectsByUserIdAsync(string userId);
     Task<IActionResult> GetProjectByIdAsync(Guid id);
-    Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request, string? userId = null);
-    Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status, string? userId = null);
-    Task<IActionResult> DeleteProjectAsync(Guid id, string? userId = null);
+    Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request, string? userId = null, bool isAdmin = false);
+    Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status, string? userId = null, bool isAdmin = false);
+    Task<IActionResult> DeleteProjectAsync(Guid id, string? userId = null, bool isAdmin = false);
+    Task<IActionResult> AssignModeratorAsync(Guid projectId, AssignModeratorDto request, string actingUserId);
 
     // Project team member operations
     Task<IActionResult> AddTeamMemberToProjectAsync(Guid projectId, AddTeamMemberDto request, string? addedByUserId = null);
@@ -23,12 +24,12 @@ public interface IProjectService
     Task<IActionResult> LeaveProjectAsync(Guid projectId, string userId);
 
     // Objective operations
-    Task<IActionResult> CreateObjectiveAsync(CreateObjectiveDto request, string userId);
+    Task<IActionResult> CreateObjectiveAsync(CreateObjectiveDto request, string userId, bool isAdmin = false);
     Task<IActionResult> GetObjectiveByIdAsync(Guid id);
     Task<IActionResult> GetObjectivesByProjectIdAsync(Guid projectId);
-    Task<IActionResult> UpdateObjectiveAsync(Guid id, UpdateObjectiveDto request, string? userId = null);
-    Task<IActionResult> UpdateObjectiveStatusAsync(Guid id, string status, string? userId = null);
-    Task<IActionResult> DeleteObjectiveAsync(Guid id, string? userId = null);
+    Task<IActionResult> UpdateObjectiveAsync(Guid id, UpdateObjectiveDto request, string? userId = null, bool isAdmin = false);
+    Task<IActionResult> UpdateObjectiveStatusAsync(Guid id, string status, string? userId = null, bool isAdmin = false);
+    Task<IActionResult> DeleteObjectiveAsync(Guid id, string? userId = null, bool isAdmin = false);
 
     // Objective team member operations
     Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request, string currentUserId);

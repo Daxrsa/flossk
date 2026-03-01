@@ -18,6 +18,11 @@ public class ProjectDto
     public string CreatedByFirstName { get; set; } = string.Empty;
     public string CreatedByLastName { get; set; } = string.Empty;
 
+    // Moderator info (optional)
+    public string? ModeratorUserId { get; set; }
+    public string? ModeratorFirstName { get; set; }
+    public string? ModeratorLastName { get; set; }
+
     // Collections
     public List<TeamMemberDto> TeamMembers { get; set; } = [];
     public List<ObjectiveDto> Objectives { get; set; } = [];

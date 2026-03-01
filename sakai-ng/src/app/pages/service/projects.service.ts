@@ -128,6 +128,10 @@ export class ProjectsService {
         return this.http.delete<any>(`${this.API_URL}/resources/${id}`);
     }
 
+    assignModerator(projectId: number | string, moderatorUserId: string | null): Observable<any> {
+        return this.http.put<any>(`${this.API_URL}/${projectId}/moderator`, { moderatorUserId });
+    }
+
     uploadFiles(files: File[]): Observable<any> {
         const formData = new FormData();
         files.forEach(file => {

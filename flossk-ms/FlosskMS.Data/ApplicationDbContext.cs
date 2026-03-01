@@ -236,6 +236,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(e => e.ModeratorUser)
+                .WithMany()
+                .HasForeignKey(e => e.ModeratorUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
             entity.Ignore(e => e.ProgressPercentage); // Calculated property
 
             entity.HasIndex(e => e.Title);

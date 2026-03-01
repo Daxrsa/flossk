@@ -82,6 +82,9 @@ interface Project {
     createdByUserId?: string; // Project creator user ID
     createdByFirstName?: string; // Project creator first name
     createdByLastName?: string; // Project creator last name
+    moderatorUserId?: string; // Project moderator user ID
+    moderatorFirstName?: string; // Project moderator first name
+    moderatorLastName?: string; // Project moderator last name
 }
 
 interface GitHubCommit {
@@ -328,7 +331,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 <div>
                     <div class="flex justify-between items-center mb-3">
                         <h6 class="text-sm font-semibold text-muted-color m-0 tracking-wide">Team Members</h6>
-                        <p-button *ngIf="viewingObjective.status !== 'completed' && isProjectCreator(selectedProject)" icon="pi pi-user-plus" label="Assign Members" size="small" [text]="true" (onClick)="openAssignMembersToObjectiveFromDetail()" />
+                        <p-button *ngIf="viewingObjective.status !== 'completed' && isAdminOrModerator(selectedProject)" icon="pi pi-user-plus" label="Assign Members" size="small" [text]="true" (onClick)="openAssignMembersToObjectiveFromDetail()" />
                     </div>
                     <div *ngIf="viewingObjective.members && viewingObjective.members.length > 0" class="flex flex-col gap-3">
                         <div *ngFor="let member of viewingObjective.members" class="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -338,7 +341,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 <p class="font-semibold text-surface-900 dark:text-surface-0 m-0">{{ member.name }}</p>
                                 <p class="text-sm text-muted-color m-0">{{ member.role }}</p>
                             </div>
-                            <p-button *ngIf="viewingObjective.status !== 'completed' && isProjectCreator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromObjectiveDetail(member)" />
+                            <p-button *ngIf="viewingObjective.status !== 'completed' && (isProjectCreator(selectedProject) || isProjectModerator(selectedProject))" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromObjectiveDetail(member)" />
                         </div>
                     </div>
                     <div *ngIf="!viewingObjective.members || viewingObjective.members.length === 0" class="text-center text-muted-color py-4 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -531,7 +534,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                             <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="normal"></p-avatar>
                             <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
                             <span class="text-sm">{{ member.name }}</span>
-                            <p-button *ngIf="isProjectCreator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" (onClick)="removeProjectMemberFromDialog(member)" />
+                            <p-button *ngIf="isProjectCreator(selectedProject) || isProjectModerator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" (onClick)="removeProjectMemberFromDialog(member)" />
                         </div>
                     </div>
                 </div>
@@ -590,6 +593,44 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 <p-button label="Save" (onClick)="saveObjectiveMembers()" />
             </div>
         </p-dialog>
+
+        <!-- Assign Moderator Dialog -->
+        <p-dialog [(visible)]="assignModeratorDialogVisible" [header]="'Assign Moderator: ' + (selectedProject?.title || 'Project')" [modal]="true" [style]="{width: '35rem'}" [contentStyle]="{'overflow': 'visible'}" appendTo="body">
+            <div class="flex flex-col gap-4">
+                <div *ngIf="selectedProject?.moderatorFirstName" class="flex items-center gap-2 p-3 bg-surface-100 dark:bg-surface-800 rounded-lg">
+                    <i class="pi pi-shield text-warning"></i>
+                    <span class="text-sm">Current moderator: <strong>{{ selectedProject?.moderatorFirstName }} {{ selectedProject?.moderatorLastName }}</strong></span>
+                </div>
+                <div>
+                    <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Select Moderator</label>
+                    <p-select
+                        [(ngModel)]="selectedModeratorUserId"
+                        [options]="availableMembers"
+                        optionLabel="name"
+                        optionValue="userId"
+                        placeholder="Select a member as moderator"
+                        class="w-full"
+                        [showClear]="true"
+                    >
+                        <ng-template let-member pTemplate="item">
+                            <div class="flex items-center gap-2">
+                                <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="normal"></p-avatar>
+                                <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
+                                <div>
+                                    <span class="font-medium">{{ member.name }}</span>
+                                    <span class="text-xs text-muted-color ml-2">{{ member.role }}</span>
+                                </div>
+                            </div>
+                        </ng-template>
+                    </p-select>
+                </div>
+                <p class="text-sm text-muted-color m-0">The moderator can edit, delete and manage objectives for this project. Clear the selection to remove the current moderator.</p>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <p-button label="Cancel" severity="secondary" (onClick)="assignModeratorDialogVisible = false" />
+                <p-button label="Save" [loading]="savingModerator" (onClick)="saveProjectModerator()" />
+            </div>
+        </p-dialog>
         
         <div class="card">
             <div class="flex justify-end items-center mb-6">
@@ -620,8 +661,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         </ng-template>
                                     </div>
                                     <div class="flex justify-content-center align-content-end">
-                                        <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
-                                        <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
+                                        <p-button *ngIf="isAdminOrModerator(project)" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
+                                        <p-button *ngIf="isAdminOrModerator(project)" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
                                         <p-button icon="pi pi-history" [text]="true" [rounded]="true" size="small" severity="info" pTooltip="History" (onClick)="openHistoryDialog(project); $event.stopPropagation()" />
                                     </div>
                                 </div>
@@ -711,8 +752,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         </ng-template>
                                     </div>
                                     <div class="flex justify-content-center align-content-end">
-                                    <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
-                                    <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
+                                    <p-button *ngIf="isAdminOrModerator(project)" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
+                                    <p-button *ngIf="isAdminOrModerator(project)" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
                                     <p-button icon="pi pi-history" [text]="true" [rounded]="true" size="small" severity="info" pTooltip="History" (onClick)="openHistoryDialog(project); $event.stopPropagation()" />
                                     </div>
                                 </div>
@@ -805,8 +846,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         </ng-template>
                                     </div>
                                     <div class="flex justify-content-center align-content-end">
-                                        <p-button *ngIf="isAdmin() && project.status !== 'completed'" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
-                                        <p-button *ngIf="isAdmin() && project.status !== 'completed'" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
+                                        <p-button *ngIf="isAdminOrModerator(project) && project.status !== 'completed'" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditDialog(project); $event.stopPropagation()" />
+                                        <p-button *ngIf="isAdminOrModerator(project) && project.status !== 'completed'" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteProject(project)" />
                                         <p-button icon="pi pi-history" [text]="true" [rounded]="true" size="small" severity="info" pTooltip="History" (onClick)="openHistoryDialog(project); $event.stopPropagation()" />
                                     </div>
                                 </div>
@@ -870,8 +911,9 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <p-button *ngIf="isAdmin() && selectedProject.status !== 'completed'" label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
-                        <p-button *ngIf="isAdmin() && selectedProject.status !== 'completed'" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
+                        <p-button *ngIf="isAdminOrModerator(selectedProject) && selectedProject.status !== 'completed'" label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
+                        <p-button *ngIf="isAdminOrModerator(selectedProject) && selectedProject.status !== 'completed'" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
+                        <p-button *ngIf="isAdmin()" label="Moderator" icon="pi pi-shield" severity="warn" [outlined]="true" (onClick)="openAssignModeratorDialog()" />
                         <p-button label="History" icon="pi pi-history" severity="info" [outlined]="true" (onClick)="openHistoryDialog(selectedProject)" />
                         <p-button icon="pi pi-times" [text]="true" [rounded]="true" (onClick)="selectedProject = null"></p-button>
                     </div>
@@ -904,8 +946,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                 <div class="flex justify-between items-start mb-2">
                                                     <h5 class="font-semibold text-sm text-surface-900 dark:text-surface-0 m-0 flex-1">{{ objective.title }}</h5>
                                                     <div class="flex gap-1">
-                                                        <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
-                                                        <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
+                                                        <p-button *ngIf="isAdminOrModerator(selectedProject)" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
+                                                        <p-button *ngIf="isAdminOrModerator(selectedProject)" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
                                                     </div>
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
@@ -928,7 +970,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                         }
                                                     </div>
                                                     <div class="flex items-center gap-1">
-                                                        <p-button *ngIf="objective.status !== 'completed' && isProjectCreator(selectedProject)" class="" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
+                                                        <p-button *ngIf="objective.status !== 'completed' && isAdminOrModerator(selectedProject)" class="" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
                                                         @if (objective.status !== 'completed' && !isUserInObjective(objective)) {
                                                             <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" severity="secondary" pTooltip="Join" (onClick)="joinObjective(objective, $event)" />
                                                         } @else if (objective.status !== 'completed' && isUserInObjective(objective)) {
@@ -958,8 +1000,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                 <div class="flex justify-between items-start mb-2">
                                                     <h5 class="font-semibold text-sm text-surface-900 dark:text-surface-0 m-0 flex-1">{{ objective.title }}</h5>
                                                     <div class="flex gap-1">
-                                                        <p-button *ngIf="isAdmin()" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
-                                                        <p-button *ngIf="isAdmin()" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
+                                                        <p-button *ngIf="isAdminOrModerator(selectedProject)" icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openEditObjectiveDialog(objective); $event.stopPropagation()" />
+                                                        <p-button *ngIf="isAdminOrModerator(selectedProject)" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
                                                     </div>
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
@@ -988,7 +1030,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                         }
                                                     </div>
                                                     <div class="flex items-center gap-1">
-                                                        <p-button *ngIf="objective.status !== 'completed' && isProjectCreator(selectedProject)" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
+                                                        <p-button *ngIf="objective.status !== 'completed' && isAdminOrModerator(selectedProject)" icon="pi pi-users" size="small" [text]="true" [rounded]="true" severity="info" pTooltip="Assign Members" (onClick)="openAssignMembersToObjectiveDialog(objective, $event)" />
                                                         @if (objective.status !== 'completed' && !isUserInObjective(objective)) {
                                                             <p-button icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" severity="secondary" pTooltip="Join" (onClick)="joinObjective(objective, $event)" />
                                                         } @else if (objective.status !== 'completed' && isUserInObjective(objective)) {
@@ -1113,6 +1155,16 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 </div>
                             </div>
 
+                            <!-- Moderator Information -->
+                            <div class="border-t border-surface-200 dark:border-surface-700 pt-3 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <i class="pi pi-shield text-primary"></i>
+                                    <span class="font-semibold text-primary">Moderator:</span>
+                                    <span *ngIf="selectedProject.moderatorFirstName" class="text-surface-900 dark:text-surface-0">{{ selectedProject.moderatorFirstName }} {{ selectedProject.moderatorLastName }}</span>
+                                    <span *ngIf="!selectedProject.moderatorFirstName" class="text-muted-color text-sm italic">None assigned</span>
+                                </div>
+                            </div>
+
                             <!-- Progress Bar -->
                             <div class="border-t border-surface-200 dark:border-surface-700 pt-3">
                                 <div class="flex justify-between items-center mb-2">
@@ -1126,7 +1178,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold m-0">Team members</h3>
-                                <p-button *ngIf="selectedProject.status !== 'completed'" icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" pTooltip="Assign Members" (onClick)="openAssignMembersToProjectDialog()" />
+                                <p-button *ngIf="selectedProject.status !== 'completed' && isAdminOrModerator(selectedProject)" icon="pi pi-user-plus" size="small" [text]="true" [rounded]="true" pTooltip="Assign Members" (onClick)="openAssignMembersToProjectDialog()" />
                             </div>
                             <div class="flex flex-col gap-3">
                                 <div *ngFor="let member of selectedProject.participants" class="flex items-center gap-3">
@@ -1136,7 +1188,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         <p class="font-semibold m-0">{{ member.name }}</p>
                                         <p class="text-sm text-muted-color m-0">{{ member.role }}</p>
                                     </div>
-                                    <p-button *ngIf="selectedProject.status !== 'completed' && isProjectCreator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromProject(member)" />
+                                    <p-button *ngIf="selectedProject.status !== 'completed' && (isProjectCreator(selectedProject) || isProjectModerator(selectedProject))" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromProject(member)" />
                                 </div>
                                 <div *ngIf="!selectedProject.participants || selectedProject.participants.length === 0" class="text-center text-muted-color py-4">
                                     <i class="pi pi-users text-2xl mb-2"></i>
@@ -1466,7 +1518,10 @@ export class Projects {
                 githubRepo: p.githubRepo,
                 createdByUserId: p.createdByUserId,
                 createdByFirstName: p.createdByFirstName,
-                createdByLastName: p.createdByLastName
+                createdByLastName: p.createdByLastName,
+                moderatorUserId: p.moderatorUserId,
+                moderatorFirstName: p.moderatorFirstName,
+                moderatorLastName: p.moderatorLastName
             };
             console.log('Mapped project:', project.title, 'createdBy:', p.createdByFirstName, p.createdByLastName);
             return project;
@@ -1591,6 +1646,11 @@ export class Projects {
     tempSelectedObjectiveMembers: string[] = [];
     initialProjectMembers: string[] = []; // Track initial members to prevent removal
     initialObjectiveMembers: string[] = []; // Track initial members to prevent removal
+
+    // Moderator assignment dialog
+    assignModeratorDialogVisible = false;
+    selectedModeratorUserId: string | null = null;
+    savingModerator = false;
     
     resourceDialogVisible = false;
     resourceDialogMode: 'add' | 'edit' = 'add';
@@ -2498,20 +2558,57 @@ export class Projects {
     
     isProjectCreator(project: Project | null): boolean {
         if (!project) return false;
-        const isCreator = project.createdByUserId === this.currentUser.userId;
-        // console.log('isProjectCreator check:', {
-        //     projectCreatorId: project.createdByUserId,
-        //     currentUserId: this.currentUser.userId,
-        //     isCreator: isCreator
-        // });
-        return isCreator;
+        return project.createdByUserId === this.currentUser.userId;
+    }
+
+    isProjectModerator(project: Project | null): boolean {
+        if (!project) return false;
+        return !!project.moderatorUserId && project.moderatorUserId === this.currentUser.userId;
+    }
+
+    isAdminOrModerator(project: Project | null): boolean {
+        return this.isAdmin() || this.isProjectModerator(project);
     }
     
     isAdmin(): boolean {
         const role = this.currentUser.role?.toLowerCase();
         return role === 'admin' || role === 'administrator';
     }
-    
+
+    openAssignModeratorDialog() {
+        if (!this.selectedProject) return;
+        this.selectedModeratorUserId = this.selectedProject.moderatorUserId ?? null;
+        this.assignModeratorDialogVisible = true;
+    }
+
+    saveProjectModerator() {
+        if (!this.selectedProject) return;
+        this.savingModerator = true;
+        this.projectsService.assignModerator(this.selectedProject.id, this.selectedModeratorUserId).subscribe({
+            next: () => {
+                if (this.selectedProject) {
+                    const member = this.availableMembers.find(m => m.userId === this.selectedModeratorUserId);
+                    if (member) {
+                        const [firstName, ...rest] = member.name.split(' ');
+                        this.selectedProject.moderatorUserId = this.selectedModeratorUserId ?? undefined;
+                        this.selectedProject.moderatorFirstName = firstName;
+                        this.selectedProject.moderatorLastName = rest.join(' ');
+                    } else {
+                        this.selectedProject.moderatorUserId = undefined;
+                        this.selectedProject.moderatorFirstName = undefined;
+                        this.selectedProject.moderatorLastName = undefined;
+                    }
+                }
+                this.assignModeratorDialogVisible = false;
+                this.savingModerator = false;
+            },
+            error: (err) => {
+                console.error('Error assigning moderator:', err);
+                this.savingModerator = false;
+            }
+        });
+    }
+
     joinObjective(objective: Objective, event: Event) {
         event.stopPropagation();
         
@@ -3519,7 +3616,10 @@ export class Projects {
             types: p.types || [],
             createdByUserId: p.createdByUserId,
             createdByFirstName: p.createdByFirstName,
-            createdByLastName: p.createdByLastName
+            createdByLastName: p.createdByLastName,
+            moderatorUserId: p.moderatorUserId,
+            moderatorFirstName: p.moderatorFirstName,
+            moderatorLastName: p.moderatorLastName
         };
     }
 
