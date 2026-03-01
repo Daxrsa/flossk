@@ -183,25 +183,49 @@ public class ContributionService : IContributionService
 
     #region Private Helpers
 
+    public async Task<IActionResult> DeleteAllContributionsAsync()
+    {
+        var all = await _dbContext.UserContributions.ToListAsync();
+        var count = all.Count;
+
+        if (count == 0)
+            return new OkObjectResult(new { Message = "No contributions to delete.", Deleted = 0 });
+
+        _dbContext.UserContributions.RemoveRange(all);
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("All user contributions deleted: {Count} records removed.", count);
+
+        return new OkObjectResult(new { Message = $"Deleted {count} contribution record(s).", Deleted = count });
+    }
+
     private List<UserContribution> BuildContributions(Project project)
     {
         var contributions = new List<UserContribution>();
 
         foreach (var member in project.TeamMembers)
         {
-            var objectivesCompleted = project.Objectives
-                .Count(o => o.Status == ObjectiveStatus.Completed
-                         && o.TeamMembers.Any(tm => tm.UserId == member.UserId));
+            var completedObjectives = project.Objectives
+                .Where(o => o.Status == ObjectiveStatus.Completed
+                         && o.TeamMembers.Any(tm => tm.UserId == member.UserId))
+                .ToList();
+
+            var objectivesCompleted = completedObjectives.Count;
+            var objectivePointsEarned = completedObjectives.Sum(o =>
+            {
+                var assignedCount = o.TeamMembers.Count;
+                return assignedCount > 0 ? (double)o.Points / assignedCount : (double)o.Points;
+            });
 
             var resourcesCreated = project.Resources
                 .Count(r => r.CreatedByUserId == member.UserId);
 
             var isCreator = project.CreatedByUserId == member.UserId;
 
-            var score = ParticipationPoints
-                      + (objectivesCompleted * ObjectiveCompletedPoints)
+            var score = (int)Math.Round(ParticipationPoints
+                      + objectivePointsEarned
                       + (resourcesCreated * ResourceCreatedPoints)
-                      + (isCreator ? CreatorBonus : 0);
+                      + (isCreator ? CreatorBonus : 0));
 
             contributions.Add(new UserContribution
             {

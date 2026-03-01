@@ -58,6 +58,7 @@ interface Objective {
     title: string;
     description: string;
     status: 'todo' | 'in-progress' | 'completed';
+    points?: number;
     assignedTo: Member;
     members?: Member[];
     resources?: Resource[];
@@ -205,6 +206,11 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 <div>
                     <label for="objectiveStatus" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Status</label>
                     <p-select id="objectiveStatus" [(ngModel)]="currentObjective.status" [options]="objectiveStatusOptions" placeholder="Select Status" class="w-full" />
+                </div>
+
+                <div>
+                    <label for="objectivePoints" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Points <span class="text-muted-color text-sm font-normal">(used for contribution scoring)</span></label>
+                    <input type="number" pInputText id="objectivePoints" [(ngModel)]="currentObjective.points" min="1" max="10" class="w-full" />
                 </div>
             </div>
             
@@ -913,7 +919,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     <div class="flex gap-2">
                         <p-button *ngIf="isAdminOrModerator(selectedProject) && selectedProject.status !== 'completed'" label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
                         <p-button *ngIf="isAdminOrModerator(selectedProject) && selectedProject.status !== 'completed'" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
-                        <p-button *ngIf="isAdmin()" label="Moderator" icon="pi pi-shield" severity="warn" [outlined]="true" (onClick)="openAssignModeratorDialog()" />
+                        <p-button *ngIf="isAdmin() && selectedProject.status !== 'completed'" label="Moderator" icon="pi pi-shield" severity="warn" [outlined]="true" (onClick)="openAssignModeratorDialog()" />
                         <p-button label="History" icon="pi pi-history" severity="info" [outlined]="true" (onClick)="openHistoryDialog(selectedProject)" />
                         <p-button icon="pi pi-times" [text]="true" [rounded]="true" (onClick)="selectedProject = null"></p-button>
                     </div>
@@ -951,6 +957,10 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                     </div>
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
+                                                <div class="flex items-center gap-1 mb-2">
+                                                    <i class="pi pi-star-fill" style="font-size: 0.65rem; color: #ca8a04"></i>
+                                                    <span class="text-xs font-semibold" style="color: #ca8a04">{{ objective.points ?? 1 }} pts</span>
+                                                </div>
                                                 <div *ngIf="objective.createdByFirstName || objective.createdByLastName" class="text-xs text-surface-500 dark:text-surface-500 mb-2 flex items-center gap-1">
                                                     <i class="pi pi-user" style="font-size: 0.65rem"></i>
                                                     <span>{{ objective.createdByFirstName }} {{ objective.createdByLastName }}</span>
@@ -1005,6 +1015,10 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                     </div>
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
+                                                <div class="flex items-center gap-1 mb-2">
+                                                    <i class="pi pi-star-fill" style="font-size: 0.65rem; color: #ca8a04"></i>
+                                                    <span class="text-xs font-semibold" style="color: #ca8a04">{{ objective.points ?? 1 }} pts</span>
+                                                </div>
                                                 <div *ngIf="objective.createdByFirstName || objective.createdByLastName" class="text-xs text-surface-500 dark:text-surface-500 mb-2 flex items-center gap-1">
                                                     <i class="pi pi-user" style="font-size: 0.65rem"></i>
                                                     <span>{{ objective.createdByFirstName }} {{ objective.createdByLastName }}</span>
@@ -1511,7 +1525,8 @@ export class Projects {
                     resources: o.resources || [],
                     createdByUserId: o.createdByUserId,
                     createdByFirstName: o.createdByFirstName,
-                    createdByLastName: o.createdByLastName
+                    createdByLastName: o.createdByLastName,
+                    points: o.points || 1
                 })),
                 resources: p.resources || [],
                 types: p.types || [],
@@ -2212,6 +2227,7 @@ export class Projects {
             title: '',
             description: '',
             status: 'todo',
+            points: 1,
             assignedTo: { name: 'Unassigned', avatar: '', role: 'Member' },
             members: []
         };
@@ -2242,7 +2258,8 @@ export class Projects {
             projectId: this.selectedProject.id.toString(),
             title: this.currentObjective.title.trim(),
             description: this.currentObjective.description?.trim() || '',
-            status: this.mapObjectiveStatusToApi(this.currentObjective.status)
+            status: this.mapObjectiveStatusToApi(this.currentObjective.status),
+            points: this.currentObjective.points ?? 1
         };
 
         if (this.objectiveDialogMode === 'add') {
@@ -2260,6 +2277,7 @@ export class Projects {
                         title: createdObjective.title,
                         description: createdObjective.description,
                         status: this.mapObjectiveStatusFromApi(createdObjective.status),
+                        points: createdObjective.points ?? 1,
                         assignedTo: { name: 'Unassigned', avatar: '', role: 'Member' },
                         members: [],
                         createdByUserId: createdObjective.createdByUserId,
@@ -2295,6 +2313,7 @@ export class Projects {
                                 title: updatedObjective.title,
                                 description: updatedObjective.description,
                                 status: this.mapObjectiveStatusFromApi(updatedObjective.status),
+                                points: updatedObjective.points ?? 1,
                                 createdByUserId: updatedObjective.createdByUserId,
                                 createdByFirstName: updatedObjective.createdByFirstName,
                                 createdByLastName: updatedObjective.createdByLastName
@@ -3604,7 +3623,8 @@ export class Projects {
                 })),
                 createdByUserId: o.createdByUserId,
                 createdByFirstName: o.createdByFirstName,
-                createdByLastName: o.createdByLastName
+                createdByLastName: o.createdByLastName,
+                points: o.points || 1
             })),
             resources: (p.resources || []).map((r: any) => ({
                 ...r,

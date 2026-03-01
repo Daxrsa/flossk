@@ -13,4 +13,7 @@ public class UpdateObjectiveDto
 
     [Required]
     public string Status { get; set; } = string.Empty;
+
+    [Range(1, 10)]
+    public int Points { get; set; } = 1;
 }

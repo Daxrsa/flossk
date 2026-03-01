@@ -6,6 +6,7 @@ public class Objective
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public ObjectiveStatus Status { get; set; } = ObjectiveStatus.Todo;
+    public int Points { get; set; } = 1;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 

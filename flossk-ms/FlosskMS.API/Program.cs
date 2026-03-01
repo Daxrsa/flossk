@@ -159,11 +159,12 @@ using (var scope = app.Services.CreateScope())
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var seederLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbSeeder");
 
     // Apply pending migrations automatically
     await dbContext.Database.MigrateAsync();
 
-    await DbSeeder.SeedAsync(roleManager, userManager, dbContext);
+    await DbSeeder.SeedAsync(roleManager, userManager, dbContext, seederLogger);
 }
 
 if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Docker")

@@ -15,4 +15,7 @@ public class CreateObjectiveDto
     public string Description { get; set; } = string.Empty;
 
     public string Status { get; set; } = "Todo";
+
+    [Range(1, 10)]
+    public int Points { get; set; } = 1;
 }

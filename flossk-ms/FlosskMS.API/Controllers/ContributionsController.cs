@@ -58,4 +58,14 @@ public class ContributionsController(IContributionService contributionService) :
     {
         return await _contributionService.RecalculateProjectContributionsAsync(projectId);
     }
+
+    /// <summary>
+    /// Delete all user contributions across all projects (Admin only).
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("all")]
+    public async Task<IActionResult> DeleteAllContributions()
+    {
+        return await _contributionService.DeleteAllContributionsAsync();
+    }
 }

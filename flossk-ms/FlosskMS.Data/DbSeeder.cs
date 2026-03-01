@@ -1,6 +1,7 @@
 using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FlosskMS.Data;
 
@@ -9,13 +10,14 @@ public static class DbSeeder
     public static async Task SeedAsync(
         RoleManager<IdentityRole> roleManager,
         UserManager<ApplicationUser> userManager,
-        ApplicationDbContext dbContext)
+        ApplicationDbContext dbContext,
+        ILogger? logger = null)
     {
-        await SeedRolesAsync(roleManager);
-        await SeedAdminUserAsync(userManager, dbContext);
+        await SeedRolesAsync(roleManager, logger);
+        await SeedAdminUserAsync(userManager, dbContext, logger);
     }
 
-    private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
+    private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger? logger)
     {
         string[] roles = ["Admin", "User", "Full Member", "Leader"];
 
@@ -24,39 +26,71 @@ public static class DbSeeder
             if (!await roleManager.RoleExistsAsync(role))
             {
                 await roleManager.CreateAsync(new IdentityRole(role));
+                logger?.LogInformation("Seeder: created role '{Role}'", role);
             }
         }
     }
 
     private static async Task SeedAdminUserAsync(
         UserManager<ApplicationUser> userManager,
-        ApplicationDbContext dbContext)
+        ApplicationDbContext dbContext,
+        ILogger? logger)
     {
         const string adminEmail = "daorsahyseni@gmail.com";
         const string adminPassword = "P@ssword123";
 
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
-        if (adminUser != null) return;
 
-        adminUser = new ApplicationUser
+        if (adminUser == null)
         {
-            UserName = adminEmail,
-            Email = adminEmail,
-            FirstName = "Daorsa",
-            LastName = "Hyseni",
-            CreatedAt = DateTime.UtcNow
-        };
+            adminUser = new ApplicationUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                FirstName = "Daorsa",
+                LastName = "Hyseni",
+                CreatedAt = DateTime.UtcNow
+            };
 
-        var result = await userManager.CreateAsync(adminUser, adminPassword);
-        if (result.Succeeded)
+            var createResult = await userManager.CreateAsync(adminUser, adminPassword);
+            if (!createResult.Succeeded)
+            {
+                var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
+                logger?.LogError("Seeder: failed to create admin user — {Errors}", errors);
+                return;
+            }
+
+            logger?.LogInformation("Seeder: admin user created ({Email})", adminEmail);
+        }
+        else
+        {
+            // User already exists — ensure password is correct by resetting it
+            var resetToken = await userManager.GeneratePasswordResetTokenAsync(adminUser);
+            var resetResult = await userManager.ResetPasswordAsync(adminUser, resetToken, adminPassword);
+            if (!resetResult.Succeeded)
+            {
+                var errors = string.Join(", ", resetResult.Errors.Select(e => e.Description));
+                logger?.LogWarning("Seeder: could not reset admin password — {Errors}", errors);
+            }
+            else
+            {
+                logger?.LogInformation("Seeder: admin user already existed; password synced ({Email})", adminEmail);
+            }
+        }
+
+        // Ensure Admin role
+        if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
         {
             await userManager.AddToRoleAsync(adminUser, "Admin");
+            logger?.LogInformation("Seeder: assigned Admin role to {Email}", adminEmail);
+        }
 
-            if (!await dbContext.ApprovedEmails.AnyAsync(e => e.Email.ToLower() == adminEmail.ToLower()))
-            {
-                dbContext.ApprovedEmails.Add(new ApprovedEmail { Email = adminEmail });
-                await dbContext.SaveChangesAsync();
-            }
+        // Ensure email is approved
+        if (!await dbContext.ApprovedEmails.AnyAsync(e => e.Email.ToLower() == adminEmail.ToLower()))
+        {
+            dbContext.ApprovedEmails.Add(new ApprovedEmail { Email = adminEmail });
+            await dbContext.SaveChangesAsync();
+            logger?.LogInformation("Seeder: approved email entry added for {Email}", adminEmail);
         }
     }
 }

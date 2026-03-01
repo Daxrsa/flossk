@@ -30,4 +30,9 @@ public interface IContributionService
     /// Get the overall leaderboard ranked by total score.
     /// </summary>
     Task<IActionResult> GetLeaderboardAsync();
+
+    /// <summary>
+    /// Delete all user contributions across all projects (Admin only).
+    /// </summary>
+    Task<IActionResult> DeleteAllContributionsAsync();
 }
