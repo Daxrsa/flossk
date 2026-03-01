@@ -210,7 +210,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
                 <div>
                     <label for="objectivePoints" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Points <span class="text-muted-color text-sm font-normal">(used for contribution scoring)</span></label>
-                    <input type="number" pInputText id="objectivePoints" [(ngModel)]="currentObjective.points" min="1" max="10" class="w-full" />
+                    <input type="number" pInputText id="objectivePoints" [(ngModel)]="currentObjective.points" min="1" max="10" class="w-full"
+                        (input)="clampObjectivePoints($event)" />
                 </div>
             </div>
             
@@ -2231,6 +2232,15 @@ export class Projects {
             assignedTo: { name: 'Unassigned', avatar: '', role: 'Member' },
             members: []
         };
+    }
+
+    clampObjectivePoints(event: Event) {
+        const input = event.target as HTMLInputElement;
+        let val = parseInt(input.value, 10);
+        if (isNaN(val) || val < 1) val = 1;
+        if (val > 10) val = 10;
+        this.currentObjective.points = val;
+        input.value = String(val);
     }
     
     openAddObjectiveDialog() {
