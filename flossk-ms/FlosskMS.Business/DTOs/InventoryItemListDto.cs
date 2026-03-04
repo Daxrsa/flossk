@@ -6,7 +6,6 @@ public class InventoryItemListDto
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string Category { get; set; } = string.Empty;
-    public int Quantity { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Condition { get; set; } = "Good";
     public DateTime CreatedAt { get; set; }

@@ -22,7 +22,7 @@ public class InventoryService : IInventoryService
         _logService = logService;
     }
 
-    public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? condition = null, string? search = null, int? minQuantity = null, int? maxQuantity = null, string? currentUserId = null)
+    public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? condition = null, string? search = null, string? currentUserId = null)
     {
         var query = _context.InventoryItems
             .Include(i => i.CurrentUser!)
@@ -49,16 +49,6 @@ public class InventoryService : IInventoryService
         if (!string.IsNullOrEmpty(condition) && Enum.TryParse<InventoryCondition>(condition, true, out var conditionEnum))
         {
             query = query.Where(i => i.Condition == conditionEnum);
-        }
-
-        // Filter by quantity range
-        if (minQuantity.HasValue)
-        {
-            query = query.Where(i => i.Quantity >= minQuantity.Value);
-        }
-        if (maxQuantity.HasValue)
-        {
-            query = query.Where(i => i.Quantity <= maxQuantity.Value);
         }
 
         // Filter by current user (usage)
@@ -143,7 +133,6 @@ public class InventoryService : IInventoryService
             Id = Guid.NewGuid(),
             Name = dto.Name,
             Category = category,
-            Quantity = dto.Quantity,
             Description = dto.Description,
             Status = InventoryStatus.Free,
             CreatedByUserId = createdByUserId,
@@ -218,7 +207,6 @@ public class InventoryService : IInventoryService
         // Snapshot old values before any mutation
         var oldName        = item.Name;
         var oldCategory    = item.Category.ToString();
-        var oldQuantity    = item.Quantity;
         var oldDescription = item.Description;
 
         // Track field-level changes for logging
@@ -242,12 +230,6 @@ public class InventoryService : IInventoryService
                 fieldChanges.Add(("Category", oldCategory, category.ToString()));
                 item.Category = category;
             }
-        }
-
-        if (dto.Quantity.HasValue && dto.Quantity.Value != item.Quantity)
-        {
-            fieldChanges.Add(("Quantity", oldQuantity.ToString(), dto.Quantity.Value.ToString()));
-            item.Quantity = dto.Quantity.Value;
         }
 
         if (dto.Description != null && dto.Description != item.Description)
@@ -384,11 +366,6 @@ public class InventoryService : IInventoryService
         if (item.Status == InventoryStatus.InUse)
         {
             return new BadRequestObjectResult(new { Message = "This inventory item is already checked out by another user." });
-        }
-
-        if (item.Quantity <= 0)
-        {
-            return new BadRequestObjectResult(new { Message = "This inventory item is out of stock." });
         }
 
         // Check out the item
@@ -590,7 +567,6 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "Arduino Uno R3",
                 Category = InventoryCategory.Electronic,
-                Quantity = 5,
                 Description = "Microcontroller board based on the ATmega328P",
                 Status = InventoryStatus.Free,
                 CreatedByUserId = createdByUserId,
@@ -601,7 +577,6 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "Raspberry Pi 4 Model B",
                 Category = InventoryCategory.Electronic,
-                Quantity = 3,
                 Description = "Single-board computer with 4GB RAM",
                 Status = InventoryStatus.Free,
                 CreatedByUserId = createdByUserId,
@@ -612,7 +587,6 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "Soldering Iron Station",
                 Category = InventoryCategory.Tool,
-                Quantity = 2,
                 Description = "Digital temperature controlled soldering station",
                 Status = InventoryStatus.Free,
                 CreatedByUserId = createdByUserId,
@@ -623,7 +597,6 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "3D Printer Filament (PLA)",
                 Category = InventoryCategory.Components,
-                Quantity = 10,
                 Description = "1kg spools of PLA filament in various colors",
                 Status = InventoryStatus.Free,
                 CreatedByUserId = createdByUserId,
@@ -634,7 +607,6 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "Oscilloscope",
                 Category = InventoryCategory.Electronic,
-                Quantity = 1,
                 Description = "Digital storage oscilloscope 100MHz",
                 Status = InventoryStatus.Free,
                 CreatedByUserId = createdByUserId,
@@ -645,7 +617,6 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "Breadboards",
                 Category = InventoryCategory.Components,
-                Quantity = 15,
                 Description = "830 point solderless breadboards",
                 Status = InventoryStatus.Free,
                 CreatedByUserId = createdByUserId,
@@ -656,7 +627,6 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "Screwdriver Set",
                 Category = InventoryCategory.Tool,
-                Quantity = 3,
                 Description = "Precision screwdriver set with multiple bits",
                 Status = InventoryStatus.Free,
                 CreatedByUserId = createdByUserId,
@@ -667,7 +637,6 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "Workbench",
                 Category = InventoryCategory.Furniture,
-                Quantity = 4,
                 Description = "Heavy-duty electronics workbench with ESD protection",
                 Status = InventoryStatus.Free,
                 CreatedByUserId = createdByUserId,
@@ -678,7 +647,6 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "Multimeter",
                 Category = InventoryCategory.Electronic,
-                Quantity = 6,
                 Description = "Digital multimeter with auto-ranging",
                 Status = InventoryStatus.Free,
                 CreatedByUserId = createdByUserId,
@@ -689,7 +657,6 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "Wire Stripper",
                 Category = InventoryCategory.Tool,
-                Quantity = 4,
                 Description = "Automatic wire stripper and cutter",
                 Status = InventoryStatus.Free,
                 CreatedByUserId = createdByUserId,
@@ -704,7 +671,7 @@ public class InventoryService : IInventoryService
         { 
             Message = $"Successfully seeded {seedItems.Count} inventory items.", 
             Count = seedItems.Count,
-            Items = seedItems.Select(i => new { i.Id, i.Name, i.Category, i.Quantity, i.Status }).ToList()
+            Items = seedItems.Select(i => new { i.Id, i.Name, i.Category, i.Status }).ToList()
         });
     }
 

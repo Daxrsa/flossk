@@ -5,7 +5,7 @@ public class InventoryItem
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public InventoryCategory Category { get; set; }
-    public int Quantity { get; set; }
+
     public InventoryStatus Status { get; set; } = InventoryStatus.Free;
     public InventoryCondition Condition { get; set; } = InventoryCondition.Good;
     public string? Description { get; set; }

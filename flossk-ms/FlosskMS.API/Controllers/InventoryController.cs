@@ -31,11 +31,9 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
         [FromQuery] string? status = null,
         [FromQuery] string? condition = null,
         [FromQuery] string? search = null,
-        [FromQuery] int? minQuantity = null,
-        [FromQuery] int? maxQuantity = null,
         [FromQuery] string? currentUserId = null)
     {
-        return await _inventoryService.GetAllInventoryItemsAsync(page, pageSize, category, status, condition, search, minQuantity, maxQuantity, currentUserId);
+        return await _inventoryService.GetAllInventoryItemsAsync(page, pageSize, category, status, condition, search, currentUserId);
     }
 
     /// <summary>

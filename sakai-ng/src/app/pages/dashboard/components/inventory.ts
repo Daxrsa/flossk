@@ -36,7 +36,6 @@ interface InventoryItem {
     name: string;
     description?: string;
     category: string;
-    quantity: number;
     status: string;
     createdAt: string;
     updatedAt?: string;
@@ -187,27 +186,6 @@ interface PaginatedInventoryResponse {
                         class="w-full"
                     />
                 </div>
-                <!-- Quantity range -->
-                <div class="flex flex-col gap-1" style="min-width:9rem">
-                    <label class="text-sm font-medium text-muted-color">Min Quantity</label>
-                    <p-inputNumber
-                        [(ngModel)]="filterMinQty"
-                        [min]="0"
-                        placeholder="0"
-                        (ngModelChange)="applyFilters()"
-                        class="w-full"
-                    />
-                </div>
-                <div class="flex flex-col gap-1" style="min-width:9rem">
-                    <label class="text-sm font-medium text-muted-color">Max Quantity</label>
-                    <p-inputNumber
-                        [(ngModel)]="filterMaxQty"
-                        [min]="0"
-                        placeholder="∞"
-                        (ngModelChange)="applyFilters()"
-                        class="w-full"
-                    />
-                </div>
                 <!-- Usage / Only mine -->
                 <div class="flex flex-col gap-1" style="min-width:10rem">
                     <label class="text-sm font-medium text-muted-color">Usage</label>
@@ -247,7 +225,6 @@ interface PaginatedInventoryResponse {
                     <tr>
                         <th>Name</th>
                         <th>Category</th>
-                        <th>Quantity</th>
                         <th>Status</th>
                         <th>Condition</th>
                         <th>Usage</th>
@@ -271,7 +248,6 @@ interface PaginatedInventoryResponse {
                             </div>
                         </td>
                         <td>{{ item.category }}</td>
-                        <td>{{ item.quantity }}</td>
                         <td>
                             <div class="flex items-center gap-2">
                                 <p-tag 
@@ -363,7 +339,7 @@ interface PaginatedInventoryResponse {
 
                 <ng-template #emptymessage>
                     <tr>
-                        <td colspan="8" class="text-center py-6">
+                        <td colspan="7" class="text-center py-6">
                             <div class="flex flex-col items-center gap-3">
                                 <i class="pi pi-inbox text-6xl text-muted-color"></i>
                                 <p class="text-xl text-muted-color">No items found</p>
@@ -406,29 +382,16 @@ interface PaginatedInventoryResponse {
                     ></textarea>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="flex flex-col gap-2">
-                        <label for="category" class="font-semibold">Category</label>
-                        <p-select 
-                            id="category"
-                            [(ngModel)]="currentItem.category" 
-                            [options]="categories"
-                            placeholder="Select a category"
-                            class="w-full"
-                            appendTo="body"
-                        />
-                    </div>
-
-                    <div class="flex flex-col gap-2">
-                        <label for="quantity" class="font-semibold">Quantity</label>
-                        <p-inputNumber
-                            id="quantity"
-                            [(ngModel)]="currentItem.quantity"
-                            [showButtons]="true"
-                            [min]="0"
-                            class="w-full"
-                        />
-                    </div>
+                <div class="flex flex-col gap-2">
+                    <label for="category" class="font-semibold">Category</label>
+                    <p-select 
+                        id="category"
+                        [(ngModel)]="currentItem.category" 
+                        [options]="categories"
+                        placeholder="Select a category"
+                        class="w-full"
+                        appendTo="body"
+                    />
                 </div>
 
                 <div class="flex flex-col gap-2">
@@ -677,8 +640,6 @@ export class Inventory implements OnInit {
         if (this.filterCategory)     params.push(`category=${encodeURIComponent(this.filterCategory)}`);
         if (this.filterStatus)       params.push(`status=${encodeURIComponent(this.filterStatus)}`);
         if (this.filterCondition)    params.push(`condition=${encodeURIComponent(this.filterCondition)}`);
-        if (this.filterMinQty != null) params.push(`minQuantity=${this.filterMinQty}`);
-        if (this.filterMaxQty != null) params.push(`maxQuantity=${this.filterMaxQty}`);
         if (this.filterUsage === 'mine') {
             const uid = this.authService.currentUser()?.id;
             if (uid) params.push(`currentUserId=${encodeURIComponent(uid)}`);
@@ -739,8 +700,6 @@ export class Inventory implements OnInit {
     filterCategory = '';
     filterStatus = '';
     filterCondition = '';
-    filterMinQty: number | null = null;
-    filterMaxQty: number | null = null;
     filterUsage = '';
     private searchTimer: any = null;
 
@@ -808,8 +767,6 @@ export class Inventory implements OnInit {
         this.filterCategory = '';
         this.filterStatus = '';
         this.filterCondition = '';
-        this.filterMinQty = null;
-        this.filterMaxQty = null;
         this.filterUsage = '';
         this.applyFilters();
     }
@@ -922,7 +879,6 @@ export class Inventory implements OnInit {
             name: '',
             description: '',
             category: '',
-            quantity: 0,
             status: 'Free'
         };
     }
@@ -1006,7 +962,6 @@ export class Inventory implements OnInit {
         formData.append('Name', this.currentItem.name);
         formData.append('Description', this.currentItem.description || '');
         formData.append('Category', this.currentItem.category);
-        formData.append('Quantity', (this.currentItem.quantity || 1).toString());
 
         for (const file of this.selectedFiles) {
             formData.append('Images', file, file.name);

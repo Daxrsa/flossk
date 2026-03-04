@@ -10,9 +10,6 @@ public class UpdateInventoryItemDto
 
     public string? Category { get; set; }
 
-    [Range(0, int.MaxValue)]
-    public int? Quantity { get; set; }
-
     [StringLength(2000)]
     public string? Description { get; set; }
 
