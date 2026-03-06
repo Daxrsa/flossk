@@ -6,6 +6,7 @@ public class InventoryItemDto
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public int Quantity { get; set; } = 1;
+    public int CheckedOutQuantity { get; set; } = 0;
     public string Status { get; set; } = string.Empty;
     public string Condition { get; set; } = "Good";
     public string? Description { get; set; }

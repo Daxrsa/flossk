@@ -161,14 +161,14 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     /// Check in an inventory item (current user)
     /// </summary>
     [HttpPost("{id:guid}/checkin")]
-    public async Task<IActionResult> CheckInInventoryItem(Guid id)
+    public async Task<IActionResult> CheckInInventoryItem(Guid id, [FromBody] CheckInInventoryItemDto? request = null)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }
-        return await _inventoryService.CheckInInventoryItemAsync(id, userId);
+        return await _inventoryService.CheckInInventoryItemAsync(id, userId, request);
     }
 
     /// <summary>

@@ -371,12 +371,29 @@ public class InventoryService : IInventoryService
             return new NotFoundObjectResult(new { Message = "User not found." });
         }
 
-        if (item.Status == InventoryStatus.InUse)
+        // Get requested quantity (default to 1 if not provided)
+        int requestedQuantity = dto?.Quantity ?? 1;
+
+        // Calculate available quantity
+        int availableQuantity = item.Quantity - item.CheckedOutQuantity;
+
+        if (availableQuantity <= 0)
         {
-            return new BadRequestObjectResult(new { Message = "This inventory item is already checked out by another user." });
+            return new BadRequestObjectResult(new { Message = "This inventory item is completely checked out. No units available." });
+        }
+
+        if (requestedQuantity > availableQuantity)
+        {
+            return new BadRequestObjectResult(new { Message = $"Cannot check out {requestedQuantity} units. Only {availableQuantity} units available." });
+        }
+
+        if (requestedQuantity <= 0)
+        {
+            return new BadRequestObjectResult(new { Message = "Quantity must be at least 1." });
         }
 
         // Check out the item
+        item.CheckedOutQuantity += requestedQuantity;
         item.Status = InventoryStatus.InUse;
         item.CurrentUserId = userId;
         item.CheckedOutAt = DateTime.UtcNow;
@@ -390,16 +407,16 @@ public class InventoryService : IInventoryService
             EntityType = "Inventory",
             EntityId = item.Id.ToString(),
             EntityName = item.Name,
-            Action = "Checked out",
+            Action = $"Checked out {requestedQuantity} unit(s)",
             UserId = userId
         });
 
         // Reload with includes
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
-        return new OkObjectResult(new { Message = "Inventory item checked out successfully.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
+        return new OkObjectResult(new { Message = $"Successfully checked out {requestedQuantity} unit(s) of {item.Name}.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
-    public async Task<IActionResult> CheckInInventoryItemAsync(Guid id, string userId)
+    public async Task<IActionResult> CheckInInventoryItemAsync(Guid id, string userId, CheckInInventoryItemDto? dto = null)
     {
         var item = await GetItemWithIncludesAsync(id);
 
@@ -418,11 +435,31 @@ public class InventoryService : IInventoryService
             return new BadRequestObjectResult(new { Message = "You can only check in items that you have checked out." });
         }
 
-        // Check in the item
-        item.Status = InventoryStatus.Free;
-        item.CurrentUserId = null;
-        item.CheckedOutAt = null;
+        // Get quantity to return (default to all if not provided)
+        int quantityToReturn = dto?.Quantity ?? item.CheckedOutQuantity;
+
+        // Validate quantity
+        if (quantityToReturn <= 0)
+        {
+            return new BadRequestObjectResult(new { Message = "Quantity must be at least 1." });
+        }
+
+        if (quantityToReturn > item.CheckedOutQuantity)
+        {
+            return new BadRequestObjectResult(new { Message = $"Cannot check in {quantityToReturn} units. You only have {item.CheckedOutQuantity} unit(s) checked out." });
+        }
+
+        // Return the specified quantity
+        item.CheckedOutQuantity -= quantityToReturn;
         item.UpdatedAt = DateTime.UtcNow;
+
+        // If all items are returned, mark as free
+        if (item.CheckedOutQuantity == 0)
+        {
+            item.Status = InventoryStatus.Free;
+            item.CurrentUserId = null;
+            item.CheckedOutAt = null;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -431,13 +468,13 @@ public class InventoryService : IInventoryService
             EntityType = "Inventory",
             EntityId = item.Id.ToString(),
             EntityName = item.Name,
-            Action = "Checked in",
+            Action = $"Checked in {quantityToReturn} unit(s)",
             UserId = userId
         });
 
         // Reload with includes
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
-        return new OkObjectResult(new { Message = "Inventory item checked in successfully.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
+        return new OkObjectResult(new { Message = $"Successfully checked in {quantityToReturn} unit(s) of {item.Name}.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
     public async Task<IActionResult> ReportDamageAsync(Guid id, string userId)

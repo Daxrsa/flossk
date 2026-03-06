@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FlosskMS.Business.DTOs;
 
-public class CheckOutInventoryItemDto
+public class CheckInInventoryItemDto
 {
     [Required]
     [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1.")]
