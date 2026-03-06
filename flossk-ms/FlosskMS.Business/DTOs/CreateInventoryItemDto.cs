@@ -12,6 +12,9 @@ public class CreateInventoryItemDto
     [Required]
     public string Category { get; set; } = string.Empty;
 
+    [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
+    public int Quantity { get; set; } = 1;
+
     [StringLength(2000)]
     public string? Description { get; set; }
 

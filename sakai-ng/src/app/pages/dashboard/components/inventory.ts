@@ -36,6 +36,7 @@ interface InventoryItem {
     name: string;
     description?: string;
     category: string;
+    quantity?: number;
     status: string;
     createdAt: string;
     updatedAt?: string;
@@ -225,6 +226,7 @@ interface PaginatedInventoryResponse {
                     <tr>
                         <th>Name</th>
                         <th>Category</th>
+                        <th>Quantity</th>
                         <th>Status</th>
                         <th>Condition</th>
                         <th>Usage</th>
@@ -248,6 +250,9 @@ interface PaginatedInventoryResponse {
                             </div>
                         </td>
                         <td>{{ item.category }}</td>
+                        <td>
+                            <span class="font-semibold">{{ item.quantity || 0 }}</span>
+                        </td>
                         <td>
                             <div class="flex items-center gap-2">
                                 <p-tag 
@@ -348,7 +353,7 @@ interface PaginatedInventoryResponse {
 
                 <ng-template #emptymessage>
                     <tr>
-                        <td colspan="7" class="text-center py-6">
+                        <td colspan="8" class="text-center py-6">
                             <div class="flex flex-col items-center gap-3">
                                 <i class="pi pi-inbox text-6xl text-muted-color"></i>
                                 <p class="text-xl text-muted-color">No items found</p>
@@ -400,6 +405,19 @@ interface PaginatedInventoryResponse {
                         placeholder="Select a category"
                         class="w-full"
                         appendTo="body"
+                    />
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="quantity" class="font-semibold">Quantity</label>
+                    <input 
+                        pInputText 
+                        id="quantity" 
+                        type="number"
+                        [(ngModel)]="currentItem.quantity" 
+                        [min]="1"
+                        required 
+                        class="w-full"
                     />
                 </div>
 
@@ -907,6 +925,7 @@ export class Inventory implements OnInit {
             name: '',
             description: '',
             category: '',
+            quantity: 1,
             status: 'Free'
         };
     }
@@ -990,6 +1009,7 @@ export class Inventory implements OnInit {
         formData.append('Name', this.currentItem.name);
         formData.append('Description', this.currentItem.description || '');
         formData.append('Category', this.currentItem.category);
+        formData.append('Quantity', (this.currentItem.quantity || 1).toString());
 
         for (const file of this.selectedFiles) {
             formData.append('Images', file, file.name);

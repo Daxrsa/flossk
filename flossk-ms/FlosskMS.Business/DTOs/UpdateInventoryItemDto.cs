@@ -9,7 +9,8 @@ public class UpdateInventoryItemDto
     public string? Name { get; set; }
 
     public string? Category { get; set; }
-
+    [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
+    public int? Quantity { get; set; }
     [StringLength(2000)]
     public string? Description { get; set; }
 

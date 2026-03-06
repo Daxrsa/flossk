@@ -133,6 +133,7 @@ public class InventoryService : IInventoryService
             Id = Guid.NewGuid(),
             Name = dto.Name,
             Category = category,
+            Quantity = dto.Quantity,
             Description = dto.Description,
             Status = InventoryStatus.Free,
             CreatedByUserId = createdByUserId,
@@ -208,6 +209,7 @@ public class InventoryService : IInventoryService
         var oldName        = item.Name;
         var oldCategory    = item.Category.ToString();
         var oldDescription = item.Description;
+        var oldQuantity    = item.Quantity;
 
         // Track field-level changes for logging
         var fieldChanges = new List<(string Field, string OldValue, string NewValue)>();
@@ -238,6 +240,12 @@ public class InventoryService : IInventoryService
                 string.IsNullOrWhiteSpace(oldDescription) ? "(empty)" : oldDescription,
                 string.IsNullOrWhiteSpace(dto.Description) ? "(empty)" : dto.Description));
             item.Description = dto.Description;
+        }
+
+        if (dto.Quantity.HasValue && dto.Quantity.Value != item.Quantity)
+        {
+            fieldChanges.Add(("Quantity", oldQuantity.ToString(), dto.Quantity.Value.ToString()));
+            item.Quantity = dto.Quantity.Value;
         }
 
         item.UpdatedAt = DateTime.UtcNow;
