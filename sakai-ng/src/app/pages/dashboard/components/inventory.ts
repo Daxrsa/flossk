@@ -739,7 +739,7 @@ interface PaginatedInventoryResponse {
                         id="checkinQuantity"
                         [(ngModel)]="checkinQuantity"
                         [min]="1"
-                        [max]="checkinItem?.quantityInUse || 1"
+                        [max]="getUserCheckedOutQuantity(checkinItem) || 1"
                         [showButtons]="true"
                         buttonLayout="horizontal"
                         incrementButtonIcon="pi pi-plus"
@@ -747,7 +747,7 @@ interface PaginatedInventoryResponse {
                         class="w-full"
                     />
                     <small class="text-muted-color">
-                        Checked out by you: {{ checkinItem?.quantityInUse || 0 }} units
+                        Checked out by you: {{ getUserCheckedOutQuantity(checkinItem) || 0 }} units
                     </small>
                 </div>
             </div>
@@ -1422,7 +1422,9 @@ export class Inventory implements OnInit {
 
     checkInItem(item: InventoryItem) {
         this.checkinItem = item;
-        this.checkinQuantity = item.quantityInUse || 1;
+        const loggedInUserId = this.authService.currentUser()?.id;
+        const userCheckout = item.checkouts?.find(checkout => checkout.userId === loggedInUserId);
+        this.checkinQuantity = userCheckout?.quantity || 1;
         this.checkinDialogVisible = true;
     }
 
@@ -1467,7 +1469,16 @@ export class Inventory implements OnInit {
 
     checkedOutByLoggedInUser(item: InventoryItem): boolean {
         const loggedInUserId = this.authService.currentUser()?.id;
-        return item.status === 'InUse' && !!loggedInUserId && item.currentUserId === loggedInUserId;
+        if (!loggedInUserId || !item.checkouts) return false;
+        return item.checkouts.some(checkout => checkout.userId === loggedInUserId);
+    }
+
+    getUserCheckedOutQuantity(item: InventoryItem | null): number {
+        if (!item || !item.checkouts) return 0;
+        const loggedInUserId = this.authService.currentUser()?.id;
+        if (!loggedInUserId) return 0;
+        const userCheckout = item.checkouts.find(checkout => checkout.userId === loggedInUserId);
+        return userCheckout?.quantity || 0;
     }
 
     hasCheckoutProfilePicture(checkout: InventoryItemCheckout): boolean {
