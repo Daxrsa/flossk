@@ -21,7 +21,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { InputIcon } from "primeng/inputicon";
 import { IconField } from "primeng/iconfield";
 import { AvatarModule } from 'primeng/avatar';
-import { AuthService } from '@/pages/service/auth.service';
+import { AvatarGroupModule } from 'primeng/avatargroup';
+import { TooltipModule } from 'primeng/tooltip';
+import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
 import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/history-log';
 
 interface User {
@@ -58,6 +60,7 @@ interface InventoryItem {
     createdByUserFirstName?: string;
     createdByUserLastName?: string;
     images?: InventoryItemImage[];
+    checkouts?: InventoryItemCheckout[];
 }
 
 interface InventoryItemImage {
@@ -66,6 +69,18 @@ interface InventoryItemImage {
     fileName: string;
     filePath: string;
     addedAt: string;
+}
+
+interface InventoryItemCheckout {
+    id: string;
+    userId: string;
+    userEmail: string;
+    userFirstName: string;
+    userLastName: string;
+    userFullName: string;
+    userProfilePictureUrl?: string;
+    quantity: number;
+    checkedOutAt: string;
 }
 
 interface PaginatedInventoryResponse {
@@ -97,7 +112,9 @@ interface PaginatedInventoryResponse {
         GalleriaModule,
         InputIcon,
         IconField,
-        AvatarModule
+        AvatarModule,
+        AvatarGroupModule,
+        TooltipModule
     ],
     providers: [ConfirmationService, MessageService],
     styles: `
@@ -271,24 +288,31 @@ interface PaginatedInventoryResponse {
                                 <p-tag 
                                     [value]="getStatusLabel(item.status)" 
                                     [severity]="getStatusSeverity(item.status)"
+                                    [style]="item.checkouts && item.checkouts.length > 0 ? {'cursor': 'pointer'} : {}"
+                                    (click)="item.checkouts && item.checkouts.length > 0 && openCheckoutsModal(item)"
                                 />
-                                <div *ngIf="item.currentUserFullName" class="flex items-center gap-2">
-                                    <p-avatar
-                                        *ngIf="item.currentUserProfilePictureUrl"
-                                        [image]="getProfilePictureUrl(item.currentUserProfilePictureUrl)"
-                                        shape="circle"
-                                        size="normal"
-                                    />
-                                    <p-avatar
-                                        *ngIf="!item.currentUserProfilePictureUrl"
-                                        [label]="getUserInitials(item.currentUserFullName)"
-                                        shape="circle"
-                                        size="normal"
-                                        [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
-                                    />
-                                    <span class="text-sm">
-                                        {{ item.currentUserFullName }}
-                                    </span>
+                                <div *ngIf="item.checkouts && item.checkouts.length > 0" class="flex items-center gap-2">
+                                    <p-avatargroup>
+                                        <p-avatar 
+                                            *ngFor="let checkout of item.checkouts.slice(0, 3)" 
+                                            [image]="hasCheckoutProfilePicture(checkout) ? getProfilePictureUrl(checkout.userProfilePictureUrl) : undefined"
+                                            [label]="!hasCheckoutProfilePicture(checkout) ? getUserInitials(checkout.userFullName) : undefined"
+                                            shape="circle"
+                                            size="normal"
+                                            [style]="!hasCheckoutProfilePicture(checkout) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
+                                            [pTooltip]="checkout.userFullName + ' (' + checkout.quantity + ' unit' + (checkout.quantity > 1 ? 's' : '') + ')'"
+                                            tooltipPosition="top"
+                                        ></p-avatar>
+                                        <p-avatar 
+                                            *ngIf="item.checkouts.length > 3"
+                                            [label]="'+' + (item.checkouts.length - 3)" 
+                                            shape="circle"
+                                            size="normal"
+                                            [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                                            [pTooltip]="getAdditionalUsersTooltip(item.checkouts.slice(3))"
+                                            tooltipPosition="top"
+                                        ></p-avatar>
+                                    </p-avatargroup>
                                 </div>
                             </div>
                         </td>
@@ -768,6 +792,64 @@ interface PaginatedInventoryResponse {
                 </ng-template>
             </p-galleria>
         </p-dialog>
+
+        <!-- Checkouts Details Modal -->
+        <p-dialog
+            [(visible)]="checkoutsModalVisible"
+            [header]="'Checked Out: ' + (checkoutsModalItem?.name || '')"
+            [modal]="true"
+            [style]="{ width: '40rem' }"
+            [breakpoints]="{ '575px': '95vw' }"
+        >
+            <div class="flex flex-col gap-4">
+                <div *ngIf="(checkoutsModalItem?.checkouts?.length ?? 0) > 0" class="flex flex-col gap-3">
+                    <div *ngFor="let checkout of checkoutsModalItem?.checkouts" class="flex items-center justify-between p-3 bg-surface-50 dark:bg-surface-800 rounded-lg border border-surface">
+                        <div class="flex items-center gap-3">
+                            <p-avatar
+                                *ngIf="hasCheckoutProfilePicture(checkout)"
+                                [image]="getProfilePictureUrl(checkout.userProfilePictureUrl)"
+                                shape="circle"
+                                size="large"
+                            />
+                            <p-avatar
+                                *ngIf="!hasCheckoutProfilePicture(checkout)"
+                                [label]="getUserInitials(checkout.userFullName)"
+                                shape="circle"
+                                size="large"
+                                [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                            />
+                            <div class="flex flex-col">
+                                <span class="font-semibold">{{ checkout.userFullName }}</span>
+                                <span class="text-sm text-muted-color">{{ checkout.userEmail }}</span>
+                                <span class="text-xs text-muted-color flex items-baseline gap-1 mt-1">
+                                    <i class="pi pi-calendar"></i>
+                                    Checked out: {{ checkout.checkedOutAt | date:'short' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <p-tag 
+                                [value]="checkout.quantity + ' unit' + (checkout.quantity > 1 ? 's' : '')"
+                                severity="info"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div *ngIf="(checkoutsModalItem?.checkouts?.length ?? 0) === 0" class="text-center text-muted-color py-8">
+                    <i class="pi pi-info-circle text-4xl mb-3"></i>
+                    <p>No active checkouts for this item</p>
+                </div>
+            </div>
+            <ng-template #footer>
+                <div class="flex justify-end">
+                    <p-button
+                        label="Close"
+                        severity="secondary"
+                        (onClick)="checkoutsModalVisible = false"
+                    />
+                </div>
+            </ng-template>
+        </p-dialog>
     `
 })
 export class Inventory implements OnInit {
@@ -850,6 +932,8 @@ export class Inventory implements OnInit {
     checkinDialogVisible = false;
     checkinItem: InventoryItem | null = null;
     checkinQuantity = 1;
+    checkoutsModalVisible = false;
+    checkoutsModalItem: InventoryItem | null = null;
     inventoryItems: InventoryItem[] = [];
     totalRecords = 0;
     currentPage = 1;
@@ -1384,5 +1468,18 @@ export class Inventory implements OnInit {
     checkedOutByLoggedInUser(item: InventoryItem): boolean {
         const loggedInUserId = this.authService.currentUser()?.id;
         return item.status === 'InUse' && !!loggedInUserId && item.currentUserId === loggedInUserId;
+    }
+
+    hasCheckoutProfilePicture(checkout: InventoryItemCheckout): boolean {
+        return !!checkout.userProfilePictureUrl && !isDefaultAvatar(checkout.userProfilePictureUrl);
+    }
+
+    getAdditionalUsersTooltip(additionalCheckouts: InventoryItemCheckout[]): string {
+        return additionalCheckouts.map(c => `${c.userFullName} (${c.quantity} unit${c.quantity > 1 ? 's' : ''})`).join(', ');
+    }
+
+    openCheckoutsModal(item: InventoryItem): void {
+        this.checkoutsModalItem = item;
+        this.checkoutsModalVisible = true;
     }
 }
