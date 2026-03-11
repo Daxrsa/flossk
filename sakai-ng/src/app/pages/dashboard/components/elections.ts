@@ -17,11 +17,12 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
 import { AuthService } from '@/pages/service/auth.service';
-import { ElectionService, Election, ElectionSummary } from '@/pages/service/election.service';
+import { ElectionService, Election, ElectionSummary, ElectionCategory, UpdateElectionCategoryDto } from '@/pages/service/election.service';
+import { SelectModule } from 'primeng/select';
 import { environment } from '@environments/environment.prod';
 
 @Component({
-    selector: 'app-voting',
+    selector: 'app-elections',
     standalone: true,
     imports: [
         CommonModule,
@@ -38,7 +39,8 @@ import { environment } from '@environments/environment.prod';
         DatePickerModule,
         MultiSelectModule,
         SkeletonModule,
-        TooltipModule
+        TooltipModule,
+        SelectModule
     ],
     providers: [ConfirmationService, MessageService],
     template: `
@@ -49,28 +51,9 @@ import { environment } from '@environments/environment.prod';
             <!-- Page Header -->
             <div class="card">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h3 class="text-3xl font-bold text-surface-900 dark:text-surface-0 m-0 mb-2">Board Elections</h3>
-                        <p class="text-surface-600 dark:text-surface-400 m-0">
-                            Cast your vote for exactly 3 candidates. The top 3 most voted members will be promoted to Admin — the most voted will become the Leader.
-                        </p>
-                    </div>
                     <div class="flex gap-2" *ngIf="isAdmin">
                         <p-button label="New Election" icon="pi pi-plus" (onClick)="openCreateElectionDialog()" />
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h3 class="text-3xl font-bold text-surface-900 dark:text-surface-0 m-0 mb-2">Custom Election</h3>
-                        <p class="text-surface-600 dark:text-surface-400 m-0">
-                            Create a custom election of your choosing. Set your own rules.
-                        </p>
-                    </div>
-                    <div class="flex gap-2" *ngIf="isAdmin">
-                        <p-button label="New Election" icon="pi pi-plus" (onClick)="openCreateElectionDialog()" />
+                        <p-button label="New Category" icon="pi pi-tag" [outlined]="true" (onClick)="openCreateCategoryDialog()" />
                     </div>
                 </div>
             </div>
@@ -80,6 +63,55 @@ import { environment } from '@environments/environment.prod';
                 <p-skeleton height="2rem" styleClass="mb-4" />
                 <p-skeleton height="1rem" styleClass="mb-2" />
                 <p-skeleton height="1rem" width="60%" />
+            </div>
+
+            <!-- Election Categories -->
+            <div class="card" *ngIf="!loading">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-surface-900 dark:text-surface-0 m-0">Election Categories</h2>
+                    <p-button *ngIf="isAdmin" icon="pi pi-tag" label="New Category" [outlined]="true" size="small" (onClick)="openCreateCategoryDialog()" />
+                </div>
+                <div *ngIf="loadingCategories">
+                    <p-skeleton height="2.5rem" styleClass="mb-2" />
+                    <p-skeleton height="2.5rem" styleClass="mb-2" />
+                </div>
+                <div *ngIf="!loadingCategories && categories.length === 0" class="text-surface-500 dark:text-surface-400 text-sm py-4 text-center">
+                    No categories defined yet.
+                </div>
+                <div class="flex flex-col gap-2" *ngIf="!loadingCategories && categories.length > 0">
+                    <div
+                        *ngFor="let cat of categories"
+                        class="flex items-center justify-between p-3 bg-surface-50 dark:bg-surface-800 rounded-lg"
+                    >
+                        <div class="flex flex-col min-w-0">
+                            <span class="font-medium text-surface-900 dark:text-surface-0">{{ cat.title }}</span>
+                            <div class="flex items-center gap-2 mt-1">
+                                <p-tag [value]="getVotingRuleLabel(cat.votingRule)" severity="info" />
+                                <span *ngIf="cat.description" class="text-sm text-surface-500 dark:text-surface-400 truncate">{{ cat.description }}</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-1 shrink-0">
+                            <p-button
+                                *ngIf="isAdmin"
+                                icon="pi pi-pencil"
+                                [outlined]="true"
+                                size="small"
+                                severity="secondary"
+                                pTooltip="Edit category"
+                                (onClick)="openEditCategoryDialog(cat)"
+                            />
+                            <p-button
+                                *ngIf="isAdmin"
+                                icon="pi pi-trash"
+                                [outlined]="true"
+                                size="small"
+                                severity="danger"
+                                pTooltip="Delete category"
+                                (onClick)="confirmDeleteCategory(cat)"
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Past Elections -->
@@ -520,6 +552,90 @@ import { environment } from '@environments/environment.prod';
             </div>
         </p-dialog>
 
+        <!-- Edit Category Dialog -->
+        <p-dialog
+            [(visible)]="editCategoryDialog"
+            header="Edit Election Category"
+            [modal]="true"
+            [style]="{width: '28rem'}"
+            (onHide)="resetCategoryForm()"
+        >
+            <div class="flex flex-col gap-4">
+                <div>
+                    <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Title <span class="text-red-500">*</span></label>
+                    <input pInputText [(ngModel)]="categoryForm.title" placeholder="Category title" class="w-full" />
+                </div>
+                <div>
+                    <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Description</label>
+                    <input pInputText [(ngModel)]="categoryForm.description" placeholder="Optional description" class="w-full" />
+                </div>
+                <div>
+                    <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Voting Rule <span class="text-red-500">*</span></label>
+                    <p-select
+                        [(ngModel)]="categoryForm.votingRule"
+                        [options]="votingRuleOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Select who can vote"
+                        appendTo="body"
+                        styleClass="w-full"
+                    />
+                    <small class="text-surface-500 mt-1 block">Controls which users are eligible to vote in elections of this category.</small>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <p-button label="Cancel" [outlined]="true" (onClick)="editCategoryDialog = false" />
+                <p-button
+                    label="Save Changes"
+                    [loading]="savingCategory"
+                    [disabled]="!categoryForm.title.trim() || !categoryForm.votingRule"
+                    (onClick)="updateCategory()"
+                />
+            </div>
+        </p-dialog>
+
+        <!-- Create Category Dialog -->
+        <p-dialog
+            [(visible)]="createCategoryDialog"
+            header="New Election Category"
+            [modal]="true"
+            [style]="{width: '28rem'}"
+            (onHide)="resetCategoryForm()"
+        >
+            <div class="flex flex-col gap-4">
+                <div>
+                    <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Title <span class="text-red-500">*</span></label>
+                    <input pInputText [(ngModel)]="categoryForm.title" placeholder="Category title" class="w-full" />
+                </div>
+                <div>
+                    <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Description</label>
+                    <input pInputText [(ngModel)]="categoryForm.description" placeholder="Optional description" class="w-full" />
+                </div>
+                <div>
+                    <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Voting Rule <span class="text-red-500">*</span></label>
+                    <p-select
+                        [(ngModel)]="categoryForm.votingRule"
+                        [options]="votingRuleOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Select who can vote"
+                        appendTo="body"
+                        styleClass="w-full"
+                    />
+                    <small class="text-surface-500 mt-1 block">Controls which users are eligible to vote in elections of this category.</small>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <p-button label="Cancel" [outlined]="true" (onClick)="createCategoryDialog = false" />
+                <p-button
+                    label="Create"
+                    [loading]="savingCategory"
+                    [disabled]="!categoryForm.title.trim() || !categoryForm.votingRule"
+                    (onClick)="createCategory()"
+                />
+            </div>
+        </p-dialog>
+
         <!-- Edit Election Dialog -->
         <p-dialog
             [(visible)]="editElectionDialog"
@@ -602,7 +718,7 @@ import { environment } from '@environments/environment.prod';
         </p-dialog>
     `
 })
-export class Voting implements OnInit {
+export class Elections implements OnInit {
     private authService = inject(AuthService);
     private electionService = inject(ElectionService);
     private messageService = inject(MessageService);
@@ -611,6 +727,18 @@ export class Voting implements OnInit {
 
     isAdmin = false;
     loading = false;
+    loadingCategories = false;
+    categories: ElectionCategory[] = [];
+    createCategoryDialog = false;
+    editCategoryDialog = false;
+    editingCategoryId = '';
+    savingCategory = false;
+    categoryForm: { title: string; description: string; votingRule: string } = { title: '', description: '', votingRule: '' };
+    readonly votingRuleOptions = [
+        { label: 'All Users', value: 'AllUsers' },
+        { label: 'Full Members Only', value: 'FullMembersOnly' },
+        { label: 'Admins Only', value: 'AdminOnly' }
+    ];
     submittingVote = false;
     savingElection = false;
     showResults = false;
@@ -645,11 +773,20 @@ export class Voting implements OnInit {
         this.isAdmin = !!(currentUser?.roles?.includes('Admin') || currentUser?.role === 'Admin');
         this.currentUserId = currentUser?.id ?? '';
         this.loadElections();
+        this.loadCategories();
     }
 
     // -------------------------------------------------------------------------
     // Data loading
     // -------------------------------------------------------------------------
+
+    loadCategories() {
+        this.loadingCategories = true;
+        this.electionService.getCategories().subscribe({
+            next: (cats) => { this.categories = cats; this.loadingCategories = false; },
+            error: () => { this.loadingCategories = false; }
+        });
+    }
 
     loadElections() {
         this.loading = true;
@@ -719,6 +856,98 @@ export class Voting implements OnInit {
                 });
             }
         });
+    }
+
+    // -------------------------------------------------------------------------
+    // Categories
+    // -------------------------------------------------------------------------
+
+    openCreateCategoryDialog() {
+        this.categoryForm = { title: '', description: '', votingRule: 'AllUsers' };
+        this.createCategoryDialog = true;
+    }
+
+    createCategory() {
+        this.savingCategory = true;
+        this.electionService.createCategory({
+            title: this.categoryForm.title.trim(),
+            description: this.categoryForm.description.trim() || undefined,
+            votingRule: this.categoryForm.votingRule
+        }).subscribe({
+            next: () => {
+                this.savingCategory = false;
+                this.createCategoryDialog = false;
+                this.messageService.add({ severity: 'success', summary: 'Category Created', detail: 'Election category added.', life: 3000 });
+                this.loadCategories();
+            },
+            error: (err) => {
+                this.savingCategory = false;
+                const msg = err?.error?.Error ?? 'Failed to create category.';
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg, life: 4000 });
+            }
+        });
+    }
+
+    confirmDeleteCategory(cat: ElectionCategory) {
+        this.confirmationService.confirm({
+            message: `Delete the category "${cat.title}"? This action cannot be undone.`,
+            header: 'Delete Category',
+            icon: 'pi pi-trash',
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => {
+                this.electionService.deleteCategory(cat.id).subscribe({
+                    next: () => {
+                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Category deleted.', life: 3000 });
+                        this.loadCategories();
+                    },
+                    error: (err) => {
+                        const msg = err?.error?.Error ?? 'Failed to delete category.';
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: msg, life: 4000 });
+                    }
+                });
+            }
+        });
+    }
+
+    openEditCategoryDialog(cat: ElectionCategory) {
+        this.editingCategoryId = cat.id;
+        this.categoryForm = { title: cat.title, description: cat.description ?? '', votingRule: cat.votingRule };
+        this.editCategoryDialog = true;
+    }
+
+    updateCategory() {
+        this.savingCategory = true;
+        const dto: UpdateElectionCategoryDto = {
+            title: this.categoryForm.title.trim(),
+            description: this.categoryForm.description.trim() || undefined,
+            votingRule: this.categoryForm.votingRule
+        };
+        this.electionService.updateCategory(this.editingCategoryId, dto).subscribe({
+            next: () => {
+                this.savingCategory = false;
+                this.editCategoryDialog = false;
+                this.messageService.add({ severity: 'success', summary: 'Category Updated', detail: 'Changes saved.', life: 3000 });
+                this.loadCategories();
+            },
+            error: (err) => {
+                this.savingCategory = false;
+                const msg = err?.error?.Error ?? 'Failed to update category.';
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg, life: 4000 });
+            }
+        });
+    }
+
+    resetCategoryForm() {
+        this.categoryForm = { title: '', description: '', votingRule: '' };
+        this.editingCategoryId = '';
+    }
+
+    getVotingRuleLabel(rule: string): string {
+        switch (rule) {
+            case 'AdminOnly': return 'Only Admins can vote';
+            case 'FullMembersOnly': return 'Only Full Members can vote';
+            default: return 'All users can vote';
+        }
     }
 
     // -------------------------------------------------------------------------

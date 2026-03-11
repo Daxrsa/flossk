@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using FlosskMS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlosskMS.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260311134001_AddElectionCategories")]
+    partial class AddElectionCategories
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -426,32 +429,23 @@ namespace FlosskMS.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("text");
 
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                    b.Property<Guid>("ElectionId")
+                        .HasColumnType("uuid");
 
-                    b.Property<string>("VotingRule")
+                    b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
-
                     b.HasIndex("CreatedByUserId");
 
-                    b.HasIndex("Title");
-
-                    b.HasIndex("VotingRule");
+                    b.HasIndex("ElectionId");
 
                     b.ToTable("ElectionCategories");
                 });
@@ -1400,11 +1394,17 @@ namespace FlosskMS.Data.Migrations
                 {
                     b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("CreatedByUserId");
+
+                    b.HasOne("FlosskMS.Data.Entities.Election", "Election")
+                        .WithMany("Categories")
+                        .HasForeignKey("ElectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("CreatedByUser");
+
+                    b.Navigation("Election");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.ElectionVote", b =>
@@ -1782,6 +1782,8 @@ namespace FlosskMS.Data.Migrations
             modelBuilder.Entity("FlosskMS.Data.Entities.Election", b =>
                 {
                     b.Navigation("Candidates");
+
+                    b.Navigation("Categories");
 
                     b.Navigation("Votes");
                 });

@@ -33,6 +33,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Election> Elections { get; set; }
     public DbSet<ElectionCandidate> ElectionCandidates { get; set; }
     public DbSet<ElectionVote> ElectionVotes { get; set; }
+    public DbSet<ElectionCategory> ElectionCategories { get; set; }
     public DbSet<UserContribution> UserContributions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -533,6 +534,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => new { e.ProjectId, e.UserId }).IsUnique();
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.Score);
+        });
+
+        // ElectionCategory configuration
+        builder.Entity<ElectionCategory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.VotingRule)
+                .HasConversion<string>()
+                .HasMaxLength(30);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.Title);
+            entity.HasIndex(e => e.VotingRule);
+            entity.HasIndex(e => e.CreatedAt);
         });
     }
 }

@@ -23,7 +23,7 @@ import { Onboarding } from '@/pages/dashboard/components/onboarding';
 import { Donate } from '@/pages/dashboard/components/donate';
 import { RfidConfigurer } from '@/pages/dashboard/components/rfid-configurer';
 import { Projects } from '@/pages/dashboard/components/projects';
-import { Voting } from '@/pages/dashboard/components/voting';
+import { Elections } from '@/pages/dashboard/components/elections';
 import { Integrations } from '@/pages/dashboard/components/integrations';
 import { CertBuilder } from '@/pages/dashboard/components/cert-builder';
 
@@ -40,7 +40,7 @@ export const appRoutes: Routes = [
             { path: 'notifications', component: Notifications },
             { path: 'announcements', component: Announcements },
             { path: 'users', component: Users },
-            { path: 'voting', component: Voting, canActivate: [roleGuard(['Admin', 'Full Member'])] },
+            { path: 'elections', component: Elections, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'inventory', component: Inventory },
             { path: 'integrations', component: Integrations },
             { path: 'cert-builder', component: CertBuilder },

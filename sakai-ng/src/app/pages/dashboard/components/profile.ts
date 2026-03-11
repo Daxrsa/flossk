@@ -218,7 +218,7 @@ import { environment } from '@environments/environment.prod';
                             <p-fileupload
                                 mode="basic"
                                 chooseIcon="pi pi-camera"
-                                chooseLabel="Change banner"
+                                chooseLabel="Change"
                                 accept="image/*"
                                 [maxFileSize]="5000000"
                                 (onSelect)="onBannerSelect($event)"
