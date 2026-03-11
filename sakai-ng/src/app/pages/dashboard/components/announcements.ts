@@ -10,7 +10,7 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
-import { TooltipModule } from 'primeng/tooltip';
+
 import { ConfirmationService } from 'primeng/api';
 import { AnnouncementsService, Announcement, ReactionSummary } from '@/pages/service/announcements.service';
 import { AuthService, getInitials } from '@/pages/service/auth.service';
@@ -44,8 +44,7 @@ interface AnnouncementDisplay {
         DialogModule,
         InputTextModule,
         TextareaModule,
-        SelectModule,
-        TooltipModule
+        SelectModule
     ],
     providers: [ConfirmationService],
     template: `
@@ -130,15 +129,18 @@ interface AnnouncementDisplay {
                     <div class="flex gap-2">
                         <button 
                             *ngFor="let emoji of availableEmojis" 
-                            (click)="toggleReaction(selectedAnnouncement, emoji)"
-                            class="flex items-center gap-1 text-xl px-3 py-1 rounded-full transition-colors cursor-pointer border-none"
-                            [class.bg-surface-200]="hasUserReacted(selectedAnnouncement, emoji)"
-                            [class.dark:bg-surface-600]="hasUserReacted(selectedAnnouncement, emoji)"
-                            [class.bg-transparent]="!hasUserReacted(selectedAnnouncement, emoji)"
-                            [class.hover:bg-surface-100]="!hasUserReacted(selectedAnnouncement, emoji)"
-                            [class.dark:hover:bg-surface-700]="!hasUserReacted(selectedAnnouncement, emoji)"
-                            [pTooltip]="getEmojiTooltip(selectedAnnouncement, emoji)"
-                            tooltipPosition="top"
+                            (pointerenter)="onReactionPointerEnter($event, selectedAnnouncement!, emoji)"
+                            (pointerdown)="onReactionPointerDown($event, selectedAnnouncement!, emoji)"
+                            (pointerup)="onReactionPointerUp($event, selectedAnnouncement!, emoji)"
+                            (pointermove)="onReactionPointerMove($event)"
+                            (pointerleave)="onReactionPointerLeave()"
+                            (contextmenu)="$event.preventDefault()"
+                            class="flex items-center gap-1 text-xl px-3 py-1 rounded-full transition-colors cursor-pointer border-none select-none touch-none"
+                            [class.bg-surface-200]="hasUserReacted(selectedAnnouncement!, emoji)"
+                            [class.dark:bg-surface-600]="hasUserReacted(selectedAnnouncement!, emoji)"
+                            [class.bg-transparent]="!hasUserReacted(selectedAnnouncement!, emoji)"
+                            [class.hover:bg-surface-100]="!hasUserReacted(selectedAnnouncement!, emoji)"
+                            [class.dark:hover:bg-surface-700]="!hasUserReacted(selectedAnnouncement!, emoji)"
                         >
                             <span>{{ emoji }}</span>
                             <span *ngIf="getReactionCount(selectedAnnouncement, emoji) > 0" class="text-sm font-medium">{{ getReactionCount(selectedAnnouncement, emoji) }}</span>
@@ -166,7 +168,7 @@ interface AnnouncementDisplay {
                                     <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-0 m-0 mb-1">
                                         {{ announcement.title }}
                                     </h3>
-                                <div class="flex items-center gap-2 text-sm text-muted-color">
+                                <div class="flex flex-col md:flex-row gap-2 text-sm text-muted-color">
                                     <span>{{ announcement.author }}</span>
                                     <span>•</span>
                                     <span>{{ announcement.date }}</span>
@@ -175,7 +177,7 @@ interface AnnouncementDisplay {
                                 </div>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-col md:flex-row items-center gap-2">
                             <p-tag 
                                 [value]="announcement.priority?.toUpperCase()" 
                                 [severity]="getPrioritySeverity(announcement.priority)"
@@ -194,19 +196,22 @@ interface AnnouncementDisplay {
                     </div>
 
                     <!-- Reactions Section -->
-                    <div class="flex items-center gap-2 mt-4 flex-wrap" (click)="$event.stopPropagation()">
-                        <div class="flex gap-2">
+                    <div class="flex items-center gap-2 mt-4" (click)="$event.stopPropagation()">
+                        <div class="flex gap-2 flex-wrap">
                             <button 
                                 *ngFor="let emoji of availableEmojis" 
-                                (click)="toggleReaction(announcement, emoji)"
-                                class="flex items-center gap-1 text-lg px-2 py-1 rounded-full transition-colors cursor-pointer border-none"
+                                (pointerenter)="onReactionPointerEnter($event, announcement, emoji)"
+                                (pointerdown)="onReactionPointerDown($event, announcement, emoji)"
+                                (pointerup)="onReactionPointerUp($event, announcement, emoji)"
+                                (pointermove)="onReactionPointerMove($event)"
+                                (pointerleave)="onReactionPointerLeave()"
+                                (contextmenu)="$event.preventDefault()"
+                                class="flex items-center gap-1 text-lg px-2 py-1 rounded-full transition-colors cursor-pointer border-none select-none touch-none"
                                 [class.bg-surface-200]="hasUserReacted(announcement, emoji)"
                                 [class.dark:bg-surface-600]="hasUserReacted(announcement, emoji)"
                                 [class.bg-transparent]="!hasUserReacted(announcement, emoji)"
                                 [class.hover:bg-surface-100]="!hasUserReacted(announcement, emoji)"
                                 [class.dark:hover:bg-surface-700]="!hasUserReacted(announcement, emoji)"
-                                [pTooltip]="getEmojiTooltip(announcement, emoji)"
-                                tooltipPosition="top"
                             >
                                 <span>{{ emoji }}</span>
                                 <span *ngIf="getReactionCount(announcement, emoji) > 0" class="text-sm font-medium">{{ getReactionCount(announcement, emoji) }}</span>
@@ -227,6 +232,16 @@ interface AnnouncementDisplay {
                     <p class="text-muted-color text-lg">No announcements yet</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Reactor popup shown on long-press -->
+        <div *ngIf="reactorPopup"
+             class="fixed z-9999 bg-surface-0 dark:bg-surface-800 border border-surface rounded-lg shadow-xl p-3 text-sm pointer-events-none min-w-28"
+             [style.left.px]="reactorPopup.x"
+             [style.bottom.px]="reactorPopup.bottom">
+            <div class="font-semibold mb-2 text-surface-900 dark:text-surface-0">{{ reactorPopup.emoji }}</div>
+            <div *ngFor="let name of reactorPopup.users" class="text-surface-700 dark:text-surface-300 py-0.5">{{ name }}</div>
+            <div *ngIf="reactorPopup.users.length === 0" class="text-muted-color italic">No reactions yet</div>
         </div>
     `
 })
@@ -264,6 +279,14 @@ export class Announcements implements OnInit {
     
     // Available emoji reactions
     availableEmojis = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
+
+    // Long-press state
+    reactorPopup: { emoji: string; users: string[]; x: number; bottom: number } | null = null;
+    private longPressTimer: any = null;
+    private longPressActive = false;
+    private longPressStartX = 0;
+    private longPressStartY = 0;
+    private dismissPopupTimer: any = null;
     
     categoryOptions = [
         { label: 'General', value: 'General' },
@@ -362,6 +385,70 @@ export class Announcements implements OnInit {
             views: 0,
             reactions: [],
             isCurrentUserCreator: true
+        };
+    }
+
+    // Long-press / hover reaction handlers
+    onReactionPointerEnter(event: PointerEvent, announcement: AnnouncementDisplay, emoji: string) {
+        if (event.pointerType === 'mouse') {
+            clearTimeout(this.dismissPopupTimer);
+            this.showReactorPopup(event, announcement, emoji);
+        }
+    }
+
+    onReactionPointerDown(event: PointerEvent, announcement: AnnouncementDisplay, emoji: string) {
+        this.longPressActive = false;
+        this.longPressStartX = event.clientX;
+        this.longPressStartY = event.clientY;
+        clearTimeout(this.dismissPopupTimer);
+        if (event.pointerType !== 'mouse') {
+            this.reactorPopup = null;
+            this.longPressTimer = setTimeout(() => {
+                this.longPressActive = true;
+                this.showReactorPopup(event, announcement, emoji);
+            }, 500);
+        }
+    }
+
+    onReactionPointerUp(event: PointerEvent, announcement: AnnouncementDisplay, emoji: string) {
+        clearTimeout(this.longPressTimer);
+        if (!this.longPressActive) {
+            this.toggleReaction(announcement, emoji);
+        } else {
+            this.dismissPopupTimer = setTimeout(() => {
+                this.reactorPopup = null;
+            }, 2000);
+        }
+        this.longPressActive = false;
+    }
+
+    onReactionPointerMove(event: PointerEvent) {
+        if (!this.longPressActive) {
+            const dx = event.clientX - this.longPressStartX;
+            const dy = event.clientY - this.longPressStartY;
+            if (dx * dx + dy * dy > 100) {
+                clearTimeout(this.longPressTimer);
+            }
+        }
+    }
+
+    onReactionPointerLeave() {
+        clearTimeout(this.longPressTimer);
+        clearTimeout(this.dismissPopupTimer);
+        this.reactorPopup = null;
+        this.longPressActive = false;
+    }
+
+    private showReactorPopup(event: PointerEvent, announcement: AnnouncementDisplay, emoji: string) {
+        const reaction = announcement.reactions?.find(r => r.emoji === emoji);
+        const users = reaction?.users?.map((u: any) => `${u.firstName} ${u.lastName}`) || [];
+        const target = (event.target as HTMLElement).closest('button') ?? (event.target as HTMLElement);
+        const rect = target.getBoundingClientRect();
+        this.reactorPopup = {
+            emoji,
+            users,
+            x: Math.min(rect.left, window.innerWidth - 160),
+            bottom: window.innerHeight - rect.top + 8
         };
     }
 

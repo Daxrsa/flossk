@@ -16,6 +16,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { FileUploadModule } from 'primeng/fileupload';
 import { SelectModule } from 'primeng/select';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
@@ -46,7 +47,7 @@ interface User {
 
 @Component({
     selector: 'app-profile',
-    imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule, ConfirmDialogModule, ToastModule],
+    imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, InputNumberModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule, ConfirmDialogModule, ToastModule],
     providers: [ConfirmationService, MessageService],
     template: `
         <p-toast />
@@ -230,7 +231,7 @@ interface User {
                             class="w-full h-full object-cover"
                         />
                         <!-- Change banner button (own profile) -->
-                        <div *ngIf="isOwnProfile" class="absolute bottom-4 right-4 flex gap-2 items-center">
+                        <div *ngIf="isOwnProfile" class="absolute bottom-4 right-4 flex flex-col md:flex-row gap-2 items-end">
                             <p-fileupload
                                 mode="basic"
                                 chooseIcon="pi pi-camera"
@@ -513,6 +514,55 @@ interface User {
                                 </div>
                             </div>
                         </div>
+
+        <!-- Profile Checkin Dialog -->
+        <p-dialog
+            [(visible)]="profileCheckinDialogVisible"
+            header="Check In Item"
+            [modal]="true"
+            [style]="{ width: '30rem' }"
+            [breakpoints]="{ '575px': '95vw' }"
+            appendTo="body"
+        >
+            <div class="flex flex-col gap-4">
+                <p class="text-sm text-muted-color mb-2">
+                    How many units of <strong>{{ profileCheckinItem?.name }}</strong> would you like to check in?
+                </p>
+                <div class="flex flex-col gap-2">
+                    <label for="profileCheckinQuantity" class="font-semibold">Quantity</label>
+                    <p-inputNumber
+                        id="profileCheckinQuantity"
+                        [(ngModel)]="profileCheckinQuantity"
+                        [min]="1"
+                        [max]="profileCheckinMaxQuantity"
+                        [showButtons]="true"
+                        [useGrouping]="false"
+                        buttonLayout="horizontal"
+                        incrementButtonIcon="pi pi-plus"
+                        decrementButtonIcon="pi pi-minus"
+                        inputmode="numeric"
+                        class="w-full"
+                    />
+                    <small class="text-muted-color">
+                        Checked out by you: {{ profileCheckinMaxQuantity }} unit{{ profileCheckinMaxQuantity !== 1 ? 's' : '' }}
+                    </small>
+                </div>
+            </div>
+            <ng-template #footer>
+                <div class="flex justify-end gap-2 mt-4">
+                    <p-button
+                        label="Cancel"
+                        severity="secondary"
+                        (onClick)="profileCheckinDialogVisible = false"
+                    />
+                    <p-button
+                        label="Check In"
+                        severity="success"
+                        (onClick)="submitProfileCheckin()"
+                    />
+                </div>
+            </ng-template>
+        </p-dialog>
 
                         <!-- Checked Out Items Card -->
                         <div class="card mt-6">
@@ -827,6 +877,7 @@ export class Profile implements OnInit {
         observable.subscribe({
             next: (items) => {
                 this.checkedOutItems = items;
+                console.log('Checked out items:', items);
             },
             error: (err) => {
                 console.error('Error loading checked out items:', err);
@@ -835,15 +886,49 @@ export class Profile implements OnInit {
         });
     }
 
+    profileCheckinDialogVisible = false;
+    profileCheckinItem: InventoryItem | null = null;
+    profileCheckinQuantity = 1;
+    profileCheckinMaxQuantity = 1;
+
     checkInInventoryItem(item: InventoryItem) {
-        this.inventoryService.checkInItem(item.id).subscribe({
+        this.profileCheckinItem = item;
+        this.profileCheckinMaxQuantity = item.checkedOutQuantity || 1;
+        this.profileCheckinQuantity = this.profileCheckinMaxQuantity;
+        this.profileCheckinDialogVisible = true;
+    }
+
+    submitProfileCheckin() {
+        if (!this.profileCheckinItem) return;
+
+        if (this.profileCheckinQuantity < 1) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Invalid Quantity',
+                detail: 'Quantity must be at least 1'
+            });
+            return;
+        }
+
+        if (this.profileCheckinQuantity > this.profileCheckinMaxQuantity) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Invalid Quantity',
+                detail: `Cannot check in more than ${this.profileCheckinMaxQuantity} unit(s) that you have checked out`
+            });
+            return;
+        }
+
+        this.http.post(`${environment.apiUrl}/Inventory/${this.profileCheckinItem.id}/checkin`, {
+            quantity: this.profileCheckinQuantity
+        }).subscribe({
             next: () => {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',
-                    detail: `${item.name} has been checked in successfully`
+                    detail: `${this.profileCheckinQuantity} unit(s) of ${this.profileCheckinItem!.name} checked in successfully`
                 });
-                // Reload the checked out items
+                this.profileCheckinDialogVisible = false;
                 this.loadCheckedOutItems();
             },
             error: (err) => {
@@ -851,7 +936,7 @@ export class Profile implements OnInit {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: err.error?.Errors?.[0] || 'Failed to check in item'
+                    detail: err.error?.Message || err.error?.message || err.error?.Errors?.[0] || 'Failed to check in item'
                 });
             }
         });

@@ -33,6 +33,7 @@ export interface InventoryItem {
     createdByUserLastName?: string;
     createdByUserFullName?: string;
     createdByUserProfilePictureUrl?: string;
+    checkedOutQuantity?: number;
     thumbnailPath?: string;
     images?: InventoryItemImage[];
     properties?: { [key: string]: any };

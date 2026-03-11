@@ -29,24 +29,26 @@ import { environment } from '@environments/environment.prod';
 
         <div class="layout-topbar-actions">
             <div class="layout-config-menu">
-                <button type="button" class="layout-topbar-action" (click)="profilePopover.toggle($event)"><i class="pi pi-user"></i><span>Profile</span></button>
+                <button type="button" class="layout-topbar-action" (click)="profilePopover.toggle($event)">
+                    <p-avatar
+                        *ngIf="hasProfilePicture()"
+                        [image]="getProfilePictureUrl()"
+                        shape="circle"
+                        size="normal"
+                    ></p-avatar>
+                    <p-avatar
+                        *ngIf="!hasProfilePicture()"
+                        [label]="getUserInitials()"
+                        shape="circle"
+                        size="normal"
+                        [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                    ></p-avatar>
+                    <span>Profile</span>
+                </button>
                 <p-popover #profilePopover>
                     <div class="flex flex-col w-72">
                         @if (authService.currentUser()) {
                             <div class="flex items-center gap-4 p-4 border-b border-surface-200 dark:border-surface-700">
-                                <p-avatar
-                                    *ngIf="hasProfilePicture()"
-                                    [image]="getProfilePictureUrl()"
-                                    shape="circle"
-                                    size="large"
-                                ></p-avatar>
-                                <p-avatar
-                                    *ngIf="!hasProfilePicture()"
-                                    [label]="getUserInitials()"
-                                    shape="circle"
-                                    size="large"
-                                    [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
-                                ></p-avatar>
                                 <div class="flex flex-col">
                                     <div class="font-semibold text-surface-900 dark:text-surface-0">{{ authService.currentUser()?.email }}</div>
                                     <div class="text-sm text-muted-color">{{ authService.currentUser()?.role || authService.currentUser()?.roles?.[0] || 'Member' }}</div>
