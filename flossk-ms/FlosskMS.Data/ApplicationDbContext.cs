@@ -35,6 +35,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ElectionVote> ElectionVotes { get; set; }
     public DbSet<ElectionCategory> ElectionCategories { get; set; }
     public DbSet<UserContribution> UserContributions { get; set; }
+    public DbSet<Certificate> Certificates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -553,6 +554,25 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             entity.HasIndex(e => e.Title);
             entity.HasIndex(e => e.VotingRule);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // Certificate
+        builder.Entity<Certificate>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.EventName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Type).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+            entity.HasOne(e => e.RecipientUser).WithMany()
+                .HasForeignKey(e => e.RecipientUserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.IssuedByUser).WithMany()
+                .HasForeignKey(e => e.IssuedByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.RecipientUserId);
+            entity.HasIndex(e => e.IssuedByUserId);
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
         });
     }

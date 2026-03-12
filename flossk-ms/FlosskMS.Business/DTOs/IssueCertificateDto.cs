@@ -1,0 +1,21 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace FlosskMS.Business.DTOs;
+
+public class IssueCertificateDto
+{
+    [Required]
+    public List<string> RecipientUserIds { get; set; } = [];
+
+    [Required]
+    public string Type { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(200)]
+    public string EventName { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string Description { get; set; } = string.Empty;
+
+    public DateTime? IssuedDate { get; set; }
+}

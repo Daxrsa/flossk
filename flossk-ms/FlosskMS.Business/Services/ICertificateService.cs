@@ -1,0 +1,12 @@
+using Microsoft.AspNetCore.Mvc;
+
+namespace FlosskMS.Business.Services;
+
+public interface ICertificateService
+{
+    Task<IActionResult> IssueCertificatesAsync(DTOs.IssueCertificateDto request, string issuedByUserId);
+    Task<IActionResult> GetCertificatesAsync(int page = 1, int pageSize = 10);
+    Task<IActionResult> GetCertificateByIdAsync(Guid id);
+    Task<IActionResult> DownloadCertificateAsync(Guid id);
+    Task<IActionResult> RevokeCertificateAsync(Guid id, string userId);
+}
